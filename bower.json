@@ -23,10 +23,12 @@
     "angular-mocks": "~1.2.7",
     "angular-scenario": "~1.2.7",
     "angular-ui-bootstrap": "~0.10.0",
+    "angular-bootstrap": "~0.10.0",
     "underscore": "~1.5.2",
     "topcoat": "~0.8.0",
     "font-awesome": "~4.0.3",
-    "restangular": "~1.2.2"
+    "restangular": "~1.2.2",
+    "bootstrap": "~3.0.3"
   },
   "resolutions": {
     "angular": "1.2.8"

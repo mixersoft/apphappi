@@ -1,45 +1,139 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf8">
-  <meta name="viewport" content="width=device-width">
-  <title>My Steroids App</title>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <title>AppHappi</title>
 
-  <link rel="stylesheet" href="/vendor/topcoat/css/topcoat-mobile-light.css" />
-  <link rel="stylesheet" href="/stylesheets/application.css" />
+    <meta http-equiv="X-UA-Compatible"  content="IE=edge,chrome=1">
+    <meta name="viewport"               content="width=device-width, initial-scale=1.0">
+    <meta name="description"            content="AppHappi by Snaphappi">
+    <meta name="author"                 content="michael@snaphappi.com">
 
-  <script src="/javascripts/onerror.js"></script>
-  <script src="/javascripts/console.log.js"></script>
+    <!-- build:css stylesheets/vendor.min.css -->
+    <link rel="stylesheet" href="/stylesheets/bootstrap.css" />
+    <link rel="stylesheet" href="/stylesheets/font-awesome.css" />
+    <link rel="stylesheet" href="/vendor/fonts/snappi-fonts.css" />
+    <link rel="stylesheet" href="/vendor/topcoat/css/topcoat-mobile-light.css" />
+    <!-- endbuild -->
+    <!-- build:css stylesheets/app.min.css -->
+    <link rel="stylesheet" href="/stylesheets/application.css" />
+    <!-- endbuild -->
 
-  <!-- cordova.js is served from localhost to ensure the correct version -->
-  <script src="http://localhost/cordova.js"></script>
-  <script src="/components/steroids-js/steroids.js"></script>
+    <!--[if lt IE 9]>
+    <script src="components/html5shiv-dist/html5shiv.js"></script>
+    <![endif]-->
 
-  <script src="/javascripts/application.js"></script>
-</head>
-<body>
-  <div class="content-padded">
+    <!-- build:js javascripts/vendor-HEAD.min.js -->
+    <script src="/components/angular/angular.min.js"></script>
+    <script src="http://localhost/cordova.js"></script>
+    <script src="/components/steroids-js/steroids.js"></script>
+    <!-- endbuild -->
 
-    <h1>Welcome to Steroids!</h1>
+    <style>
+        body {
+            font-family: "Roboto";
+        }
+    </style>
+    
+  </head>
+  <body>
+    <!--[if lt IE 7]>
+    <p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+    <![endif]-->
 
-    <p>Awesome! This file is located at <strong>www/index.html</strong> &mdash; open it, change some text, save the file, and press enter in the Terminal window running <strong>$ steroids connect</strong>. The changes are updated to all connected devices. Cool, ain't it?</p>
+    <noscript>
+        Please enable Javascript to experience this site :)
+    </noscript>
 
-    <h2>Using AppGyver Scanner</h2>
+     <!-- sample bootstrap copy  -->
+    <div class="container">
+        <div class="starter-template">
+        <h1>Bootstrap starter template</h1>
+        <p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
 
-    <p>On iOS, to restart your current app or scan another app, <strong>tap and hold on the screen with three fingers.</strong>. This opens the Scanner context menu.</p>
+        <h1>Welcome to Steroids!</h1>
 
-    <p>On Android, press the native back button to return to the device desktop. Open the Scanner again to scan another app or re-open your previous app.</p>
+        <p>Awesome! This file is located at <strong>www/index.html</strong> &mdash; open it, change some text, save the file, and press enter in the Terminal window running <strong>$ steroids connect</strong>. The changes are updated to all connected devices. Cool, ain't it?</p>
+        </div>
 
-    <h2>Start the tutorial</h2>
+      <!-- Main component for a primary marketing message or call to action -->
+      <div class="jumbotron">
+        <h1>Navbar example</h1>
+        <p>This example is a quick exercise to illustrate how the default, static and fixed to top navbar work. It includes the responsive CSS and HTML, so it also adapts to your viewport and device.</p>
+        <p>To see the difference between static and fixed top navbars, just scroll.</p>
+        <p>
+          <a class="btn btn-lg btn-primary" href="../../components/#navbar" role="button">View navbar docs »</a>
+        </p>
+      </div>
+    </div> <!-- /container -->
 
-    <p>Let's spend a few minutes on a short tutorial. Go to your Steroids project directory and run the command:</p>
 
-    <p><strong>$ steroids generate tutorial begin</strong></p>
+    <div class="row-fluid med-grey-back dark-dust min-height-1500">
 
-    <h2>Get in touch with us!</h2>
+      <div ng-include src="'app/views/header.html'"></div>
+      <div view-loading ng-show="isViewLoading"></div>
+      <div ui-view class="first-load"></div>
 
-    <p>Feel free to contact us at <a href="mailto:contact@appgyver.com">contact@appgyver.com</a>, we would love to get your feedback!</p>
+    </div>
 
-  </div>
-</body>
+    <!-- build:js javascripts/vendor-BODY.min.js -->
+    <script src="/components/parse-js-sdk/lib/parse-1.2.16.min.js"></script>
+    <script src="/components/modernizr/modernizr.js"></script>
+    <!-- // <script src="/components/underscore/underscore-min.js"></script> -->
+    <script src="/components/lodash/dist/lodash.underscore.js"></script>
+    
+    <script src="/components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="/components/angular-animate/angular-animate.js"></script>
+    <script src="/components/angular-ui-router/release/angular-ui-router.js"></script>
+    <!-- endbuild -->
+
+
+    <!-- build:js javascripts/app.min.js -->
+    <!-- endbuild -->
+
+    <!-- Async Social SDKs -->
+    <div id="fb-root"></div>
+
+    <script type="text/javascript">
+      (function(doc, script) {
+        var js, 
+            fjs = doc.getElementsByTagName(script)[0],
+            add = function(url, id) {
+                if (doc.getElementById(id)) {return;}
+                js = doc.createElement(script);
+                js.src = url;
+                id && (js.id = id);
+                fjs.parentNode.insertBefore(js, fjs);
+            };
+        // Facebook SDK
+        add('//connect.facebook.net/en_US/all.js', 'facebook-jssdk');
+        // Twitter SDK
+        add('//platform.twitter.com/widgets.js', 'twitter-wjs');
+      }(document, 'script'));
+    </script>
+
+  
+    <!-- Async resolve promise when FB SDK is loaded, this triggers Parse.FacebookUtils.init() -->
+    <script>
+      var fbDeferred = $.Deferred();
+      window.fbPromise = fbDeferred.promise();
+      window.fbAsyncInit = function() {
+        fbDeferred.resolve();
+      };
+    </script>
+
+
+    
+
+    <script type="text/javascript">
+      // manual bootstrap
+      angular.element(document).ready(function() {
+        angular.bootstrap(document, ['app']);
+      });
+    </script>
+
+  </body>
 </html>
