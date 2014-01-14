@@ -1,0 +1,29 @@
+{
+  "name": "mySteroidsProject",
+  "version": "0.0.1",
+  "description": "My awesome AppGyver Steroids project.",
+  "repository": "N/A",
+  "readme": "N/A",
+  "private": true,
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "devDependencies": {
+    "grunt-steroids": "0.x",
+    "grunt-contrib-jshint": "~0.8.0",
+    "grunt-contrib-less": "~0.9.0",
+    "grunt-contrib-watch": "~0.5.3",
+    "grunt-contrib-cssmin": "~0.7.0",
+    "grunt-contrib-uglify": "~0.2.7",
+    "grunt-parallel": "~0.3.1",
+    "grunt-usemin": "~2.0.2",
+    "grunt-rev": "~0.1.0",
+    "grunt-express-server": "~0.4.11",
+    "express": "~3.4.7"
+  },
+  "license": "none",
+  "engines": {
+    "steroids": "3.1.9"
+  }
+}
