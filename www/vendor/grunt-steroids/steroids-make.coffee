@@ -138,7 +138,9 @@ module.exports = (grunt)->
 
       for filePathPart in grunt.file.expand(path.join(viewDir, "**", "*")) when fs.statSync(filePathPart).isFile()
         # MODIFIED: exclude views in /partials/
-        continue if /[\/\\]partials[\/\\]/.test filePathPart
+        if /[\/\\]partials[\/\\]/.test filePathPart
+          console.log "*** MODIFIED: skipping partials, file:"+filePathPart
+          continue
 
         filePath = path.resolve filePathPart
 
