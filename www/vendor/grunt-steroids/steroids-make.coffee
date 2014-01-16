@@ -137,6 +137,8 @@ module.exports = (grunt)->
       applicationLayoutFile = grunt.file.read layoutFilePath, "utf8"
 
       for filePathPart in grunt.file.expand(path.join(viewDir, "**", "*")) when fs.statSync(filePathPart).isFile()
+        # MODIFIED: exclude views in /partials/
+        continue if /[\/\\]partials[\/\\]/.test filePathPart
 
         filePath = path.resolve filePathPart
 
