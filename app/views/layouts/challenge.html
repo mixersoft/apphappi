@@ -1,0 +1,78 @@
+<!-- html5-steroids-angular-boilerplate -->
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <title>AppHappi:FindHappi:Challenge</title>
+
+    <meta http-equiv="X-UA-Compatible"  content="IE=edge,chrome=1">
+    <meta name="viewport"               content="width=device-width, initial-scale=1.0">
+    <meta name="description"            content="AppHappi by Snaphappi">
+    <meta name="author"                 content="michael@snaphappi.com">
+
+    <!-- build:css stylesheets/vendor.min.css -->
+    <link rel="stylesheet" href="/stylesheets/bootstrap.css" />
+    <link rel="stylesheet" href="/stylesheets/font-awesome.css" />
+    <link rel="stylesheet" href="/vendor/fonts/snappi-fonts.css" />
+    <link rel="stylesheet" href="/vendor/topcoat/css/topcoat-mobile-light.css" />
+    <!-- endbuild -->
+
+    <!-- build:css stylesheets/app.min.css -->
+    <link rel="stylesheet" href="/stylesheets/application.css" />
+    <!-- endbuild -->
+
+    <!--[if lt IE 9]>
+    <script src="components/html5shiv-dist/html5shiv.js"></script>
+    <![endif]-->
+
+    <!-- build:js javascripts/vendor-HEAD.min.js -->
+    <script src="http://localhost/cordova.js"></script>
+    <script src="/components/steroids-js/steroids.js"></script>
+    <!-- endbuild -->
+
+    <style type="text/css">
+        body {
+            font-family: "Roboto";
+        }
+    </style>
+    
+  </head>
+  <body>
+    <!--[if lt IE 7]>
+    <p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+    <![endif]-->
+
+    <noscript>
+        Please enable Javascript to experience this site :)
+    </noscript>
+
+
+
+    <%= yield.view %>
+
+
+
+    <!-- build:js javascripts/vendor-BODY.min.js -->
+    <script src="/components/parse-js-sdk/lib/parse-1.2.16.min.js"></script>
+    <script src="/components/modernizr/modernizr.js"></script>
+    <!-- // <script src="/components/underscore/underscore-min.js"></script> -->
+    <script src="/components/lodash/dist/lodash.underscore.js"></script>
+    
+    <script src="/components/angular/angular.js"></script>
+    <script src="/components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <script src="/components/angular-animate/angular-animate.js"></script>
+    <script src="/components/angular-route/angular-route.js"></script>
+    <script src="/components/restangular/dist/restangular.js"></script>
+    <!-- endbuild -->
+
+
+    <!-- build:js javascripts/app.min.js -->
+    <script src="/models/challenge.js"></script>
+    <script src="/controllers/challenge.js"></script>
+    <!-- endbuild -->
+
+  </body>
+</html>
