@@ -35,6 +35,7 @@ module.exports = (grunt)->
     SASS_FILES:     '**/*.scss'
     LESS_FILES:     '**/*.less'
     FONT_FILES:     '**/font'
+    DATA_FILES:     '**/*.json'
 
     copy:
       #
@@ -48,6 +49,14 @@ module.exports = (grunt)->
           expand:   true
           cwd:      '<%= WWW_DIR %>'
           src:      '<%= IMG_FILES %>'
+          dest:     '<%= BUILD_DIR %>'
+        ]
+
+      data:
+        files:      [
+          expand:   true
+          cwd:      '<%= APP_DIR %>'
+          src:      '**/data/<%= DATA_FILES %>'
           dest:     '<%= BUILD_DIR %>'
         ]
 
@@ -76,6 +85,20 @@ module.exports = (grunt)->
           flatten:  true
           filter:   'isFile'
         ]  
+
+          # app (non-Bower) HTML in `client`
+      html:     # WARING: overwrites results from steroids-compile-views
+        files:      [
+          expand:   true
+          cwd:      '<%= APP_DIR %>views/'
+          src:      '**/partials/<%= HTML_FILES %>'
+          dest:     '<%= BUILD_DIR %>views/'
+        ,
+          expand:   true
+          cwd:      '<%= WWW_DIR %>'
+          src:      ['<%= HTML_FILES %>', '!**/vendor/**', '!**/components/**']
+          dest:     '<%= BUILD_DIR %>'
+        ]
 
     # Ability to run `jshint` without errors terminating the development server
     parallel:
@@ -110,9 +133,7 @@ module.exports = (grunt)->
           spawn:    false
 
       html:
-        files:      [ '<%= APP_DIR + HTML_FILES %>'
-                    '<%= SERVER_DIR + HTML_FILES %>' 
-                    ] 
+        files:      [ '<%= APP_DIR + HTML_FILES %>'] 
         tasks:      ['copy:html']
         options: 
           spawn:    false
@@ -126,6 +147,16 @@ module.exports = (grunt)->
         # tasks:      [ 'parallel:less', 'parallel:cssmin' ]  
         options:
           spawn: false
+
+      coffee:
+        files:
+          expand: true
+          cwd: "<%= APP_DIR %>"
+          src: ["**/*.coffee"]
+          dest: "<%= BUILD_DIR %>"
+          ext: ".js"
+        tasks: ['coffee:app']  
+            
 
       # WARNING: NOT TESTED
       build:        
@@ -182,6 +213,8 @@ module.exports = (grunt)->
           '<%= BUILD_DIR %>stylesheets/bootstrap.css': '<%= WWW_DIR %>components/bootstrap/less/bootstrap.less'
         , # font-awesome
           '<%= BUILD_DIR %>stylesheets/font-awesome.css': '<%= WWW_DIR %>components/font-awesome/less/font-awesome.less'
+
+
         ]
 
     # Browser-based testing
@@ -214,7 +247,14 @@ module.exports = (grunt)->
     useminPrepare:
       html:         '<%= BUILD_DIR %>index.html'
 
-
+    # "Compile CoffeeScript files from app/ and www/ to dist/"
+    coffee:
+      app:
+        expand: true
+        cwd: "<%= APP_DIR %>"
+        src: ["**/*.coffee"]
+        dest: "<%= BUILD_DIR %>"
+        ext: ".js"
 
 
 
@@ -261,3 +301,7 @@ module.exports = (grunt)->
   grunt.loadNpmTasks('grunt-express-server')
   grunt.loadNpmTasks('grunt-usemin')
   grunt.loadNpmTasks('grunt-rev')
+  grunt.loadNpmTasks "grunt-contrib-coffee"
+
+
+
