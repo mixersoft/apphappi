@@ -28,7 +28,8 @@
     "topcoat": "~0.8.0",
     "font-awesome": "~4.0.3",
     "restangular": "~1.2.2",
-    "bootstrap": "~3.0.3"
+    "bootstrap": "~3.0.3",
+    "angular-route": "~1.2.9"
   },
   "resolutions": {
     "angular": "1.2.8"
