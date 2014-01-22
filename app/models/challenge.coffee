@@ -1,4 +1,17 @@
-return if !angular? 
+return if !angular?
+
+hostconfig = {
+	localhost: 'localhost'
+	home: '192.168.1.8'
+	'1776': '10.1.10.212'
+}
+
+baseurl = [
+	'http://'
+	hostconfig.localhost
+	':4001'
+	'/common/data'
+]
 
 angular.module( 'challengeModel'
 , ['restangular']
@@ -6,7 +19,7 @@ angular.module( 'challengeModel'
 ).factory( 'ChallengeRestangular'
 , (Restangular)->
 		Restangular.withConfig (RestangularConfigurer)->
-			RestangularConfigurer.setBaseUrl('http://10.1.10.212:4001/common/data')
+			RestangularConfigurer.setBaseUrl(baseurl.join(''))
 			RestangularConfigurer.setRequestSuffix('.json')
 			RestangularConfigurer.setRestangularFields {
 					id: "id"
