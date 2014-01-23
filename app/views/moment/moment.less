@@ -1,0 +1,339 @@
+// Core variables and mixins
+@import "variables.less";
+@import "mixins.less";
+
+// snaphappi variables
+@snappi-red:            #D01F40;
+@snappi-darkred:        #711124;
+@snappi-orange:         #F16122;
+@snappi-yellow:         #FDF9D0;
+@snappi-darkblue:       #152437;   
+@snappi-peach:          #E9C1C1;
+
+@font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
+
+
+.device {
+	&.device-border {
+		position: fixed;	
+		border: 1px solid green;
+	}
+	&.device-wrap {
+		position: relative;	
+		background-color: @gray-light;
+	}
+	
+	box-sizing: border-box;
+	&.iphone4 {
+		width: 320px;
+		height: 480px;
+		
+	}
+	&.iphone5 {
+		width: 320px;
+		height: 568px;	
+	}
+}
+
+.force-dl-horizontal dt {
+	float: left;
+	overflow: hidden;
+	clear: left;
+	text-align: right;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+ul.moments {
+	padding-left: 0;
+}
+
+.moment {
+	figure {
+		.icon {
+
+		}
+		.category{
+			
+		}
+	}
+	.header {
+
+		> * {
+			vertical-align: middle;
+			cursor: default;
+		}
+		figure.icon {
+			font-size: 0.8em;
+		}
+		.title {
+			font-size: 1.2em;
+		}
+	}
+	.body {
+		border-top: 1px solid black;
+		margin-bottom: 10px;
+		padding-top: 10px;
+		.center-block();
+		.heading {
+			font-size: @font-size-small;	
+		}
+		position: relative;
+		.title {
+			font-size: @font-size-large;	
+			font-weight: bold;
+		}
+		.description {
+			font-size: @font-size-small;	
+			width: 80%;
+		}
+		.meta {
+			border-radius: 10px;
+			padding: 6px;
+			margin: 0;
+			width: 47%;
+			.center-block();
+			font-size: @font-size-small;
+			.header {
+				border-radius: 0.25em;
+		    font-weight: bold;
+		    font-family: GeoSansLightRegular;
+		    line-height: 1;
+		    padding: 0.2em 0;
+		    text-align: center;
+		    vertical-align: baseline;
+		    white-space: nowrap;
+			}
+			.inverse {
+				color: #FFFFFF;
+				background-color: #999999;
+			}
+			.stats-wrap {
+				margin-bottom: 0;
+			}
+			dl {
+				position: relative;
+				.center-block();
+				dt {
+					width: 54%;
+					font-family: GeoSansLightRegular;
+				}
+				dd {
+					text-align: left;
+					width: 42%;
+					margin-left: 58%
+				}
+			}
+		}
+	}
+	.footer {
+		border-top: 1px solid black;
+		padding-top: 10px;
+		.btn-group {
+			margin-right: 15px;
+		}
+		.btn-group:last-of-type {
+			margin-right: 0;
+		}
+	}
+
+	&.card {
+		border: 2px solid black;
+		border-radius: 10px;
+		margin: 10px;
+		padding: 10px;
+		overflow: hidden;
+	}
+	&.summary {
+
+	}
+	&.detail {
+
+	}
+}
+
+
+
+.thumb {
+  &, &.crop-wrap {
+    width:100%;
+    height:auto;  
+  }
+  float: left;
+  margin: 4px auto;
+  .flickrd & {    // for flickr style absolute positioning
+    float: none;
+    position: absolute;
+  }
+  
+  .crop {
+    display:block;
+    position:relative;
+    overflow:hidden;
+    img {
+      display:block;
+      position:relative;
+      margin: 0 !important;
+      /* reset */
+      max-width: none;
+    }
+  }
+  
+  .meta {
+    padding: 5px 0 0;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    font-size: @font-size-mini;
+    line-height: 1.3;
+    margin-top: 5px;
+    text-align: left;
+    overflow: hidden;
+    transition: all .15s ease-in-out;
+    > * {
+      margin-left: 8px;
+    }
+    .title {
+    }
+    .owner {
+    }
+    .bottom-row {
+      margin: 0 8px;
+      position: relative;
+      bottom: 0;
+      height: 20px;
+    }
+    .inline-icons {
+      display: inline;
+      margin-top: 2px;
+      overflow: visible;
+      z-index: 50;
+      > .btn-icon {
+        margin-left: 1em;
+        cursor: pointer;
+        color: #005580;   /* same as a:hover*/
+      }
+      > .btn-icon:first-child {
+        margin-left: 0;
+      }
+      &.left {
+        float: left;
+      }
+      &.right {
+        float: right;
+        text-align: right;
+      }
+      .btn-icon.rating {
+        white-space: nowrap;
+        .fa-star {
+          color: @snappi-yellow;
+        }
+      }
+    }
+    
+    &:hover {   /* .meta:hover */
+      transition: all .15s ease-in-out;
+      .btn-icon:hover {
+      }
+      .bottom-row {
+      }
+      .inline-icons {
+      }
+    }
+  }
+}
+
+
+/*
+ * view=Thumbnail
+ * .thumb = .photo
+ * .photo_container_th = .crop-wrap
+ * .photoLink = .crop
+ */
+.thumb-meta-hover {
+  background: fade(@snappi-darkblue,60%);
+    opacity: 1;
+    transition: all .15s ease-in-out;
+    .btn-icon:hover {
+      color: #FFF;
+    }
+}
+
+.thumb {
+  .focus {
+    box-shadow: 0 0 20px 10px red;
+    outline: 1em solid rgba(255, 127, 0, 0.7);
+    z-index: 100;
+  }
+  .meta {
+    background: rgba(0,0,0,0);
+    color: #fff;
+    text-shadow: 1px 1px 0 black;
+    .inline-icons {
+      opacity: 0.6;
+      .show-hidden-shot.best {
+        color: @snappi-yellow;
+      }
+      .score, .icon-star {
+        color: @snappi-yellow;
+      }
+    }
+    
+    &:hover {   /* .meta:hover */
+      background: fade(@snappi-darkblue,60%);
+      opacity: 1;
+      .btn-icon:hover {
+        color: #FFF;
+      }
+    }
+  }
+}
+
+
+
+.shot-wrap:hover .thumb .meta {
+  .thumb-meta-hover;
+}
+
+
+
+/*
+ * css transitions from isotope
+ */
+@transitionDuration: 0.8s;
+.gallery {
+  &, & .thumb {
+    -webkit-transition-duration: @transitionDuration;
+    -moz-transition-duration: @transitionDuration;
+    -ms-transition-duration: @transitionDuration;
+    -o-transition-duration: @transitionDuration;
+    transition-duration: @transitionDuration;
+  }
+  
+  -webkit-transition-property: height, width;
+  -moz-transition-property: height, width;
+  -ms-transition-property: height, width;
+  -o-transition-property: height, width;
+  transition-property: height, width;
+
+  /*
+   * isotope pattern is to use 'transform: translate3d([top]px, [left]px, 0px)'
+   */
+  .thumb{
+    -webkit-transition-property: -webkit-transform, opacity, top, left;
+    -moz-transition-property: -moz-transform, opacity, top, left;
+    -ms-transition-property: -ms-transform, opacity, top, left;
+    -o-transition-property: -o-transform, opacity, top, left;
+    transition-property: transform, opacity, top, left;
+  }
+}
+
+.fade {
+  transition: all 300ms linear 100ms;
+  transform: translate3d(0,0,0);
+  opacity: 1;
+  &.fade-out {
+    opacity: 0;  
+  }
+}

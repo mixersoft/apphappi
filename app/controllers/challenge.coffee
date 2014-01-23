@@ -3,6 +3,7 @@ return if !angular?
 challengeApp = angular.module( 'challengeApp'
 , [
 	'ngRoute'
+	,'LocalStorageModule'
 	, 'challengeModel'
 ]
 ).config( [
@@ -14,7 +15,7 @@ challengeApp = angular.module( 'challengeApp'
 			controller: 'ChallengeCtrl'
 			})
 		.when('/challenges/:id', {
-			templateUrl: 'partials/card.html'
+			templateUrl: 'partials/challenge.html'
 			controller: 'ChallengeCtrl'
 			})
 		.otherwise {
@@ -32,8 +33,9 @@ challengeApp = angular.module( 'challengeApp'
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
+	'localStorageService'
 	'ChallengeRestangular'
-	($scope, $filter, ChallengeRestangular)->
+	($scope, $filter, localStorageService, ChallengeRestangular)->
 		#
 		# Controller: ChallengeCtrl
 		#

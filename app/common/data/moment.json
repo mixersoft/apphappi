@@ -1,0 +1,30 @@
+[{
+	"id": 11,
+	"userId":101,
+	"challengeId": 2,
+	"stats": {
+		"count": 3,
+		"completedIn": 123,
+		"viewed": 3,
+		"rating": 2
+	},
+	"created": "2014-01-22T18:04:21.190Z",
+	"modified": "2014-01-22T18:04:21.190Z",
+	"photos":[
+		{
+			"id":"51df6da3-0a04-4a2b-8b69-0a5f0afc6d44",
+			"src": "http://dev.snaphappi.com/svc/STAGING/stage1/.thumbs/bm~51df6da3-0a04-4a2b-8b69-0a5f0afc6d44.jpg",
+			"rating": 3
+		}
+		,{
+			"id":"51df61c2-11a0-4afa-a10f-0a5f0afc6d44",
+			"src": "http://dev.snaphappi.com/svc/STAGING/stage4/.thumbs/bm~51df61c2-11a0-4afa-a10f-0a5f0afc6d44.jpg",
+			"rating": null
+		}
+		,{
+			"id":"51df6d8d-8fac-44dd-a016-0a5f0afc6d44",
+			"src": "http://dev.snaphappi.com/svc/STAGING/stage5/.thumbs/bm~51df6d8d-8fac-44dd-a016-0a5f0afc6d44.jpg",
+			"rating": null
+		}
+	]
+}]
