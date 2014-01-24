@@ -1,0 +1,80 @@
+{
+ "GetHappi": {
+  "label": "<i class=\"fa fa-smile-o\"></i> GetHappi",
+  "state": {
+   "isOpen": false
+  },
+  "items": {
+   "mostRecent": {
+    "label": "Most Recent",
+    "orderBy": "-modified",
+    "route": "/moments"
+   },
+   "rating": {
+    "label": "Top Rated",
+    "orderBy": "-stats.rating.moment",
+    "route": "/moments"
+   },
+   "name": {
+    "label": "by Name",
+    "orderBy": "challenge.name",
+    "route": "/moments"
+   },
+   "category": {
+    "label": "by Category",
+    "orderBy": "challenge.category",
+    "route": "/moments"
+   }
+  }
+ },
+ "FindHappi": {
+  "label": "<i class=\"fa fa-search\"></i> FindHappi",
+  "state": {
+   "isOpen": false
+  },
+  "items": {
+    "current": {
+     "label": "Challenge: Current",
+     "query": {
+      "status": "active"
+     },
+     "route": "/challenges"
+    },
+    "completed": {
+     "label": "Challenge: Completed",
+     "filter": {
+      "status": "complete"
+     },
+     "route": "/challenges"
+    },
+    "passed": {
+     "label": "Challenge: Passed",
+     "filter": {
+      "status": "pass"
+     },
+     "route": "/challenges"
+    },
+    "all": {
+     "label": "Challenge: All",
+     "filter": "",
+     "route": "/challenges"
+    },
+    "create": {
+     "label": "Create a new Challenge",
+     "route": "/challenges/new"
+    }
+  }
+ },
+ "Scoreboard": {
+  "label": "<i class=\"fa fa-list\"></i> Scoreboard",
+  "state": {
+   "isOpen": false
+  }
+ },
+ "Settings": {
+  "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
+  "state": {
+   "isOpen": false
+  }
+ }
+}

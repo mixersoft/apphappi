@@ -3,6 +3,8 @@ return if !angular?
 momentApp = angular.module( 'momentApp'
 , [
 	'ngRoute'
+	, 'ngSanitize'
+	, 'ui.bootstrap'
 	, 'LocalStorageModule'
 	, 'angularMoment'
 	, 'momentModel'
@@ -41,10 +43,11 @@ momentApp = angular.module( 'momentApp'
 	'$scope'
 	'$filter'
 	'$q'
+	'$http'
 	'localStorageService'
 	'MomentRestangular'
 	'ChallengeRestangular'
-	($scope, $filter, $q, localStorageService, MomentRestangular, ChallengeRestangular)->
+	($scope, $filter, $q, $http, localStorageService, MomentRestangular, ChallengeRestangular)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -54,14 +57,26 @@ momentApp = angular.module( 'momentApp'
 		$scope.query = ''
 		$scope.orderProp = 'modified'
 		$scope.orderBy2 = 'name'
-
+		# card + deck iterator
 		$scope.deck = {
 			index: null
 			shuffled: null
 		}
-		$scope.card = null			# current moment
 		$scope.cards = []
+		$scope.card = {}			# current moment
+		$scope.isDrawerOpen = false;
+		$scope.isCardExpanded = false;
 
+		$scope.drawer = {}
+		$scope.drawerState = {
+			GetHappi:
+				state:
+					isOpen: true
+					active: 'mostRecent'
+		}
+		
+
+		# private methods
 		asDuration = (secs)->
 				duration = moment.duration(secs*1000) 
 				formatted = []
@@ -71,19 +86,30 @@ momentApp = angular.module( 'momentApp'
 				formatted.unshift(duration.days()+'h') if duration.days()
 				return formatted.join(' ')
 
+		# drawer
+		$http.get('/common/data/drawer.json').success (data, status, headers, config)->
+			$scope.drawer = _.merge(data, $scope.drawerState)
+			return $scope.drawer
+		$scope.drawer_click = (item,options)->
+			check
+			return
+		$scope.drawer_radio = (state)->
+			return state.isOpen = false if state.isOpen?
+
+
 		moments = MomentRestangular.all('moment')
 		momentsPromise = moments.getList().then (moments)->
 			for m in moments
 				m.humanize = {
 					completed: moment.utc(new Date(m.created)).format("dddd, MMMM Do YYYY, h:mm:ss a")
 					completedAgo: moment.utc(new Date(m.created)).fromNow()
-					completedIn: asDuration m.stats.completedIn
+					completedIn: asDuration m.stats && m.stats.completedIn || 0
 				}
 			$scope.cards = moments;
 			$scope.card = $scope.nextCard()
 			return moments
 
-		challenges = ChallengeRestangular.all('challenge')
+		challenges = MomentRestangular.all('challenge')
 		challengesPromise = challenges.getList().then (challenges)->
 			for c in challenges
 				c.humanize = {
@@ -95,11 +121,11 @@ momentApp = angular.module( 'momentApp'
 							a+b
 						, 0
 					)/c.stats.completions.length 
-					avgRating: (_.reduce c.stats.ratings
+					avgRating: $filter('number')( (_.reduce c.stats.ratings
 						, (a, b)-> 
 							a+b
 						, 0
-					)/c.stats.ratings.length
+					)/c.stats.ratings.length, 1)
 				}
 			return $scope.challenges = challenges
 
@@ -111,9 +137,6 @@ momentApp = angular.module( 'momentApp'
 				# add moment hasMany challenge association
 				moment.challenge = _.findWhere(o.challenges, {id: moment.challengeId})
 			return moments
-
-		$scope.toggleDetail = ()->
-			return $scope.card.showDetail = !$scope.card.showDetail
 
 		# methods
 		$scope.nextCard = ()->

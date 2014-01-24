@@ -6,8 +6,12 @@
 		"count": 3,
 		"completedIn": 123,
 		"viewed": 3,
-		"rating": 2
+		"rating": {
+			"moment": 2,
+			"challenge" : null
+		}
 	},
+	"status": "complete",
 	"created": "2014-01-22T18:04:21.190Z",
 	"modified": "2014-01-22T18:04:21.190Z",
 	"photos":[
@@ -25,6 +29,36 @@
 			"id":"51df6d8d-8fac-44dd-a016-0a5f0afc6d44",
 			"src": "http://dev.snaphappi.com/svc/STAGING/stage5/.thumbs/bm~51df6d8d-8fac-44dd-a016-0a5f0afc6d44.jpg",
 			"rating": null
+		}
+	]
+},
+{
+	"id": 12,
+	"userId":101,
+	"challengeId": 3,
+	"stats": {
+		"count": 0
+	},
+	"status": "pass",
+	"created": "2014-01-22T18:04:21.190Z",
+	"modified": "2014-01-22T18:04:21.190Z"
+},
+{
+	"id": 13,
+	"userId":101,
+	"challengeId": 4,
+	"stats": {
+		"count": 1,
+		"completedIn": 12
+	},
+	"status": "active",
+	"created": "2014-01-22T18:04:21.190Z",
+	"modified": "2014-01-22T18:04:21.190Z",
+	"photos":[
+		{
+			"id":"51df6da3-0a04-4a2b-8b69-0a5f0afc6d44",
+			"src": "http://dev.snaphappi.com/svc/STAGING/stage1/.thumbs/bm~51df6da3-0a04-4a2b-8b69-0a5f0afc6d44.jpg",
+			"rating": 3
 		}
 	]
 }]
