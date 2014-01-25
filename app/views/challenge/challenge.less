@@ -2,6 +2,17 @@
 @import "variables.less";
 @import "mixins.less";
 
+// snaphappi variables
+@snappi-red:            #D01F40;
+@snappi-darkred:        #711124;
+@snappi-orange:         #F16122;
+@snappi-yellow:         #FDF9D0;
+@snappi-darkblue:       #152437;   
+@snappi-peach:          #E9C1C1;
+
+@font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
+
+
 .device {
 	&.device-border {
 		position: fixed;	
@@ -24,6 +35,10 @@
 	}
 }
 
+i.fa {
+  cursor: default;
+}
+
 .force-dl-horizontal dt {
 	float: left;
 	overflow: hidden;
@@ -32,6 +47,59 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
+.drawer, .drawer-group {
+  font-size: @font-size-small;
+  .item {
+    padding: 4px 0;
+    color: @gray-light; 
+  }
+  .item:hover, .item.active {
+    font-weight: bold;
+    color: white;
+  }
+  .panel-heading, .item {
+    cursor: default;
+  }
+
+  /* bootstrap override */
+  
+  .panel-body {
+    padding-bottom: 0;
+  }
+  &.inverse > * , .panel {
+    color: #FFFFFF;
+    background-color: @snappi-darkblue;
+  }
+  a:hover, a:focus,  {
+    text-decoration: none;
+  }
+
+}
+
+.drawer {
+  &.inverse, &.inverse .panel-heading {
+    border-color: @snappi-darkblue;
+  }
+  &.inverse .panel-collapse {
+    border-top: 1px solid #FFF;
+  } 
+  margin: auto -12px;
+}
+
+.drawer-group {
+  &.inverse, &.inverse .panel-heading {
+    border-color: @snappi-darkblue;
+  }
+  &.inverse .panel-collapse {
+    border-top: 0.5px solid #FFF;
+  } 
+  .panel-heading {
+    padding-left: 0;
+  }
+}
+
+
 
 ul.challenges {
 	padding-left: 0;

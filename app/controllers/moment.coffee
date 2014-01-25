@@ -7,8 +7,7 @@ momentApp = angular.module( 'momentApp'
 	, 'ui.bootstrap'
 	, 'LocalStorageModule'
 	, 'angularMoment'
-	, 'momentModel'
-	, 'challengeModel'
+	, 'restangularModel'
 ]
 ).config( [
 	'$routeProvider'
@@ -32,6 +31,7 @@ momentApp = angular.module( 'momentApp'
   	localStorageServiceProvider.setPrefix('snappi');
 ]
 ).filter('topCard', ()->
+	# deprecate?
 	return (list, deck)->
 		deck.index=0 if !deck.index? or deck.index >= list.length
 		if _.isArray(deck.shuffled)
@@ -46,17 +46,14 @@ momentApp = angular.module( 'momentApp'
 	'$route'
 	'$http'
 	'localStorageService'
-	'MomentRestangular'
-	'ChallengeRestangular'
-	($scope, $filter, $q, $route, $http, localStorageService, MomentRestangular, ChallengeRestangular)->
+	'AppHappiRestangular'
+	($scope, $filter, $q, $route, $http, localStorageService, AppHappiRestangular)->
 		#
 		# Controller: MomentCtrl
 		#
-		# TODO: check of MomentRestangular must match factory
 
 		# attributes
 		$scope.$route = $route
-		$scope.query = ''
 		$scope.orderProp = 'modified'
 		$scope.orderBy2 = 'name'
 		# card + deck iterator
@@ -119,7 +116,7 @@ momentApp = angular.module( 'momentApp'
 			return state.isOpen = false if state.isOpen?
 
 
-		moments = MomentRestangular.all('moment')
+		moments = AppHappiRestangular.all('moment')
 		momentsPromise = moments.getList().then (moments)->
 			moments = $filter('filter')(moments, {status:"!pass"})
 			for m in moments
@@ -132,7 +129,7 @@ momentApp = angular.module( 'momentApp'
 			$scope.card = $scope.nextCard()
 			return moments
 
-		challenges = MomentRestangular.all('challenge')
+		challenges = AppHappiRestangular.all('challenge')
 		challengesPromise = challenges.getList().then (challenges)->
 			for c in challenges
 				c.humanize = {
@@ -179,16 +176,6 @@ momentApp = angular.module( 'momentApp'
 		$scope.shuffleArray = (o)->
 			`for (i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x)`
 			return o
-
-
-		$scope.accept = ()->
-			# pass current Moment to FindHappi
-			return $scope.moment
-
-		$scope.later = ()->
-			# set current moment, then put app to sleep
-			# on wake, should open to current moment
-			return $scope.challege
 
 		return;
 	]

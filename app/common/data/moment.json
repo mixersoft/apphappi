@@ -49,7 +49,11 @@
 	"challengeId": 4,
 	"stats": {
 		"count": 1,
-		"completedIn": 12
+		"completedIn": 12,
+		"rating": {
+			"moment": null,
+			"challenge" : null
+		}
 	},
 	"status": "active",
 	"created": "2014-01-22T18:04:21.190Z",

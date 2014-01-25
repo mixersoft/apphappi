@@ -1,0 +1,60 @@
+<div class="container">
+  <div class="row">
+    <div class="span2">
+      <!--Nav/Sidebar content-->
+      <accordion>
+        <accordion-group class='drawer inverse' is-open="$root.drawer.isDrawerOpen">
+          <accordion-heading>
+            <i class='fa fa-bars fa-lg'></i>
+          </accordion-heading>
+          <div class='item'><input ng-model="$root.drawer.query" placeholder="Search"></div>
+          <div class='item'>
+            <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
+          </div>
+
+          <accordion close-others="true">
+            <accordion-group ng-repeat="group in $root.drawer.drawer" is-open="group.state.isOpen" class='drawer-group inverse'>
+              <accordion-heading>
+                <span ng-bind-html="group.label" ng-click="drawer_radio(group.state)"></span>
+                <span ng-bind="group.count" class="badge badge-default"></span>
+              </accordion-heading>
+              <div ng-repeat="options in group.items" 
+              class="item {{options.name==group.state.active && 'active' || ''}}"
+              ng-click="drawer_click(options)" ng-bind-html="options.label">
+              </div>
+            </accordion-group>
+          </accordion>
+
+        </accordion-group> 
+      </accordion>
+      <!--/ Nav/Sidebar content-->
+    </div>
+    <div class="span10">
+      <!--Body content-->
+      <div ng-model="card" 
+            class="challenge summary list-unstyled text-center">
+        <figure class="icon">
+          <i class="icon {{card.icon}} fa-3x"></i>
+          <figcaption class="category">{{card.category.join(":")}}</figcaption>
+        </figure>
+        <div class="body">
+          <h4 class="heading">Find a Happi moment</h4>
+          <h2 class="title">{{card.title}}</h2>
+          <p class="description text-left">{{card.description}}</p> 
+          <div class="meta well">
+            <dl class="stats-wrap force-dl-horizontal">
+              <dt>Completed</dt><dd>1234</dd>
+              <dt>Accept</dt><dd>88%</dd>
+              <dt>Pass</dt><dd>15%</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="footer btn-group">
+          <button type="button" class="btn btn-primary">Accept</button>
+          <button type="button" class="btn btn-default">Later</button>
+          <button type="button" ng-click="nextCard()"  class="btn btn-default">Pass</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
