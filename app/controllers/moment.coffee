@@ -43,17 +43,19 @@ momentApp = angular.module( 'momentApp'
 	'$scope'
 	'$filter'
 	'$q'
+	'$route'
 	'$http'
 	'localStorageService'
 	'MomentRestangular'
 	'ChallengeRestangular'
-	($scope, $filter, $q, $http, localStorageService, MomentRestangular, ChallengeRestangular)->
+	($scope, $filter, $q, $route, $http, localStorageService, MomentRestangular, ChallengeRestangular)->
 		#
 		# Controller: MomentCtrl
 		#
 		# TODO: check of MomentRestangular must match factory
 
 		# attributes
+		$scope.$route = $route
 		$scope.query = ''
 		$scope.orderProp = 'modified'
 		$scope.orderBy2 = 'name'
@@ -64,15 +66,18 @@ momentApp = angular.module( 'momentApp'
 		}
 		$scope.cards = []
 		$scope.card = {}			# current moment
-		$scope.isDrawerOpen = false;
-		$scope.isCardExpanded = false;
 
-		$scope.drawer = {}
-		$scope.drawerState = {
-			GetHappi:
+		$scope.$root.drawer = {
+			isDrawerOpen: false
+			isCardExpanded: false
+			query: ''
+			drawer: {}		# drawer config object 
+			drawerState: {
+				name: 'gethappi'
 				state:
 					isOpen: true
 					active: 'mostRecent'
+			}
 		}
 		
 
@@ -88,17 +93,35 @@ momentApp = angular.module( 'momentApp'
 
 		# drawer
 		$http.get('/common/data/drawer.json').success (data, status, headers, config)->
-			$scope.drawer = _.merge(data, $scope.drawerState)
-			return $scope.drawer
-		$scope.drawer_click = (item,options)->
-			check
+			drawer = $scope.$root.drawer
+			active = _.findWhere data, {name: drawer.drawerState.name}
+			_.merge(active.state, drawer.drawerState.state)
+			drawer.drawer = data
+			return drawer.drawer
+
+		$scope.drawer_click = (options)->
+			drawer = $scope.$root.drawer
+			if $scope.$route.current.originalPath==options.route
+				# same drawer-group, stay on page
+				$scope.orderProp = options.orderBy if options.orderBy?
+				$scope.$root.drawer.query = options.filter if options.filter?
+				# set .item.active
+				drawerGroup = _.findWhere(drawer.drawer, {name:drawer.drawerState.name})
+				drawerGroup.state.active = options.name
+				# shuffle?
+				$scope.cards = $scope.shuffleArray $scope.cards if options.name=='shuffle'
+			else 
+				# navigate to options.route, set initial state
+				console.log "navigate to href="+options.route
 			return
+
 		$scope.drawer_radio = (state)->
 			return state.isOpen = false if state.isOpen?
 
 
 		moments = MomentRestangular.all('moment')
 		momentsPromise = moments.getList().then (moments)->
+			moments = $filter('filter')(moments, {status:"!pass"})
 			for m in moments
 				m.humanize = {
 					completed: moment.utc(new Date(m.created)).format("dddd, MMMM Do YYYY, h:mm:ss a")
@@ -141,7 +164,7 @@ momentApp = angular.module( 'momentApp'
 		# methods
 		$scope.nextCard = ()->
 			$scope.deck.index = if $scope.deck.index? then $scope.deck.index+1 else 0
-			step = $filter('filter') $scope.cards, $scope.query
+			step = $filter('filter') $scope.cards, $scope.$root.drawer.query
 			step = $filter('orderBy') step, $scope.orderProp
 			$scope.card = $filter('topCard') (step || $scope.cards), $scope.deck
 

@@ -3,21 +3,21 @@
     <div class="span2">
       <!--Nav/Sidebar content-->
       <accordion>
-        <accordion-group class='drawer inverse' is-open="isDrawerOpen">
+        <accordion-group class='drawer inverse' is-open="$root.drawer.isDrawerOpen">
           <accordion-heading>
             <i class='fa fa-bars fa-lg'></i>
           </accordion-heading>
-          <div class='item'><input ng-model="query" placeholder="Search"></div>
+          <div class='item'><input ng-model="$root.drawer.query" placeholder="Search"></div>
           <div class='item'>
             <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
           </div>
 
           <accordion close-others="true">
-            <accordion-group ng-repeat="group in drawer" is-open="group.state.isOpen" class='drawer-group inverse'>
+            <accordion-group ng-repeat="group in $root.drawer.drawer" is-open="group.state.isOpen" class='drawer-group inverse'>
               <accordion-heading><div ng-bind-html="group.label" ng-click="drawer_radio(group.state)"></div></accordion-heading>
-              <div ng-repeat="(item, options) in group.items" 
-              class="item {{item==group.state.active && 'active' || ''}}"
-              ng-click="drawer_click(item, options)" ng-bind-html="options.label">
+              <div ng-repeat="options in group.items" 
+              class="item {{options.name==group.state.active && 'active' || ''}}"
+              ng-click="drawer_click(options)" ng-bind-html="options.label">
               </div>
             </accordion-group>
           </accordion>
@@ -27,7 +27,8 @@
     </div>
     <div class="span10">
       <!--Body content-->
-      <div ng-model="card" 
+      <div ng-repeat="card in cards | filter:$root.drawer.query | orderBy:orderProp | limitTo:5" >
+      <div ng-model="card"
             class="moment card summary list-unstyled text-center">
         <ul class='header list-inline list-unstyled'>   
           <li>
@@ -38,7 +39,7 @@
           </li>
           <li ng-click="isCardExpanded = !isCardExpanded" class="title">
             {{card.challenge.title}} 
-            <i class="toggle fa {{isCardExpanded && 'fa-chevron-down' || 'fa-chevron-right'}}"></i>
+            <i class="toggle fa fa-fw {{isCardExpanded && 'fa-chevron-down' || 'fa-chevron-right'}}"></i>
           </li>
         </ul> 
         <div collapse="!isCardExpanded"> 
@@ -79,8 +80,11 @@
           </div>
         </div> 
       </div>
-      <div class="gallery" ng-repeat="photo in card.photos">
-        <div id="{{photo.id}}" class="thumb fade xxxfade-out {{photo.orientationLabel}}" style="{{top}}{{position}}">
+      <div class="gallery clearfix">
+        <div ng-repeat="photo in card.photos"
+          id="{{photo.id}}" 
+          class="thumb fade xxxfade-out {{photo.orientationLabel}}" 
+          style="{{top}}{{position}}">
               <div class="crop-wrap">
                 <div class="crop">
                   <img class=""  
@@ -108,6 +112,7 @@
             </div>
           </div>
         </div>  <!-- /div.thumb -->
+      </div>
       </div>
     </div>
   </div>
