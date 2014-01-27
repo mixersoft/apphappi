@@ -3,7 +3,6 @@
   "name": "gethappi",
   "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
   "state": {
-    "isOpen": false
   },
   "items": [
    {
@@ -42,43 +41,43 @@
   "name": "findhappi",
   "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
   "state": {
-    "isOpen": false
   },
   "items": [
     {
       "name": "current",
-     "label": "Challenge: Current",
-     "query": {
-      "status": "active"
-     },
-     "route": "/challenges"
+      "label": "Challenge: Current",
+      "filter": {
+        "status": "active"
+      },
+      "route": "/challenges"
     },
     {
-     "name": "completed",
-     "label": "Challenge: Completed",
-     "filter": {
-      "status": "complete"
-     },
-     "route": "/challenges"
+      "name": "completed",
+      "label": "Challenge: Completed",
+      "filter": {
+        "status": "complete"
+      },
+      "route": "/challenges"
     },
     {
-     "name": "passed",  
-     "label": "Challenge: Passed",
-     "filter": {
-      "status": "pass"
-     },
-     "route": "/challenges"
+      "name": "passed",  
+      "label": "Challenge: Passed",
+      "filter": {
+        "status": "pass"
+      },
+      "route": "/challenges"
     },
     {
-     "name": "all",  
-     "label": "Challenge: All",
-     "filter": "",
-     "route": "/challenges"
+      "name": "all",  
+      "label": "Challenge: All",
+      "filter": "",
+      "route": "/challenges"
     },
     {
-     "name": "create",  
-     "label": "Create a new Challenge",
-     "route": "/challenges/new"
+      "name": "create",  
+      "label": "Create a new Challenge",
+      "filter": "",
+      "route": "/challenges/new"
     }
   ]
 },
@@ -86,14 +85,12 @@
   "name": "scoreboard",
   "label": "<i class=\"fa fa-list\"></i> Scoreboard",
   "state": {
-    "isOpen": false
   }
  },
  {
   "name": "settings",
   "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
   "state": {
-    "isOpen": false
   }
 }  
 ]

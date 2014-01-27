@@ -3,28 +3,29 @@
     <div class="span2">
       <!--Nav/Sidebar content-->
       <accordion>
-        <accordion-group class='drawer inverse' is-open="$root.drawer.isDrawerOpen">
+        <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
           <accordion-heading>
             <i class='fa fa-bars fa-lg'></i>
           </accordion-heading>
-          <div class='item'><input ng-model="$root.drawer.query" placeholder="Search"></div>
+          <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
           <div class='item'>
             <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
           </div>
 
           <accordion close-others="true">
-            <accordion-group ng-repeat="group in $root.drawer.drawer" is-open="group.state.isOpen" class='drawer-group inverse'>
+            <accordion-group ng-repeat="group in drawer.json" is-open="group.isOpen" class='drawer-group inverse'>
               <accordion-heading>
-                <span ng-bind-html="group.label" ng-click="drawer_radio(group.state)"></span>
+                <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
                 <span ng-bind="group.count" class="badge badge-default"></span>
               </accordion-heading>
               <div ng-repeat="options in group.items" 
-              class="item {{options.name==group.state.active && 'active' || ''}}"
-              ng-click="drawer_click(options)" ng-bind-html="options.label">
+              class="item {{options.name==drawer.drawerItemState.state.active && 'active' || ''}}"
+              ng-click="itemClick(options)">
+                <span ng-bind-html="options.label"></span>
+                <span ng-if="['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(cards|filter:options.filter).length}}</span>
               </div>
             </accordion-group>
           </accordion>
-
         </accordion-group> 
       </accordion>
       <!--/ Nav/Sidebar content-->
