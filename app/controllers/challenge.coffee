@@ -132,6 +132,7 @@ challengeApp = angular.module( 'challengeApp'
 			step = $filter('filter') step, drawer.filter if drawer.filter?
 			step = $filter('filter') step, drawer.query if drawer.query?
 			step = $filter('orderBy') step, $scope.orderProp
+			$scope.filteredCards = step
 			$scope.card = $filter('topCard') (step || $scope.cards), $scope.deck
 
 		$scope.itemClick = (options)->

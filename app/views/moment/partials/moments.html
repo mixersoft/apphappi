@@ -19,7 +19,8 @@
                 <span ng-bind="group.count" class="badge badge-default"></span>
               </accordion-heading>
               <div ng-repeat="options in group.items" 
-              class="item {{options.name==drawer.drawerItemState.state.active && 'active' || ''}}"
+              class="item"
+              ng-class="{active: options.name==drawer.drawerItemState.state.active}"
               ng-click="itemClick(options)">
                 <span ng-bind-html="options.label"></span>
               </div>

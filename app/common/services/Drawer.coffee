@@ -33,6 +33,7 @@ drawerService = angular.module('drawerModule', [
 
           # set .item.active
           drawerGroup = _.findWhere(drawer.json, {name:drawer.drawerItemState.name})
+          drawer.drawerItemState.state.active = options.name
           drawerGroup.state.active = options.name
           return cb();
           # shuffle?
