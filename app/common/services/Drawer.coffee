@@ -5,7 +5,8 @@ drawerService = angular.module('drawerModule', [
 ]
 ).factory('drawerService', [
   '$http'
-, ($http)->
+  '$timeout'
+, ($http, $timeout)->
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
@@ -21,10 +22,9 @@ drawerService = angular.module('drawerModule', [
           active: 'current'
       },
 
-      animateClose: (scope, delay=750)->
-        return _.delay ()->
+      animateClose: (delay=750)->
+        $timeout ()->
             drawer.isDrawerOpen = false
-            scope.$apply()
           , delay  
 
       # set properties for drawerItem click
@@ -42,14 +42,14 @@ drawerService = angular.module('drawerModule', [
           drawerGroup = _.findWhere(drawer.json.data, {name:drawer.drawerItemState.name})
           drawer.drawerItemState.state.active = options.name
           drawerGroup.state.active = options.name
-          drawer.animateClose($scope)
+          drawer.animateClose()
           return cb() if _.isFunction(cb);
           # shuffle?
           # $scope.cards = drawer._shuffleArray $scope.cards if options.name=='shuffle'
         else 
           # navigate to options.route, set initial state
           console.log "navigate to href="+options.route
-          drawer.animateClose($scope, 500)
+          drawer.animateClose(500)
 
       getDrawerItem: (drawerGroup, itemName) ->
         try 
