@@ -6,9 +6,8 @@ challengeApp = angular.module( 'challengeApp'
 	, 'ngSanitize'
 	, 'ui.bootstrap'
 	, 'drawerModule'
-	, 'LocalStorageModule'
+	, 'syncModule'
 	, 'angularMoment'
-	, 'restangularModel'
 ]
 ).config( [
 	'$routeProvider'
@@ -26,11 +25,6 @@ challengeApp = angular.module( 'challengeApp'
 			redirectTo: '/challenges'
 		}
 ]
-).config([
-	'localStorageServiceProvider', 
-	(localStorageServiceProvider)->
-  	localStorageServiceProvider.setPrefix('snappi');
-]
 ).filter('topCard', ()->
 	return (list, deck)->
 		deck.index=0 if !deck.index? or deck.index >= list.length
@@ -45,9 +39,8 @@ challengeApp = angular.module( 'challengeApp'
 	'$q'
 	'$route'
 	'drawerService'
-	'localStorageService'
-	'AppHappiRestangular'
-	($scope, $filter, $q, $route, drawer, localStorageService, AppHappiRestangular)->
+	'syncService'
+	($scope, $filter, $q, $route, drawer, syncService)->
 		#
 		# Controller: ChallengeCtrl
 		#
@@ -71,57 +64,20 @@ challengeApp = angular.module( 'challengeApp'
         active: 'current'
     }
 
-		# private methods
-		asDuration = (secs)->
-				duration = moment.duration(secs*1000) 
-				formatted = []
-				formatted.unshift(duration.seconds()+'s') if duration.seconds()
-				formatted.unshift(duration.minutes()+'m') if duration.minutes()
-				formatted.unshift(duration.hours()+'h') if duration.hours()
-				formatted.unshift(duration.days()+'h') if duration.days()
-				return formatted.join(' ')
+		# reset for testing
+		syncService.clearAll() if $scope.$route.current.params.reset
+		syncService.initLocalStorage(['challenge', 'moment', 'drawer'])	
 
-		challenges = AppHappiRestangular.all('challenge')
-		challengesPromise = challenges.getList().then (challenges)->
-			for c in challenges
-				c.humanize = {
-					completions: c.stats.completions.length
-					acceptPct: 100*c.stats.accept/c.stats.viewed
-					passPct: 100*c.stats.pass/c.stats.viewed
-					avgDuration: asDuration (_.reduce c.stats.completions
-						, (a, b)->
-							a+b
-						, 0
-					)/c.stats.completions.length 
-					avgRating: $filter('number')( (_.reduce c.stats.ratings
-						, (a, b)-> 
-							a+b
-						, 0
-					)/c.stats.ratings.length, 1)
-				}
-			return $scope.challenges = challenges
-
-		moments = AppHappiRestangular.all('moment')
-		momentsPromise = moments.getList().then (moments)->
-			for m in moments
-				m.humanize = {
-					completed: moment.utc(new Date(m.created)).format("dddd, MMMM Do YYYY, h:mm:ss a")
-					completedAgo: moment.utc(new Date(m.created)).fromNow()
-					completedIn: asDuration m.stats && m.stats.completedIn || 0
-				}
-			return moments
-
-		$q.all({
-			moments: momentsPromise
-			challenges: challengesPromise
-			drawer: drawer.load()
-		}).then (o)->
+		$q.all( syncService.promises ).then (o)->
 			# init drawer
-			drawer.init o.challenges, o.moments, $scope.initialDrawerState
-			$scope.cards = o.challenges
+			drawer.init o.challenge, o.moment, $scope.initialDrawerState
+			
 			# skip moments.status=pass
 			o.moments = $filter('filter')(o.moments, {status:"!pass"})
+			$scope.moments = o.moment
+			$scope.challenges = o.challenge
 			# get nextCard
+			$scope.cards = o.challenge
 			$scope.card = $scope.nextCard()
 			return 			
 
@@ -151,8 +107,6 @@ challengeApp = angular.module( 'challengeApp'
 		$scope.shuffleArray = (o)->
 			`for (i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x)`
 			return o
-
-
 
 		$scope.accept = ()->
 			# pass current Challenge to FindHappi

@@ -32,7 +32,7 @@ drawerService = angular.module('drawerModule', [
 
 
           # set .item.active
-          drawerGroup = _.findWhere(drawer.json, {name:drawer.drawerItemState.name})
+          drawerGroup = _.findWhere(drawer.json.data, {name:drawer.drawerItemState.name})
           drawer.drawerItemState.state.active = options.name
           drawerGroup.state.active = options.name
           return cb();
@@ -54,14 +54,14 @@ drawerService = angular.module('drawerModule', [
         drawer._setForeignKeys challenges, moments
         # set counts for drawerGroups
         _.each ['gethappi', 'findhappi'], (groupName)->
-          found = _.findWhere drawer.json, {name: groupName}
+          found = _.findWhere drawer.json.data, {name: groupName}
           found.count = challenges.length if groupName=='findhappi'
           if groupName=='gethappi'
             found.count = (_.filter moments, (o)-> o.status!='pass').length
 
 
         # set drawer query,filter propery
-        drawerGroup = _.findWhere(drawer.json, {name: drawer.drawerItemState.name})
+        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.drawerItemState.name})
         drawerGroup.isOpen = true;
         drawerItem = _.findWhere(drawerGroup.items, {name: drawer.drawerItemState.state.active})
         drawer.filter = drawerItem && drawerItem.filter
@@ -92,11 +92,13 @@ drawerService = angular.module('drawerModule', [
 
       load: (url)->
         url = drawer.url if !url?
+        console.log "*** drawer.load()"  
         drawer.ready = $http.get(url).success (data, status, headers, config)->
           # drawer = $scope.$root.drawer
           drawer.json = data
-          console.log "*** drawer ready"
-          return drawer
+          # console.log "*** drawer ready"
+          return 
+        console.log drawer.ready  
         return drawer.ready  
     }
     return drawer

@@ -13,7 +13,7 @@
           </div>
 
           <accordion close-others="true">
-            <accordion-group ng-repeat="group in drawer.json" is-open="group.isOpen" class='drawer-group inverse'>
+            <accordion-group ng-repeat="group in drawer.json.data" is-open="group.isOpen" class='drawer-group inverse'>
               <accordion-heading>
                 <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
                 <span ng-bind="group.count" class="badge badge-default"></span>

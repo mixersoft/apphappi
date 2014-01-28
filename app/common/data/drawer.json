@@ -1,96 +1,99 @@
-[
-{
-  "name": "gethappi",
-  "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
-  "state": {
+{ 
+  "modified": "2014-01-22T18:04:21.190Z",
+  "data":[
+  {
+    "name": "gethappi",
+    "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
+    "state": {
+    },
+    "items": [
+     {
+      "name": "mostRecent",
+      "label": "Most Recent",
+      "orderBy": "-modified",
+      "route": "/moments"
+     },
+     {
+      "name": "rating",
+      "label": "Top Rated",
+      "orderBy": "-stats.rating.moment",
+      "route": "/moments"
+     },
+     {
+      "name": "name",
+      "label": "by Name",
+      "orderBy": "challenge.name",
+      "route": "/moments"
+     },
+     {
+      "name": "category",
+      "label": "by Category",
+      "orderBy": "challenge.category",
+      "route": "/moments"
+     },
+     {
+      "name": "shuffle",
+      "label": "Shuffle",
+      "orderBy": "",
+      "route": "/moments"
+     }
+    ]
   },
-  "items": [
-   {
-    "name": "mostRecent",
-    "label": "Most Recent",
-    "orderBy": "-modified",
-    "route": "/moments"
-   },
-   {
-    "name": "rating",
-    "label": "Top Rated",
-    "orderBy": "-stats.rating.moment",
-    "route": "/moments"
-   },
-   {
-    "name": "name",
-    "label": "by Name",
-    "orderBy": "challenge.name",
-    "route": "/moments"
-   },
-   {
-    "name": "category",
-    "label": "by Category",
-    "orderBy": "challenge.category",
-    "route": "/moments"
-   },
-   {
-    "name": "shuffle",
-    "label": "Shuffle",
-    "orderBy": "",
-    "route": "/moments"
-   }
-  ]
-},
-{
-  "name": "findhappi",
-  "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
-  "state": {
+  {
+    "name": "findhappi",
+    "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
+    "state": {
+    },
+    "items": [
+      {
+        "name": "current",
+        "label": "Challenge: Current",
+        "filter": {
+          "status": "active"
+        },
+        "route": "/challenges"
+      },
+      {
+        "name": "completed",
+        "label": "Challenge: Completed",
+        "filter": {
+          "status": "complete"
+        },
+        "route": "/challenges"
+      },
+      {
+        "name": "passed",  
+        "label": "Challenge: Passed",
+        "filter": {
+          "status": "pass"
+        },
+        "route": "/challenges"
+      },
+      {
+        "name": "all",  
+        "label": "Challenge: All",
+        "filter": "",
+        "route": "/challenges"
+      },
+      {
+        "name": "create",  
+        "label": "Create a new Challenge",
+        "filter": "",
+        "route": "/challenges/new"
+      }
+    ]
   },
-  "items": [
-    {
-      "name": "current",
-      "label": "Challenge: Current",
-      "filter": {
-        "status": "active"
-      },
-      "route": "/challenges"
-    },
-    {
-      "name": "completed",
-      "label": "Challenge: Completed",
-      "filter": {
-        "status": "complete"
-      },
-      "route": "/challenges"
-    },
-    {
-      "name": "passed",  
-      "label": "Challenge: Passed",
-      "filter": {
-        "status": "pass"
-      },
-      "route": "/challenges"
-    },
-    {
-      "name": "all",  
-      "label": "Challenge: All",
-      "filter": "",
-      "route": "/challenges"
-    },
-    {
-      "name": "create",  
-      "label": "Create a new Challenge",
-      "filter": "",
-      "route": "/challenges/new"
+  {
+    "name": "scoreboard",
+    "label": "<i class=\"fa fa-list\"></i> Scoreboard",
+    "state": {
     }
+   },
+   {
+    "name": "settings",
+    "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
+    "state": {
+    }
+  }  
   ]
-},
-{
-  "name": "scoreboard",
-  "label": "<i class=\"fa fa-list\"></i> Scoreboard",
-  "state": {
-  }
- },
- {
-  "name": "settings",
-  "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
-  "state": {
-  }
-}  
-]
+}
