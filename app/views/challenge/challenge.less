@@ -105,12 +105,18 @@ ul.challenges {
 	padding-left: 0;
 }
 
-.challenge {
-	border: 2px solid @gray-dark;		
-	border-radius: 10px;
-	margin: 10px;
-	padding: 10px;
 
+.card {
+	border: 2px solid @snappi-darkblue;
+	border-radius: 10px;
+  margin: 10px;
+	padding: 10px 10px 0 10px;
+	.header, .body, .footer {
+		padding-bottom: 10px;
+	}
+}
+
+.challenge {
 	figure {
 		.icon {
 
@@ -150,6 +156,44 @@ ul.challenges {
 				dd {
 					width: 25%;
 					margin-left: 75%
+				}
+			}
+		}
+		.meta {
+			border-radius: 10px;
+			padding: 6px;
+			margin: 0;
+			width: 47%;
+			.center-block();
+			font-size: @font-size-small;
+			.header {
+				border-radius: 0.25em;
+		    font-weight: bold;
+		    font-family: GeoSansLightRegular;
+		    line-height: 1;
+		    padding: 0.2em 0;
+		    text-align: center;
+		    vertical-align: baseline;
+		    white-space: nowrap;
+			}
+			.inverse {
+				color: #FFFFFF;
+				background-color: #999999;
+			}
+			.stats-wrap {
+				margin-bottom: 0;
+			}
+			dl {
+				position: relative;
+				.center-block();
+				dt {
+					width: 54%;
+					font-family: GeoSansLightRegular;
+				}
+				dd {
+					text-align: left;
+					width: 42%;
+					margin-left: 58%
 				}
 			}
 		}

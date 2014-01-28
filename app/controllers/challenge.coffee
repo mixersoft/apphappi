@@ -32,7 +32,6 @@ challengeApp = angular.module( 'challengeApp'
 			return list[deck.shuffled[deck.index]] if deck.shuffled.length==list.length
 			deck.shuffled = 'error';
 		return list[deck.index]
-
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
@@ -82,6 +81,17 @@ challengeApp = angular.module( 'challengeApp'
 			return 			
 
 		# methods
+		$scope.drawerShowAll = ()->
+			drawer.itemClick $scope, drawer.getDrawerItem('findhappi', 'all')
+			$scope.nextCard() 
+
+		$scope.passCard = ()->
+			if drawer.filter.status=='active' && $scope.card
+				$scope.card.status='pass'
+				console.warn "save to localStorage"
+				return $scope.drawerShowAll()
+			return $scope.nextCard()
+
 		$scope.nextCard = ()->
 			$scope.deck.index = if $scope.deck.index? then $scope.deck.index+1 else 0
 			step = $scope.cards

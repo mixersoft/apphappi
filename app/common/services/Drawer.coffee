@@ -20,6 +20,13 @@ drawerService = angular.module('drawerModule', [
           # isOpen: true
           active: 'current'
       },
+
+      animateClose: (scope, delay=750)->
+        return _.delay ()->
+            drawer.isDrawerOpen = false
+            scope.$apply()
+          , delay  
+
       # set properties for drawerItem click
       itemClick: ($scope, options, cb)->
         # drawer = $scope.$root.drawer
@@ -35,13 +42,22 @@ drawerService = angular.module('drawerModule', [
           drawerGroup = _.findWhere(drawer.json.data, {name:drawer.drawerItemState.name})
           drawer.drawerItemState.state.active = options.name
           drawerGroup.state.active = options.name
-          return cb();
+          drawer.animateClose($scope)
+          return cb() if _.isFunction(cb);
           # shuffle?
           # $scope.cards = drawer._shuffleArray $scope.cards if options.name=='shuffle'
         else 
           # navigate to options.route, set initial state
           console.log "navigate to href="+options.route
-        return
+          drawer.animateClose($scope, 500)
+
+      getDrawerItem: (drawerGroup, itemName) ->
+        try 
+          drawerGroup = _.findWhere(drawer.json.data, {name: drawerGroup})
+          return drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
+        catch
+          return false
+         
       forceGroupOpen: (group)->
         # force open accordion-group on ng-click toggle()
         # NOTE: this is different from initial state open/close
@@ -67,6 +83,7 @@ drawerService = angular.module('drawerModule', [
         drawer.filter = drawerItem && drawerItem.filter
         return
 
+      # TODO: move to syncService parse  
       _setForeignKeys: (challenges, moments)->
         challengeStatusPriority = ['new','pass', 'complete','edit','active']
         challengeStatusCount = {
