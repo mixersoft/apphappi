@@ -68,7 +68,7 @@ drawerService = angular.module('drawerModule', [
         # drawer = $scope.$root.drawer;
         if !drawer.state.counts?
           drawer.state.counts = drawer.getCounts challenges
-          
+
         # set counts for drawerGroups
         _.each ['gethappi', 'findhappi'], (groupName)->
           drawerGroup = _.findWhere drawer.json.data, {name: groupName}
@@ -101,7 +101,7 @@ drawerService = angular.module('drawerModule', [
         return "Usage: drawer.load(url); drawer.ready.then();"
 
       load: (url)->
-        url = drawer.url if !url?
+        url = drawer.url if _.isEmpty(url)
         console.log "*** drawer.load()"  
         drawer.ready = $http.get(url).success (data, status, headers, config)->
           # drawer = $scope.$root.drawer
