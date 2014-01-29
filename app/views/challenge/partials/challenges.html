@@ -13,17 +13,19 @@
           </div>
 
           <accordion close-others="true">
-            <accordion-group ng-repeat="group in drawer.json.data" is-open="group.isOpen" class='drawer-group inverse'>
+            <accordion-group class='drawer-group inverse {{group.name}}'
+            ng-repeat="group in drawer.json.data" 
+            is-open="group.isOpen" >
               <accordion-heading>
                 <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
                 <span ng-bind="group.count" class="badge badge-default"></span>
               </accordion-heading>
               <div ng-repeat="options in group.items" 
               class="item"
-              ng-class="{active: options.name==drawer.drawerItemState.state.active}"
-              ng-click="itemClick(options)">
+              ng-class="{active: options.name==drawer.state.item}"
+              ng-click="itemClick(group.name, options)">
                 <span ng-bind-html="options.label"></span>
-                <span ng-if="['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(cards|filter:options.filter).length}}</span>
+                <span ng-if="group.name=='findhappi' && ['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(challenges|filter:options.filter).length}}</span>
               </div>
             </accordion-group>
           </accordion>

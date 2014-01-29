@@ -35,6 +35,17 @@ syncService = angular.module('syncModule', [
 			lastModified: {}
 			promises: {}
 
+			get: (key)->				
+				return localStorageService.get(key)
+
+			set: (key, value)->
+				# remove circular reference
+				switch key
+					when 'moment', 'challenge'
+						circularKey = if key=='moment' then 'challenge' else 'moment'
+						value = _.omit(value, circularKey)
+				return localStorageService.set(key, value)
+
 			isSupported: ()->
 				# config to use cookies if localStorage not supported?
 				localStorageService.isSupported()
@@ -116,6 +127,17 @@ syncService = angular.module('syncModule', [
 						}
 					return  moments
 			}
+			
+			setForeignKeys: (challenges, moments)->
+				challengeStatusPriority = ['new','pass', 'complete','edit','active']
+				for challenge in challenges
+				  challenge.moments = _.where(moments, {challengeId: challenge.id})
+				  if challenge.moments.length
+				    _.each challenge.moments, (moment,k,l)->
+				        moment.challenge = challenge    # moment belongsto challenge assoc
+				        challenge.status = moment.status if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
+				  else 
+				    challenge.status = 'new'
 		}
 		return syncService
 ])

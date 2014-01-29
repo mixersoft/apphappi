@@ -53,11 +53,12 @@ appHappi = angular.module( 'appHappi'
 				return deck.cards && cards.length == deck.cards.length && JSON.stringify options == deck.options
 
 			setupDeck : (cards, deck={}, options={})->
+				options = _.pick(options, ['filter', 'query', 'orderBy'])
 				if !cardService.validateDeck cards, deck, options
 					step = cards
 					step = $filter('filter') step, options.filter if options.filter?
 					step = $filter('filter') step, options.query if options.query?
-					step = $filter('orderBy') step, options.orderProp if options.orderProp?
+					step = $filter('orderBy') step, options.orderBy if options.orderBy?
 					deck.cards = step
 					deck.options = JSON.stringify options
 					deck.index = 0	
@@ -125,10 +126,16 @@ appHappi = angular.module( 'appHappi'
 		$scope.$root.drawer = drawer
 
 		$scope.initialDrawerState = {  
-      name: 'findhappi'
-      state:
-        active: 'current'
-        orderProp: 'category'
+      # name: 'findhappi'
+      # state:
+      #   active: 'current'
+      #   orderProp: 'category'
+      # new drawer state, deprecate above
+      group: 'findhappi'  
+      item: 'current'
+      filter: null
+      query: ''
+      orderBy: 'category'
     }
 
 		# reset for testing
@@ -136,51 +143,54 @@ appHappi = angular.module( 'appHappi'
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer'])	
 
 		$q.all( syncService.promises ).then (o)->
+			# rebuild FKs
+			syncService.setForeignKeys(o.challenge, o.moment)
 			# init drawer
-			drawer.init o.challenge, o.moment, $scope.initialDrawerState
+			state = syncService.get('drawerState')
+			state = $scope.initialDrawerState if _.isEmpty(state)
+			drawer.init o.challenge, o.moment, state
 			
-			# skip moments.status=pass
-			o.moments = $filter('filter')(o.moments, {status:"!pass"})
+			o.moment = $filter('filter')(o.moment, {status:"!pass"})
 			$scope.moments = o.moment
-			$scope.challenges = o.challenge
+			# syncService.set('moment', $scope.moments)
+			$scope.challenges = o.challenge 
+			# syncService.set('challenge', $scope.challenges)
+
 			# get nextCard
-			$scope.cards = o.challenge
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, deckOptions)
-			$scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			$scope.cards = $scope.challenges
+			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, drawer.state)
+			$scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 			return 			
 
 		# methods
 		$scope.drawerShowAll = ()->
-			drawer.itemClick $scope, drawer.getDrawerItem('findhappi', 'all')
+			drawer.itemClick drawer.getDrawerItem('findhappi', 'all')
 			$scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer) 
 
 		$scope.passCard = ()->
-			if drawer.drawerItemState.state.filter.status=='active' && $scope.card
+			if drawer.state.filter.status=='active' && $scope.card
 				# set status=pass if current card, then show all challenges
 				$scope.card.status='pass'
 				console.warn "save to localStorage"
 				return $scope.drawerShowAll()
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		$scope.nextCard = ()->
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 
-		$scope.itemClick = (options)->
-			return drawer.itemClick $scope, options, ()->
-				deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
+		$scope.itemClick = (groupName, options)->
+			options.group = groupName
+			options.item = options.name
+			return drawer.itemClick options, ()->
 				if options.name=='shuffle'
-					$scope.deck = cardService.setupDeck $scope.cards, $scope.deck, deckOptions
+					$scope.deck = cardService.setupDeck $scope.cards, $scope.deck, drawer.state
 					cardService.shuffleDeck( $scope.deck )
-				return $scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions) 
+				return $scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state) 
 
 		$scope.shuffleDeck = ()->
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, deckOptions)
+			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, drawer.state)
 			cardService.shuffleDeck( $scope.deck )
-			return cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			return cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		$scope.accept = ()->
 			# pass current Challenge to FindHappi
@@ -208,7 +218,7 @@ appHappi = angular.module( 'appHappi'
 
 		# attributes
 		$scope.$route = $route
-		$scope.orderProp = 'modified'
+		# $scope.orderProp = 'modified'
 		# card + deck iterator
 		$scope.deck = {}
 		$scope.cards = []
@@ -216,10 +226,15 @@ appHappi = angular.module( 'appHappi'
 		$scope.$root.drawer = drawer
 
 		$scope.initialDrawerState = {
-			name: 'gethappi'
-			state:
-				active: 'mostRecent'
-				orderProp: 'modified'
+			# name: 'gethappi'
+			# state:
+			# 	active: 'mostRecent'
+			# 	orderProp: 'modified'
+			group: 'gethappi'
+			item: 'mostRecent'
+			filter: null
+			query: ''
+			orderBy: 'modified'	
 		}
 		
 		# reset for testing
@@ -227,41 +242,46 @@ appHappi = angular.module( 'appHappi'
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer'])	
 
 		$q.all( syncService.promises ).then (o)->
+			# rebuild FKs
+			syncService.setForeignKeys(o.challenge, o.moment)
 			# init drawer
-			drawer.init o.challenge, o.moment, $scope.initialDrawerState
+			# drawer.init o.challenge, o.moment, $scope.initialDrawerState
+			state = syncService.get('drawerState')
+			state = $scope.initialDrawerState if _.isEmpty(state)
+			drawer.init o.challenge, o.moment, state
 			
-			# skip moments.status=pass
 			o.moment = $filter('filter')(o.moment, {status:"!pass"})
 			$scope.moments = o.moment
-			$scope.challenges = o.challenge
+			# syncService.set('moment', $scope.moments)
+			$scope.challenges = o.challenge 
+			# syncService.set('challenge', $scope.challenges)
+
 			# get nextCard
-			$scope.cards = o.moment
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, deckOptions)
-			$scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			$scope.cards = $scope.moments
+			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, drawer.state)
+			$scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 			# for use with ng-repeat, card in deckCards
 			$scope.deckCards = cardService.deckCards($scope.deck)	
 			return 			
 
 		# methods
 		$scope.nextCard = ()->
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			return $scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 
-		$scope.itemClick = (options)->
-			return drawer.itemClick $scope, options, ()->
-				deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
+		$scope.itemClick = (groupName, options)->
+			options.group = groupName
+			options.item = options.name
+			return drawer.itemClick options, ()->
 				if options.name=='shuffle'
-					$scope.deck = cardService.setupDeck $scope.cards, $scope.deck, deckOptions
+					$scope.deck = cardService.setupDeck $scope.cards, $scope.deck, drawer.state
 				$scope.deckCards = cardService.deckCards cardService.shuffleDeck $scope.deck 
-				# return $scope.card = cardService.nextCard($scope.cards, $scope.deck, deckOptions) 
+				# return $scope.card = cardService.nextCard($scope.cards, $scope.deck, drawer.state) 
 
 		$scope.shuffleDeck = ()->
-			deckOptions = _.pick(drawer.drawerItemState.state, ['filter', 'query', 'orderProp'])
-			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, deckOptions)
+			$scope.deck = cardService.setupDeck($scope.cards, $scope.deck, drawer.state)
 			cardService.shuffleDeck( $scope.deck )
 			return $scope.deckCards = cardService.deckCards cardService.shuffleDeck $scope.deck 
-			# return cardService.nextCard($scope.cards, $scope.deck, deckOptions)
+			# return cardService.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		return;
 	]

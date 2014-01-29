@@ -7,22 +7,25 @@
           <accordion-heading>
             <i class='fa fa-bars fa-lg'></i>
           </accordion-heading>
-          <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
+          <div class='item'><input ng-model="drawer.state.query" placeholder="Search"></div>
           <div class='item'>
             <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
           </div>
 
           <accordion close-others="true">
-            <accordion-group ng-repeat="group in drawer.json.data" is-open="group.isOpen" class='drawer-group inverse'>
+            <accordion-group class='drawer-group inverse {{group.name}}'
+            ng-repeat="group in drawer.json.data" 
+            is-open="group.isOpen" >
               <accordion-heading>
                 <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
                 <span ng-bind="group.count" class="badge badge-default"></span>
               </accordion-heading>
               <div ng-repeat="options in group.items" 
               class="item"
-              ng-class="{active: options.name==drawer.drawerItemState.state.active}"
-              ng-click="itemClick(options)">
+              ng-class="{active: options.name==drawer.state.item}"
+              ng-click="itemClick(group.name, options)">
                 <span ng-bind-html="options.label"></span>
+                <span ng-if="group.name=='findhappi' && ['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(challenges|filter:options.filter).length}}</span>
               </div>
             </accordion-group>
           </accordion>
@@ -33,7 +36,7 @@
     </div>
     <div class="span10">
       <!--Body content-->
-      <div ng-repeat="card in deckCards| filter:$root.drawer.query | orderBy:orderProp | limitTo:5" >
+      <div ng-repeat="card in deckCards| filter:drawer.state.query | orderBy:drawer.state.orderBy | limitTo:5" >
       <div ng-model="card"
             class="moment card summary list-unstyled text-center">
         <ul class='header list-inline list-unstyled'>   

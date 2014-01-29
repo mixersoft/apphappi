@@ -8,7 +8,9 @@ drawerService = angular.module('drawerModule', [
   '$location'
   '$http'
   '$timeout'
-, (appConfig, $location, $http, $timeout)->
+  '$rootScope'
+  'localStorageService'
+, (appConfig, $location, $http, $timeout, $rootScope, localStorageService)->
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
@@ -16,15 +18,14 @@ drawerService = angular.module('drawerModule', [
       json: {}    # drawer config object 
       # initial defaultDrawerItemState, override on drawer.init() in controller 
       defaultDrawerItemState: {  
-        name: 'findhappi'
-        state:
-          # isOpen: true
-          active: 'current'
-          filter: null    # filter:{key:value}
-          query: ''       # filter:[string]
-          orderProp: ''   # orderBy propertyName
+        group: 'findhappi'
+        item: 'current'
+        filter: null    # filter:{key:value}
+        query: ''       # filter:[string]
+        orderProp: ''   # orderBy propertyName
       },
-      drawerItemState: {},  # active state
+      state: {}           # init with $scope.initalDrawerState if !drawer.state?
+      statusCount: null
 
       animateClose: (delay=750)->
         $timeout ()->
@@ -32,27 +33,21 @@ drawerService = angular.module('drawerModule', [
           , delay  
 
       # set properties for drawerItem click
-      itemClick: ($scope, options, cb)->
+      itemClick: (options, cb)->
         # drawer = $scope.$root.drawer
         # same drawer-group, stay on page
-        drawer.drawerItemState.state.orderProp = options.orderBy if options.orderBy?
-        # options.filter is an object {key:query}
-        drawer.drawerItemState.state.filter = options.filter if options.filter?
-        drawer.drawerItemState.state.active = options.name if options.name?
-        if $scope.$route.current.originalPath==options.route
-          # set .item.active
-          drawerGroup = _.findWhere(drawer.json.data, {name:drawer.drawerItemState.name})
-          # drawerGroup.state.active = options.name   # use drawer.drawerItemState.state.active
+        # drawer = $rootScope.drawer
+        sameGroup = drawer.state.group == options.group
+        _.extend(drawer.state, _.pick(options, ['group', 'item', 'filter', 'query', 'orderBy']))
+
+        if sameGroup
           drawer.animateClose()
-          return cb() if _.isFunction(cb);
-          # shuffle?
-          # $scope.cards = drawer._shuffleArray $scope.cards if options.name=='shuffle'
+          return cb() if _.isFunction(cb)
         else 
-          # navigate to options.route, set initial state
-          console.log "navigate to href=#"+options.route
-          console.warn "save drawer state to localStorage"
+          localStorageService.set('drawerState', drawer.state)
           $location.path(options.route)
           drawer.animateClose(500)
+        return  
 
       getDrawerItem: (drawerGroup, itemName) ->
         try 
@@ -64,31 +59,33 @@ drawerService = angular.module('drawerModule', [
       forceGroupOpen: (group)->
         # force open accordion-group on ng-click toggle()
         # NOTE: this is different from initial state open/close
-        drawer.drawerItemState.name = group.name
+        # drawer.state.group = group.name
         return group.isOpen = false   # toggle will set isOpen=true
 
       init: (challenges, moments, drawerItemState)->
-        drawer.drawerItemState = _.merge(drawer.defaultDrawerItemState, drawerItemState)
+        # drawer = $rootScope.drawer
+        _.extend(drawer.state, drawerItemState) if drawerItemState?
         # drawer = $scope.$root.drawer;
-        drawer._setForeignKeys challenges, moments
+        if !drawer.state.counts?
+          drawer.state.counts = drawer.getCounts challenges
+          
         # set counts for drawerGroups
         _.each ['gethappi', 'findhappi'], (groupName)->
-          found = _.findWhere drawer.json.data, {name: groupName}
-          found.count = challenges.length if groupName=='findhappi'
-          if groupName=='gethappi'
-            found.count = (_.filter moments, (o)-> o.status!='pass').length
+          drawerGroup = _.findWhere drawer.json.data, {name: groupName}
+          switch groupName
+            when 'findhappi' 
+              drawerGroup.count = challenges.length
+              drawer.state.counts[groupName] = challenges.length
+            when 'gethappi' 
+              drawerGroup.count = (_.filter moments, (o)-> o.status!='pass').length
+              drawer.state.counts[groupName] = (_.filter moments, (o)-> o.status!='pass').length
 
-
-        # set drawer query,filter propery
-        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.drawerItemState.name})
+        # set drawer query, filter property
+        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.state.group})
         drawerGroup.isOpen = true;
-        drawerItem = _.findWhere(drawerGroup.items, {name: drawer.drawerItemState.state.active})
-        drawer.drawerItemState.state.filter = drawerItem && drawerItem.filter
         return
 
-      # TODO: move to syncService parse  
-      _setForeignKeys: (challenges, moments)->
-        challengeStatusPriority = ['new','pass', 'complete','edit','active']
+      getCounts: (challenges, moments)->
         challengeStatusCount = {
           new: 0
           pass: 0 
@@ -97,13 +94,6 @@ drawerService = angular.module('drawerModule', [
           active: 0
         }
         for challenge in challenges
-          challenge.moments = _.where(moments, {challengeId: challenge.id})
-          if challenge.moments.length
-            _.each challenge.moments, (moment,k,l)->
-                moment.challenge = challenge    # moment belongsto challenge assoc
-                challenge.status = moment.status if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
-          else 
-            challenge.status = 'new'
           challengeStatusCount[challenge.status]++
         return challengeStatusCount;
 
