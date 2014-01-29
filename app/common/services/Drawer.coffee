@@ -4,16 +4,15 @@ drawerService = angular.module('drawerModule', [
   # dependecies
 ]
 ).factory('drawerService', [
+  'appConfig'
   '$location'
   '$http'
   '$timeout'
-, ($location, $http, $timeout)->
+, (appConfig, $location, $http, $timeout)->
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
       isCardExpanded: false
-      query: ''     # filter:[string]
-      filter: null  # filter:{key:value}
       json: {}    # drawer config object 
       # initial defaultDrawerItemState, override on drawer.init() in controller 
       defaultDrawerItemState: {  
@@ -21,7 +20,11 @@ drawerService = angular.module('drawerModule', [
         state:
           # isOpen: true
           active: 'current'
+          filter: null    # filter:{key:value}
+          query: ''       # filter:[string]
+          orderProp: ''   # orderBy propertyName
       },
+      drawerItemState: {},  # active state
 
       animateClose: (delay=750)->
         $timeout ()->
@@ -31,18 +34,15 @@ drawerService = angular.module('drawerModule', [
       # set properties for drawerItem click
       itemClick: ($scope, options, cb)->
         # drawer = $scope.$root.drawer
+        # same drawer-group, stay on page
+        drawer.drawerItemState.state.orderProp = options.orderBy if options.orderBy?
+        # options.filter is an object {key:query}
+        drawer.drawerItemState.state.filter = options.filter if options.filter?
+        drawer.drawerItemState.state.active = options.name if options.name?
         if $scope.$route.current.originalPath==options.route
-          # same drawer-group, stay on page
-          $scope.orderProp = options.orderBy if options.orderBy?
-          # options.filter is an object {key:query}
-          # don't forget to pipe into $root.drawer.query
-          drawer.filter = options.filter if options.filter?
-
-
           # set .item.active
           drawerGroup = _.findWhere(drawer.json.data, {name:drawer.drawerItemState.name})
-          drawer.drawerItemState.state.active = options.name
-          drawerGroup.state.active = options.name
+          # drawerGroup.state.active = options.name   # use drawer.drawerItemState.state.active
           drawer.animateClose()
           return cb() if _.isFunction(cb);
           # shuffle?
@@ -50,6 +50,7 @@ drawerService = angular.module('drawerModule', [
         else 
           # navigate to options.route, set initial state
           console.log "navigate to href=#"+options.route
+          console.warn "save drawer state to localStorage"
           $location.path(options.route)
           drawer.animateClose(500)
 
@@ -82,7 +83,7 @@ drawerService = angular.module('drawerModule', [
         drawerGroup = _.findWhere(drawer.json.data, {name: drawer.drawerItemState.name})
         drawerGroup.isOpen = true;
         drawerItem = _.findWhere(drawerGroup.items, {name: drawer.drawerItemState.state.active})
-        drawer.filter = drawerItem && drawerItem.filter
+        drawer.drawerItemState.state.filter = drawerItem && drawerItem.filter
         return
 
       # TODO: move to syncService parse  
@@ -107,7 +108,7 @@ drawerService = angular.module('drawerModule', [
         return challengeStatusCount;
 
       ready: (drawer)->   # should be a promise
-        return "Usage: drawer.load(); drawer.ready.then();"
+        return "Usage: drawer.load(url); drawer.ready.then();"
 
       load: (url)->
         url = drawer.url if !url?

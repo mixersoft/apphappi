@@ -13,11 +13,12 @@ syncService = angular.module('syncModule', [
 ]
 ).factory('syncService', [
   'localStorageService'
-  , 'drawerService'
-  , '$q'
-  , '$filter'
-  , 'AppHappiRestangular'
-, (localStorageService, drawer, $q, $filter, AppHappiRestangular)->
+  'appConfig'
+  'drawerService'
+  '$q'
+  '$filter'
+  'AppHappiRestangular'
+, (localStorageService, appConfig, drawer, $q, $filter, AppHappiRestangular)->
 			# private methods
 	_asDuration = (secs)->
 		duration = moment.duration(secs*1000) 
@@ -67,7 +68,7 @@ syncService = angular.module('syncModule', [
 							return drawer.ready.promise
 						else 
 							# load drawer from $http
-							promise = drawer.load().then (resp)->
+							promise = drawer.load( appConfig.drawerUrl ).then (resp)->
 								# localStorageService.set(model, resp.data)
 								localStorageService.set(model, drawer.json)
 								return drawer.json

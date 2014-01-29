@@ -33,7 +33,7 @@
     </div>
     <div class="span10">
       <!--Body content-->
-      <div ng-repeat="card in cards | filter:$root.drawer.query | orderBy:orderProp | limitTo:5" >
+      <div ng-repeat="card in deckCards| filter:$root.drawer.query | orderBy:orderProp | limitTo:5" >
       <div ng-model="card"
             class="moment card summary list-unstyled text-center">
         <ul class='header list-inline list-unstyled'>   
@@ -89,7 +89,7 @@
       <div class="gallery clearfix">
         <div ng-repeat="photo in card.photos"
           id="{{photo.id}}" 
-          class="thumb fade xxxfade-out {{photo.orientationLabel}}" 
+          class="thumb fade in {{photo.orientationLabel}}" 
           style="{{top}}{{position}}">
               <div class="crop-wrap">
                 <div class="crop">
