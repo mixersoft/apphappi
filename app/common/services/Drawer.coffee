@@ -4,9 +4,10 @@ drawerService = angular.module('drawerModule', [
   # dependecies
 ]
 ).factory('drawerService', [
+  '$location'
   '$http'
   '$timeout'
-, ($http, $timeout)->
+, ($location, $http, $timeout)->
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
@@ -48,7 +49,8 @@ drawerService = angular.module('drawerModule', [
           # $scope.cards = drawer._shuffleArray $scope.cards if options.name=='shuffle'
         else 
           # navigate to options.route, set initial state
-          console.log "navigate to href="+options.route
+          console.log "navigate to href=#"+options.route
+          $location.path(options.route)
           drawer.animateClose(500)
 
       getDrawerItem: (drawerGroup, itemName) ->

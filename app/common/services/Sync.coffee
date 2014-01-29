@@ -50,8 +50,9 @@ syncService = angular.module('syncModule', [
 			# @return $q.promise
 			initLocalStorageModel: (model, parseFn)->
 				syncService.localData[model] = localStorageService.get(model)
-				syncService.lastModified[model] = syncService.localData[model].modified || 
-				_.reduce( syncService.localData[model]
+				if syncService.localData[model] && syncService.localData[model].modified?
+					syncService.lastModified[model] = syncService.localData[model].modified
+				else syncService.lastModified[model] = _.reduce( syncService.localData[model]
 					, (last, o)-> 
 						return if o.modified > last then o.modified else last
 					, ''
