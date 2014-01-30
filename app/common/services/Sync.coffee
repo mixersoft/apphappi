@@ -1,10 +1,7 @@
 return if !angular? 
 
-syncService = angular.module('syncModule', [
-  # dependecies
-  'LocalStorageModule'
-  , 'restangularModel'
-]
+angular.module( 
+	'appHappi'
 ).config([
 	'localStorageServiceProvider', 
 	(localStorageServiceProvider)->

@@ -1,8 +1,7 @@
 return if !angular? 
 
-drawerService = angular.module('drawerModule', [
-  # dependecies
-]
+angular.module( 
+  'appHappi'
 ).factory('drawerService', [
   'appConfig'
   '$location'

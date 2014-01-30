@@ -8,16 +8,14 @@ hostconfig = {
 
 baseurl = [
 	'http://'
-	hostconfig.localhost
+	hostconfig['1776']
 	':4001'
 	'/common/data'
 ]
 
-angular.module( 'restangularModel'
-, ['restangular']
-
-).factory( 'AppHappiRestangular'
-, (Restangular)->
+angular.module( 
+	'appHappi'
+).factory( 'AppHappiRestangular', (Restangular)->
 		Restangular.withConfig (RestangularConfigurer)->
 			RestangularConfigurer.setBaseUrl(baseurl.join(''))
 			RestangularConfigurer.setRequestSuffix('.json')
