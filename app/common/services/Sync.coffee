@@ -40,11 +40,17 @@ syncService = angular.module('syncModule', [
 
 			set: (key, value)->
 				# remove circular reference
-				switch key
-					when 'moment', 'challenge'
-						circularKey = if key=='moment' then 'challenge' else 'moment'
-						value = _.omit(value, circularKey)
-				return localStorageService.set(key, value)
+				try
+					switch key
+						when 'moment', 'challenge'
+							circularKey = if key=='moment' then 'challenge' else 'moment'
+							value = _.reduce value, ((last, o)->
+								last.push _.omit(o, circularKey) 
+								return last 
+							), []
+					return localStorageService.set(key, value)
+				catch
+					alert "syncService.set() error"	
 
 			isSupported: ()->
 				# config to use cookies if localStorage not supported?
@@ -127,7 +133,7 @@ syncService = angular.module('syncModule', [
 						}
 					return  moments
 			}
-			
+
 			setForeignKeys: (challenges, moments)->
 				challengeStatusPriority = ['new','pass', 'complete','edit','active']
 				for challenge in challenges

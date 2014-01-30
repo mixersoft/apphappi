@@ -96,10 +96,93 @@ appHappi = angular.module( 'appHappi'
 		return cardService
 ]		
 ).factory('cameraService', [
-	()->
-		cameraService = {
+	'$q'
+	($q)->
+		noCameraService = {
 			check: ()->
-				alert('cameraService')
+				alert('the Steriods camera API is not available')
+		}
+		return noCameraService if !window.Modernizr.touch 
+		_deferred = null
+		cameraService = {
+
+  		# Camera options
+			imageSrc : null
+
+			cameraOptions :
+			  fromPhotoLibrary:
+			    quality: 100
+			    destinationType: navigator.camera.DestinationType.IMAGE_URI
+			    sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
+			    correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
+			    targetWidth: 600
+			    popoverOptions: # iPad camera roll popover position
+			      width: 768
+			      height: 190
+			      arrowDir: Camera.PopoverArrowDirection.ARROW_UP
+			  fromCamera:
+			    quality: 100
+			    destinationType: navigator.camera.DestinationType.IMAGE_URI
+			    correctOrientation: true
+			    targetWidth: 600
+
+			# Camera failure callback
+			cameraError : (message)->
+			  # navigator.notification.alert 'Cordova says: ' + message, null, 'Capturing the photo failed!'
+				_deferred.reject message
+				_deferred = null
+
+			  # $scope.showSpinner = false
+			  # $scope.$apply()
+
+			# File system failure callback
+			fileError : (error)->
+			  # navigator.notification.alert "Cordova error code: " + error.code, null, "File system error!"
+				_deferred.reject( "Cordova error code: " + error.code + " File system error!" ) if _deferred?
+				_deferred = null
+			  # $scope.showSpinner = false
+			  # $scope.$apply()
+
+			# Take a photo using the device's camera with given options, callback chain starts
+			# returns a promise
+			getPicture : (options)->
+			  navigator.camera.getPicture cameraService.imageUriReceived, cameraService.cameraError, options
+			  # $scope.showSpinner = true
+			  # $scope.$apply()
+			  _deferred.reject 'Camera getPicture cancelled' if _deferred?
+			  _deferred = $q.defer()
+			  return _deferred.promise
+
+
+			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
+			imageUriReceived : (imageURI)->
+				if _deferred?
+					_deferred.resolve(imageURI) 
+					_deferred = null
+				alert "image received from CameraRoll, imageURI="+imageURI
+				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
+
+			gotFileObject : (file)->
+			  # Define a target directory for our file in the user files folder
+			  # steroids.app variables require the Steroids ready event to be fired, so ensure that
+			  steroids.on "ready", ->
+			    targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
+			    fileName = "user_pic.png"
+
+			    window.resolveLocalFileSystemURI(
+			      targetDirURI
+			      (directory)->
+			        file.moveTo directory, fileName, cameraService.fileMoved, cameraService.fileError
+			      cameraService.fileError
+			    )
+
+			# Store the moved file's URL into $scope.imageSrc
+			# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
+			fileMoved : (file)->
+				if _deferred?
+					alert "photo copied to App space from CameraRoll, file=/"+file.name
+					_deferred.resolve("/" + file.name) 
+					_deferred = null
 		}
 		return cameraService
 ]		
@@ -111,13 +194,16 @@ appHappi = angular.module( 'appHappi'
 	'drawerService'
 	'syncService'
 	'cardService'
-	($scope, $filter, $q, $route, drawer, syncService, cardService)->
+	'cameraService'
+	($scope, $filter, $q, $route, drawer, syncService, cardService, cameraService)->
+
 		#
 		# Controller: ChallengeCtrl
 		#
 
 		# attributes
 		$scope.$route = $route
+		$scope.cameraService = cameraService
 
 		# card + deck iterator
 		$scope.deck = {}
@@ -126,11 +212,6 @@ appHappi = angular.module( 'appHappi'
 		$scope.$root.drawer = drawer
 
 		$scope.initialDrawerState = {  
-      # name: 'findhappi'
-      # state:
-      #   active: 'current'
-      #   orderProp: 'category'
-      # new drawer state, deprecate above
       group: 'findhappi'  
       item: 'current'
       filter: null
@@ -139,7 +220,6 @@ appHappi = angular.module( 'appHappi'
     }
 
 		# reset for testing
-		syncService.clearAll() if $scope.$route.current.params.reset
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer'])	
 
 		$q.all( syncService.promises ).then (o)->
@@ -201,6 +281,36 @@ appHappi = angular.module( 'appHappi'
 			# on wake, should open to current challenge
 			return $scope.challege
 
+		$scope.getPhoto = ()->
+			saveToMoment = (uri)->
+				alert "camera roll, file $scope.cameraRollSrc=" + uri
+				$scope.cameraRollSrc = uri
+				
+				moment = _.findWhere $scope.card.moments, {status:'active'}
+
+				if moment? && _.isArray moment.photos
+					photo = {
+						id: `new Date().getTime()`
+						src: uri
+					}
+					moment.photos.push photo
+					# alert "moment.photos: " + JSON.stringify _.reduce moment.photos, ((last, o)->
+					# 			last.push o.src 
+					# 			return last 
+					# 		), []
+					syncService.set('moment', $scope.moments)
+
+				return
+
+
+			if !window.Modernizr.touch
+				uri = 'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
+				dfd = $q.defer()
+				dfd.promise.then saveToMoment
+				dfd.resolve(uri) 
+			else
+				cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary).then saveToMoment
+						
 		return;
 	]
 ).controller( 'MomentCtrl', [
@@ -218,7 +328,7 @@ appHappi = angular.module( 'appHappi'
 
 		# attributes
 		$scope.$route = $route
-		# $scope.orderProp = 'modified'
+
 		# card + deck iterator
 		$scope.deck = {}
 		$scope.cards = []
@@ -226,10 +336,6 @@ appHappi = angular.module( 'appHappi'
 		$scope.$root.drawer = drawer
 
 		$scope.initialDrawerState = {
-			# name: 'gethappi'
-			# state:
-			# 	active: 'mostRecent'
-			# 	orderProp: 'modified'
 			group: 'gethappi'
 			item: 'mostRecent'
 			filter: null
@@ -245,7 +351,6 @@ appHappi = angular.module( 'appHappi'
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
 			# init drawer
-			# drawer.init o.challenge, o.moment, $scope.initialDrawerState
 			state = syncService.get('drawerState')
 			state = $scope.initialDrawerState if _.isEmpty(state)
 			drawer.init o.challenge, o.moment, state
@@ -287,5 +392,10 @@ appHappi = angular.module( 'appHappi'
 	]
 )
 
-
-
+# bootstrap 
+if window.Modernizr.touch
+	document.addEventListener "deviceready", ()->
+		angular.bootstrap document, ['appHappi']
+else 
+	angular.element(document).ready ()->
+	angular.bootstrap document.getElementById('ng-app'), ['appHappi']

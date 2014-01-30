@@ -93,7 +93,14 @@
     "name": "settings",
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "state": {
-    }
+    },
+    "items": [
+      {
+        "name": "reset",
+        "label": "Reset local data",
+        "route": "/challenges"
+      }
+    ]
   }  
   ]
 }

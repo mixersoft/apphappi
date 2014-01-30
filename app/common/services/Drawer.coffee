@@ -36,9 +36,22 @@ drawerService = angular.module('drawerModule', [
       itemClick: (options, cb)->
         # drawer = $scope.$root.drawer
         # same drawer-group, stay on page
-        # drawer = $rootScope.drawer
+
+        # special case for reset
+        if options.group=='settings'
+          if options.item=='reset'
+            localStorageService.clearAll()
+            $location.path(options.route)
+            drawer.animateClose(500)
+            return
+
         sameGroup = drawer.state.group == options.group
-        _.extend(drawer.state, _.pick(options, ['group', 'item', 'filter', 'query', 'orderBy']))
+        itemState = _.pick(options, ['group', 'item', 'filter', 'query', 'orderBy'])
+        _.extend( drawer.state, {
+          'filter':null
+          'query':''
+          'orderBy':''
+          }, itemState)
 
         if sameGroup
           drawer.animateClose()
