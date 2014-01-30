@@ -156,15 +156,17 @@ appHappi = angular.module( 'appHappi'
 
 			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
 			imageUriReceived : (imageURI)->
-				if _deferred?
-					_deferred.resolve(imageURI) 
-					_deferred = null
+				# if _deferred?
+				# 	_deferred.resolve(imageURI) 
+				# 	_deferred = null
 				alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
 			gotFileObject : (file)->
 			  # Define a target directory for our file in the user files folder
 			  # steroids.app variables require the Steroids ready event to be fired, so ensure that
+			  return if !_deferred?
+			  
 			  steroids.on "ready", ->
 			    targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
 			    fileName = "user_pic.png"
@@ -294,10 +296,10 @@ appHappi = angular.module( 'appHappi'
 						src: uri
 					}
 					moment.photos.push photo
-					# alert "moment.photos: " + JSON.stringify _.reduce moment.photos, ((last, o)->
-					# 			last.push o.src 
-					# 			return last 
-					# 		), []
+					alert "moment.photos: " + JSON.stringify _.reduce moment.photos, ((last, o)->
+								last.push o.src 
+								return last 
+							), []
 					syncService.set('moment', $scope.moments)
 
 				return
