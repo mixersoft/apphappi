@@ -30,9 +30,6 @@ angular.module(
 		$scope.initialDrawerState = {  
 			group: 'findhappi'  
 			item: 'current'
-			filter: null
-			query: ''
-			orderBy: 'category'
 		}
 
 		# reset for testing
@@ -41,11 +38,13 @@ angular.module(
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
-			# init drawer
+			# reload or init drawer
 			state = syncService.get('drawerState')
-			state = $scope.initialDrawerState if _.isEmpty(state)
+			if _.isEmpty(state) || state.group !='findhappi'
+				drawerItemOptions = drawer.getDrawerItem('findhappi', 'current')
+				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
-			
+
 			o.moment = $filter('filter')(o.moment, {status:"!pass"})
 			$scope.moments = o.moment
 			# syncService.set('moment', $scope.moments)
@@ -55,26 +54,39 @@ angular.module(
 			# get nextCard
 			$scope.cards = $scope.challenges
 			$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
-			$scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
-			return      
+			
+
+			# redirect to all if no active challenge
+			if drawer.state.group=='findhappi' &&
+          drawer.state.item=='current' &&
+          drawer.state.counts['active'] == 0
+        $scope.drawerShowAll()
+      else   
+      	return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		# methods
 		$scope.drawerShowAll = ()->
-			drawer.itemClick drawer.getDrawerItem('findhappi', 'all')
-			$scope.card = deck.nextCard($scope.cards, $scope.deck, drawer) 
+			options = drawer.getDrawerItem('findhappi', 'all')
+			return $scope.drawerItemClick 'findhappi', options
 
 		$scope.passCard = ()->
 			if drawer.state.filter.status=='active' && $scope.card
 				# set status=pass if current card, then show all challenges
-				$scope.card.status='pass'
-				console.warn "save to localStorage"
+				_.each $scope.card.moments, (o)-> 
+					if o.status=='active'
+						$scope.card.status=o.status='working'
+				$scope.card.status='pass' if $scope.card.status=='active'		
+
+				syncService.set('challenge', $scope.challenges)
+				syncService.set('moment', $scope.moments)
 				return $scope.drawerShowAll()
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		$scope.nextCard = ()->
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
-		$scope.itemClick = (groupName, options)->
+		# returns deck.TopCard()
+		$scope.drawerItemClick = (groupName, options)->
 			options.group = groupName
 			options.item = options.name
 			return drawer.itemClick options, ()->
@@ -166,11 +178,13 @@ angular.module(
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
-			# init drawer
+			# reload or init drawer
 			state = syncService.get('drawerState')
-			state = $scope.initialDrawerState if _.isEmpty(state)
+			if _.isEmpty(state) || state.group !='gethappi'
+				drawerItemOptions = drawer.getDrawerItem('gethappi', 'mostRecent')
+				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
-			
+
 			o.moment = $filter('filter')(o.moment, {status:"!pass"})
 			$scope.moments = o.moment
 			# syncService.set('moment', $scope.moments)
@@ -189,7 +203,7 @@ angular.module(
 		$scope.nextCard = ()->
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
-		$scope.itemClick = (groupName, options)->
+		$scope.drawerItemClick = (groupName, options)->
 			options.group = groupName
 			options.item = options.name
 			return drawer.itemClick options, ()->

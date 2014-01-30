@@ -23,9 +23,9 @@
               <div ng-repeat="options in group.items" 
               class="item"
               ng-class="{active: options.name==drawer.state.item}"
-              ng-click="itemClick(group.name, options)">
+              ng-click="drawerItemClick(group.name, options)">
                 <span ng-bind-html="options.label"></span>
-                <span ng-if="group.name=='findhappi' && ['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(challenges|filter:options.filter).length}}</span>
+                <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
               </div>
             </accordion-group>
           </accordion>

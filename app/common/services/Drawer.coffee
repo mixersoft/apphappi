@@ -40,7 +40,7 @@ angular.module(
         if options.group=='settings'
           if options.item=='reset'
             localStorageService.clearAll()
-            $location.path(options.route)
+            $location.path('')
             drawer.animateClose(500)
             return
 
@@ -51,12 +51,13 @@ angular.module(
           'query':''
           'orderBy':''
           }, itemState)
+        # save state to localStorage
+        localStorageService.set('drawerState', drawer.state)
 
         if sameGroup
           drawer.animateClose()
           return cb() if _.isFunction(cb)
         else 
-          localStorageService.set('drawerState', drawer.state)
           $location.path(options.route)
           drawer.animateClose(500)
         return  
@@ -77,12 +78,33 @@ angular.module(
       init: (challenges, moments, drawerItemState)->
         # drawer = $rootScope.drawer
         _.extend(drawer.state, drawerItemState) if drawerItemState?
-        # drawer = $scope.$root.drawer;
-        if !drawer.state.counts?
-          drawer.state.counts = drawer.getCounts challenges
 
+        drawer.updateCounts(challenges, moments)
+
+        # set drawer query, filter property
+        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.state.group})
+        drawerGroup.isOpen = true;
+        return drawer
+
+      _getCounts: (challenges, moments)->
+        challengeStatusCount = {
+          new: 0
+          pass: 0 
+          complete: 0
+          working: 0
+          active: 0
+        }
+        for challenge in challenges
+          challengeStatusCount[challenge.status]++
+        return challengeStatusCount
+
+      updateCounts: (challenges, moments)->
+        drawer.state.counts = _.extend (drawer.state.counts || {}), (drawer._getCounts challenges)
         # set counts for drawerGroups
-        _.each ['gethappi', 'findhappi'], (groupName)->
+        updateList = []
+        updateList.push('findhappi') if challenges?
+        updateList.push('gethappi') if moments?
+        _.each updateList, (groupName)->
           drawerGroup = _.findWhere drawer.json.data, {name: groupName}
           switch groupName
             when 'findhappi' 
@@ -91,23 +113,7 @@ angular.module(
             when 'gethappi' 
               drawerGroup.count = (_.filter moments, (o)-> o.status!='pass').length
               drawer.state.counts[groupName] = (_.filter moments, (o)-> o.status!='pass').length
-
-        # set drawer query, filter property
-        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.state.group})
-        drawerGroup.isOpen = true;
-        return
-
-      getCounts: (challenges, moments)->
-        challengeStatusCount = {
-          new: 0
-          pass: 0 
-          complete: 0
-          edit: 0
-          active: 0
-        }
-        for challenge in challenges
-          challengeStatusCount[challenge.status]++
-        return challengeStatusCount;
+        return drawer
 
       ready: (drawer)->   # should be a promise
         return "Usage: drawer.load(url); drawer.ready.then();"

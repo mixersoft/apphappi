@@ -40,12 +40,20 @@ angular.module(
 				try
 					switch key
 						when 'moment', 'challenge'
-							circularKey = if key=='moment' then 'challenge' else 'moment'
+							circularKey = if key=='moment' then 'challenge' else 'moments'
 							value = _.reduce value, ((last, o)->
 								last.push _.omit(o, circularKey) 
 								return last 
 							), []
+
+					switch key 
+						when 'challenge'
+							drawer.updateCounts value
+							localStorageService.set('drawerState', drawer.state)
+							
+					console.info "saving "+key+" to localStorage..."
 					return localStorageService.set(key, value)
+
 				catch
 					alert "syncService.set() error"	
 
@@ -132,7 +140,7 @@ angular.module(
 			}
 
 			setForeignKeys: (challenges, moments)->
-				challengeStatusPriority = ['new','pass', 'complete','edit','active']
+				challengeStatusPriority = ['new', 'sleep', 'pass', 'complete', 'working', 'active']
 				for challenge in challenges
 				  challenge.moments = _.where(moments, {challengeId: challenge.id})
 				  if challenge.moments.length

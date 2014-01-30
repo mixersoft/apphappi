@@ -23,9 +23,9 @@
               <div ng-repeat="options in group.items" 
               class="item"
               ng-class="{active: options.name==drawer.state.item}"
-              ng-click="itemClick(group.name, options)">
+              ng-click="drawerItemClick(group.name, options)">
                 <span ng-bind-html="options.label"></span>
-                <span ng-if="group.name=='findhappi' && ['completed','passed','all'].indexOf(options.name)>-1" class="badge badge-default">{{(challenges|filter:options.filter).length}}</span>
+                <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
               </div>
             </accordion-group>
           </accordion>
@@ -95,10 +95,12 @@
           ng-show="['complete'].indexOf(card.status)>=0">
             <button type="button" class="btn btn-primary">Open</button>
             <button type="button" class="btn btn-default" title="repeat this challenge"><i class="fa fa-copy"></i> Repeat</button>
-            <button type="button" class="btn btn-default" ng-click="nextCard()"  
-            ng-show="!drawer.filter">Pass</button>
-            <button type="button" class="btn btn-default" ng-click="nextCard()"  
-            ng-show="drawer.filter.status=='complete'">Next</button>
+            <button type="button" class="btn btn-default" ng-click="nextCard()">Next</button>
+          </div>
+          <div class="btn-group status-working"
+          ng-show="['working'].indexOf(card.status)>=0">
+            <button type="button" class="btn btn-primary">Open</button>
+            <button type="button" class="btn btn-default" ng-click="nextCard()">Next</button>
           </div>
           <div class="btn-group status-sleep"
           ng-show="['sleep'].indexOf(card.status)>=0">

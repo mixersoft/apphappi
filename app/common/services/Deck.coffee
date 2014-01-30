@@ -16,7 +16,7 @@ angular.module(
 	($filter, drawer)->
 		deckService = {
 			validateDeck : (cards, deck, options)->
-				return deck.cards && cards.length == deck.cards.length && JSON.stringify options == deck.options
+				return deck.cards && cards.length == deck.cards.length && JSON.stringify(_.pick(options, ['filter', 'query', 'orderBy'])) == deck.options
 
 			setupDeck : (cards, deck={}, options={})->
 				options = _.pick(options, ['filter', 'query', 'orderBy'])

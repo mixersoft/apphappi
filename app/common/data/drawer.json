@@ -48,14 +48,25 @@
       {
         "name": "current",
         "label": "Challenge: Current",
+        "countKey": "active",
         "filter": {
           "status": "active"
         },
         "route": "/challenges"
       },
       {
+        "name": "working",
+        "label": "Challenge: Working...",
+        "countKey": "working",
+        "filter": {
+          "status": "working"
+        },
+        "route": "/challenges"
+      },
+      {
         "name": "completed",
         "label": "Challenge: Completed",
+        "countKey": "complete",
         "filter": {
           "status": "complete"
         },
@@ -64,6 +75,7 @@
       {
         "name": "passed",  
         "label": "Challenge: Passed",
+        "countKey": "pass",
         "filter": {
           "status": "pass"
         },
@@ -72,6 +84,7 @@
       {
         "name": "all",  
         "label": "Challenge: All",
+        "countKey": "findhappi",
         "filter": "",
         "route": "/challenges"
       },
