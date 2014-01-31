@@ -39,6 +39,26 @@
       <div class="notify">
         <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
       </div>
+      
+      <div ng-model="card" ng-show='!card'
+      class="challenge card empty-card summary list-unstyled text-center">
+        <div class="header">
+          <figure class="icon">
+            <i class="icon fa fa-meh-o fa-3x"></i>
+            <figcaption class="category">Get Started</figcaption>
+          </figure>  
+        </div>  
+        <div class="body">
+          <h2 class="title">Accept a Challenge and Get Going</h2>
+        </div>
+        <div class="footer">
+          <div class='btn-group'>
+            <button type="button" class="btn btn-primary" 
+            ng-click="drawerShowAll()">Take me there</button>
+          </div>
+        </div>
+      </div>
+
       <div ng-repeat="card in deckCards| filter:drawer.state.query | orderBy:drawer.state.orderBy | limitTo:5" >
       <div ng-model="card"
             class="moment card summary list-unstyled text-center">

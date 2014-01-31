@@ -6,7 +6,7 @@
       <accordion>
         <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
           <accordion-heading>
-            <i class='fa fa-bars fa-lg'></i>
+            <i class='fa fa-bars fa-lg'></i><i class="fa fa-plane pull-right"></i>
           </accordion-heading>
           <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
           <div class='item'>
@@ -39,16 +39,18 @@
         <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
       </div>
       <!--Body content-->
+
+
       <div ng-model="card" ng-show='!card'
       class="challenge card empty-card summary list-unstyled text-center">
         <div class="header">
           <figure class="icon">
             <i class="icon fa fa-meh-o fa-3x"></i>
-            <figcaption class="category">Nothin' here...</figcaption>
+            <figcaption class="category">Move Along</figcaption>
           </figure>  
         </div>  
         <div class="body">
-          <h2 class="title">Move on, there's nothing to see here...</h2>
+          <h2 class="title">There's nothing to see here...</h2>
         </div>
         <div class="footer">
           <div class='btn-group'>
@@ -92,7 +94,7 @@
           <div class="btn-group status-active"
           ng-show="['active'].indexOf(card.status)>=0">
             <button type="button" class="btn btn-default" ng-click="challenge_done()">Done</button>
-            <button type="button" class="btn btn-primary" ng-click="getPhoto()"><i class="fa fa-camera"></i> Camera Roll</button>
+            <button type="button" class="btn btn-primary" ng-click="challenge_getPhoto()"><i class="fa fa-camera"></i> Camera Roll</button>
             <button type="button" class="btn btn-default" ng-click="challenge_pass()">Pass</button>
           </div> 
           <div class="btn-group status-complete"
@@ -113,7 +115,39 @@
         </div>
       </div>
 
-      <img ng-src="{{cameraRollSrc}}" style="width:320px"/>
+      <div class="gallery clearfix">
+        <div ng-repeat="photo in challengePhotos"
+          id="{{photo.id}}" 
+          class="thumb fade in {{photo.orientationLabel}}" 
+          style="{{top}}{{position}}">
+              <div class="crop-wrap">
+                <div class="crop">
+                  <img class=""  
+                    data-w0="{{photo.origW}}"
+                    data-h0="{{photo.origH}}"
+                    data-root-src="{{photo.rootSrc}}"
+                    ng-src="{{photo.src}}" 
+                  >
+              </div>
+            </div>
+          <div class="meta">
+            <div ng-show="!!photo.caption" class="title truncate">
+              {{photo.caption}}
+            </div>
+            <div class='bottom-row'> 
+              <span class="inline-icons left">
+                <i ng-show="!!photo.shotCount" class='btn-icon fa fa-reorder show-hidden-shot' title='click to hide duplicate shots'></i>
+                <rating value="photo.rating" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+              </span>
+              <span class="inline-icons right">
+                <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>
+                <i class='btn-icon fa fa-info-circle'  title='show info'></i>
+                <i class='btn-icon zoom-in fa fa-arrow-right' title='show full screen (planned)'></i>
+              </span>
+            </div>
+          </div>
+        </div>  <!-- /div.thumb -->
+      </div>
 
     </div>
   </div>

@@ -8,6 +8,7 @@ angular.module( 'appHappi'
 	, 'restangular'
 ]
 ).value('appConfig', {
+	userId: null,
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
 	testPics: [
 		'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
@@ -24,7 +25,7 @@ angular.module( 'appHappi'
 			controller: 'ChallengeCtrl'
 			})
 		.when('/challenges/:id', {
-			templateUrl: 'partials/challenge.html'
+			templateUrl: 'views/challenge/partials/challenges.html'
 			controller: 'ChallengeCtrl'
 			})
 		.when('/moments', {
@@ -32,7 +33,7 @@ angular.module( 'appHappi'
 			controller: 'MomentCtrl'
 			})
 		.when('/moments/:id', {
-			templateUrl: 'partials/moment.html'
+			templateUrl: 'views/moment/partials/moments.html'
 			controller: 'MomentCtrl'
 			})
 		.otherwise {

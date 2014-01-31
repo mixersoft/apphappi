@@ -31,13 +31,14 @@ angular.module(
 	'$filter'
 	'$q'
 	'$route'
+	'$location'
 	'drawerService'
 	'syncService'
 	'deckService'
 	'cameraService'
 	'notifyService'
 	'appConfig'
-	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify, CFG)->
+	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, CFG)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -45,6 +46,7 @@ angular.module(
 
 		# attributes
 		$scope.$route = $route
+		$scope.$location = $location
 		$scope.cameraService = cameraService
 		$scope.notify = notify
 
@@ -75,7 +77,14 @@ angular.module(
 			o.moment = $filter('filter')(o.moment, {status:"!pass"})
 			$scope.moments = o.moment
 			# syncService.set('moment', $scope.moments)
-			$scope.challenges = o.challenge 
+
+			if $route.current.params.id?
+				# filter challenges by id
+				if _.isNaN parseInt $route.current.params.id 
+					f = {"name": $route.current.params.id}
+				else f = {"id": $route.current.params.id}
+				$scope.challenges = $filter('filter')(o.challenge, f)
+			else $scope.challenges = o.challenge 
 			# syncService.set('challenge', $scope.challenges)
 
 			# get nextCard
@@ -107,6 +116,7 @@ angular.module(
 				if options.name=='shuffle'
 					$scope.deck = deck.setupDeck $scope.cards, $scope.deck, drawer.state
 					deck.shuffleDeck( $scope.deck )
+				$location.path(options.route) if options.route != $location.path()
 				return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state) 
 
 		$scope.shuffleDeck = ()->
@@ -114,7 +124,7 @@ angular.module(
 			deck.shuffleDeck( $scope.deck )
 			return deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
-		$scope.getPhoto = ()->
+		$scope.challenge_getPhoto = ()->
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri
 				
@@ -132,7 +142,9 @@ angular.module(
 					moment.modified = new Date().toJSON()
 
 					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
+					$scope.challengePhotos = moment.photos  	# for display of challenge only 'active'
 					syncService.set('moment', $scope.moments)
+
 				return
 
 
@@ -157,6 +169,7 @@ angular.module(
 
 				syncService.set('challenge', $scope.challenges)
 				syncService.set('moment', $scope.moments)
+				$scope.challengePhotos = null;
 				return $scope.drawerShowAll()
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
@@ -176,22 +189,30 @@ angular.module(
 			syncService.set('challenge', $scope.challenges)
 			syncService.set('moment', $scope.moments)
 
+			# clear 'active' challenge photos
+			$scope.challengePhotos = null;
+
 			# goto moment
 			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
 
 		$scope.challenge_open = ()->
-			# TODO: check for existing 'active' and set to 'pass'/'working'
+			# TODO: check for existing 'active' moment by challenge.moments and set to 'pass'/'working'
 			c = $scope.card
+
 			_.each c.moments, (m)-> 
 				if m.status=='working'
 					c.status = m.status='active'
 					c.modified = m.modified = new Date().toJSON()
+					moment = m
+
 			if c.status !='active' && c.moments.length
 					# working moment not found, just activate the first moment
 					m = c.moments[0]
 					c.status = m.status='active'
 					c.modified = m.modified = new Date().toJSON()
+					moment = m
 
+			$scope.challengePhotos = moment.photos  	# for display of challenge only 'active'
 			syncService.set('challenge', $scope.challenges)
 			syncService.set('moment', $scope.moments)		
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
@@ -202,8 +223,9 @@ angular.module(
 			challenge.stats.accept += 1
 			now = new Date()
 			blankMoment = {
-				id: _.reduce $scope.moments, (last, m)->return if last.id > m.id then last.id else m.id
-				userId: $scope.moments[0].userId
+				# id: _.reduce $scope.moments, (last, m)->return if last.id > m.id then last.id else m.id
+				id: new Date().getTime()
+				userId: CFG.userId
 				challengeId: challenge.id
 				stats: 
 					count: 0
@@ -223,6 +245,7 @@ angular.module(
 
 			syncService.set('challenge', $scope.challenges)
 			syncService.set('moment', $scope.moments)
+			$scope.challengePhotos = blankMoment.photos  	# for display of challenge only 'active'
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		$scope.challenge_later = ()->
@@ -238,13 +261,14 @@ angular.module(
 	'$filter'
 	'$q'
 	'$route'
+	'$location'
 	'drawerService'
 	'syncService'
 	'deckService'
 	'cameraService'
 	'notifyService'
 	'appConfig'
-	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify, CFG)->
+	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, CFG)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -280,8 +304,15 @@ angular.module(
 				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
-			o.moment = $filter('filter')(o.moment, {status:"!pass"})
-			$scope.moments = o.moment
+			if $route.current.params.id?
+				# filter moments by id
+				if _.isNaN parseInt $route.current.params.id 
+					f = {"name": $route.current.params.id}
+				else f = {"id": $route.current.params.id}
+				$scope.moments = $filter('filter')(o.moment, f)
+			else 
+				o.moment = $filter('filter')(o.moment, {status:"!pass"})
+				$scope.moments = o.moment
 			# syncService.set('moment', $scope.moments)
 			$scope.challenges = o.challenge 
 			# syncService.set('challenge', $scope.challenges)
@@ -298,12 +329,17 @@ angular.module(
 		$scope.nextCard = ()->
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
+		$scope.drawerShowAll = ()->
+			options = drawer.getDrawerItem('findhappi', 'all')
+			return $scope.drawerItemClick 'findhappi', options
+
 		$scope.drawerItemClick = (groupName, options)->
 			options.group = groupName
 			options.item = options.name
 			return drawer.itemClick options, ()->
 				if options.name=='shuffle'
 					$scope.deck = deck.setupDeck $scope.cards, $scope.deck, drawer.state
+				$location.path(options.route) if options.route != $location.path()	
 				$scope.deckCards = deck.deckCards deck.shuffleDeck $scope.deck 
 				# return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state) 
 
@@ -321,6 +357,7 @@ angular.module(
 			delete m.undo['photos']
 			$scope.card.status = 'complete'
 			syncService.set('moment', $scope.moments)
+			$location.path drawer.state.route 
 
 		$scope.moment_done = (id)->
 			m = _.findWhere $scope.moments, {id: id}
@@ -332,6 +369,8 @@ angular.module(
 			m.status = "complete"
 			delete m.undo['photos']
 			syncService.set('moment', $scope.moments)
+			$location.path drawer.state.route 
+
 
 		$scope.moment_edit = (id)->
 			# ???: should I set challenge to 'active'
@@ -339,6 +378,7 @@ angular.module(
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
 			m.status = "active"
+			$location.path editRroute = drawer.state.route + '/' + id
 
 		$scope.moment_getPhoto = (id)->
 			moment = _.findWhere $scope.moments, {id: id}

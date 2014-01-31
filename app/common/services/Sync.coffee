@@ -15,7 +15,7 @@ angular.module(
   '$q'
   '$filter'
   'AppHappiRestangular'
-, (localStorageService, appConfig, drawer, $q, $filter, AppHappiRestangular)->
+, (localStorageService, CFG, drawer, $q, $filter, AppHappiRestangular)->
 			# private methods
 	_asDuration = (secs)->
 		duration = moment.duration(secs*1000) 
@@ -66,6 +66,7 @@ angular.module(
 				localStorageService.clearAll()
 
 			initLocalStorage: (models=[], parser=syncService.parseModel)->
+				CFG.userId = new Date().getTime() if !CFG.userId?
 				models = ['challenge', 'moment', 'drawer']
 				for model in models
 					syncService.promises[model] = syncService.initLocalStorageModel model, parser[model]
@@ -91,7 +92,7 @@ angular.module(
 							return drawer.ready.promise
 						else 
 							# load drawer from $http
-							promise = drawer.load( appConfig.drawerUrl ).then (resp)->
+							promise = drawer.load( CFG.drawerUrl ).then (resp)->
 								# localStorageService.set(model, resp.data)
 								localStorageService.set(model, drawer.json)
 								return drawer.json
@@ -103,7 +104,14 @@ angular.module(
 							dfd.resolve(syncService.localData[model])
 							return dfd.promise
 						else 	
-							return AppHappiRestangular.all(model).getList({'modified':syncService.lastModified[model]}).then (data)->
+							if model=='moment'	
+								#
+								# do NOT load moment test data
+								#
+								dfd = $q.defer()
+								dfd.resolve([])
+								return dfd.promise
+							else return AppHappiRestangular.all(model).getList({'modified':syncService.lastModified[model]}).then (data)->
 								return data if !_.isFunction(parseFn)
 								parsed = parseFn data 
 								localStorageService.set(model, parsed)
@@ -132,6 +140,7 @@ angular.module(
 				'moment': (moments)->
 					for m in moments
 						console.log "moment parseModel: "+m.modified
+						m.userId = CFG.userId		# clean up test data
 						m.humanize = {
 							completed: moment.utc(new Date(m.modified)).format("dddd, MMMM Do YYYY, h:mm:ss a")
 							completedAgo: moment.utc(new Date(m.modified)).fromNow()
