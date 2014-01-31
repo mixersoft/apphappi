@@ -36,7 +36,7 @@
     </div>
     <div class="span10">
       <div class="notify">
-        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close($index)">{{alert.msg}}</alert>
+        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
       </div>
       <!--Body content-->
       <div ng-model="card" ng-show='!card'
@@ -86,7 +86,7 @@
           <div class='btn-group status-new status-pass status-all'
           ng-show="['new','pass'].indexOf(card.status)>=0">
             <button type="button" class="btn btn-primary" ng-click="challenge_new()">Accept</button>
-            <button type="button" class="btn btn-default">Later</button>
+            <button type="button" class="btn btn-default" ng-click="challenge_later()">Later</button>
             <button type="button" ng-click="nextCard()"  class="btn btn-default">Pass</button>
           </div>
           <div class="btn-group status-active"

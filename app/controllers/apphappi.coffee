@@ -5,14 +5,25 @@ angular.module(
 ).service( 'notifyService', [
 	'$timeout'
 	($timeout)->
-		this.alerts = []
-		this.alert = (msg=null, type='danger', timeout=5000)->
-			this.alerts.push( {msg: msg, type:type} )	if msg?
-			that = this
-			$timeout (()->that.alerts=[]), timeout
+		this.alerts = {}
+		this.timeouts = []
+		this.alert = (msg=null, type='danger', timeout=3000)->
+			if msg? 
+				now = new Date().getTime()
+				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
+				this.timeouts.push({key: now, value: timeout})
+			else 
+				# start timeouts on ng-repeat
+				this.timerStart()
 			return this.alerts 
-		this.close = (index)->
-			this.alerts.splice(index, 1)
+		this.close = (key)->
+			delete this.alerts[key]
+		this.timerStart = ()->
+			_.each this.timeouts, (o)=>
+				$timeout (()=>
+					delete this.alerts[o.key]
+					), o.value
+			this.timeouts = []	
 		return	
 ]
 ).controller( 'ChallengeCtrl', [
@@ -104,7 +115,6 @@ angular.module(
 
 		$scope.getPhoto = ()->
 			saveToMoment = (uri)->
-				notify.alert "getPhoto() resolved(). $scope.cameraRollSrc=" + uri
 				$scope.cameraRollSrc = uri
 				
 				moment = _.findWhere $scope.card.moments, {status:'active'}
@@ -120,7 +130,7 @@ angular.module(
 					moment.stats.viewed += 1
 					moment.modified = new Date()
 
-					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
+					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 10000 
 					syncService.set('moment', $scope.moments)
 				return
 
@@ -220,9 +230,10 @@ angular.module(
 			syncService.set('moment', $scope.moments)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
-		$scope.later = ()->
+		$scope.challenge_later = ()->
 			# set current challenge, then put app to sleep
 			# on wake, should open to current challenge
+			notify.alert "Later clicked at "+new Date().getTime(), "success", 5000
 			return $scope.challege	
 
 		return;

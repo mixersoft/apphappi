@@ -62,7 +62,7 @@ angular.module(
 					_deferred.reject(  'Camera getPicture cancelled'  )
 					_deferred.promise.finally ()-> _deferred = null 
 				_deferred = $q.defer()
-				notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred
+				# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 				return _deferred.promise
 
 
@@ -78,8 +78,6 @@ angular.module(
 				# Define a target directory for our file in the user files folder
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
 				return notify.alert "Error: gotFileObject() deferred is null" if !_deferred?
-
-				# _dfd = _deferred
 
 				# notify.alert "gotFileObject(), file="+JSON.stringify file
 
@@ -105,13 +103,13 @@ angular.module(
 						_deferred.resolve(filepath)
 						_deferred.promise.finally (filepath)-> 
 							_deferred = null
-							notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
+							# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
 							return
-						notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
+						# notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
 					cameraService.cleanup()	
 
 			cleanup : ()->
-				navigator.camera.cleanup (()->console.log "Cameracleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message )
+				navigator.camera.cleanup (()->console.log "Camera.cleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message )
 
 		}
 		return cameraService
