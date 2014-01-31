@@ -24,7 +24,8 @@ angular.module(
 			cameraOptions :
 				fromPhotoLibrary:
 					quality: 100
-					destinationType: navigator.camera.DestinationType.IMAGE_URI
+					# destinationType: navigator.camera.DestinationType.IMAGE_URI
+					destinationType: navigator.camera.DestinationType.FILE_URI
 					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
 					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
 					targetWidth: 600
@@ -34,7 +35,7 @@ angular.module(
 						arrowDir: Camera.PopoverArrowDirection.ARROW_UP
 				fromCamera:
 					quality: 100
-					destinationType: navigator.camera.DestinationType.IMAGE_URI
+					destinationType: navigator.camera.DestinationType.FILE_URI
 					correctOrientation: true
 					targetWidth: 600
 
@@ -72,10 +73,12 @@ angular.module(
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
 				return if !_deferred?
 
+				alert "gotFileObject(), file="+JSON.stringify file
+
 				steroids.on "ready", ->
 					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
 					# TODO: need to set filename for each photo
-					fileName = "user_pic.png"
+					fileName = new Date().getTime()+'.jpg'
 
 					window.resolveLocalFileSystemURI(
 						targetDirURI
@@ -89,7 +92,7 @@ angular.module(
 			fileMoved : (file)->
 				if _deferred?
 					filepath = "/" + file.name
-					alert "photo copied to App space from CameraRoll, file="+JSON.stringify file
+					# alert "photo copied to App space from CameraRoll, file="+JSON.stringify file
 					_deferred.resolve(filepath).finally ()-> _deferred = null
 		}
 		return cameraService

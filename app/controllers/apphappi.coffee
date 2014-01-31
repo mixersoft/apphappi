@@ -69,26 +69,13 @@ angular.module(
 			options = drawer.getDrawerItem('findhappi', 'all')
 			return $scope.drawerItemClick 'findhappi', options
 
-		$scope.passCard = ()->
-			if drawer.state.filter.status=='active' && $scope.card
-				# set status=pass if current card, then show all challenges
-				_.each $scope.card.moments, (o)-> 
-					if o.status=='active'
-						$scope.card.status=o.status='working'
-				$scope.card.status='pass' if $scope.card.status=='active'		
-
-				syncService.set('challenge', $scope.challenges)
-				syncService.set('moment', $scope.moments)
-				return $scope.drawerShowAll()
-			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
-
 		$scope.nextCard = ()->
 			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		# returns deck.TopCard()
 		$scope.drawerItemClick = (groupName, options)->
 			options.group = groupName
-			options.item = options.name
+			options.item = options.name || options.item
 			return drawer.itemClick options, ()->
 				if options.name=='shuffle'
 					$scope.deck = deck.setupDeck $scope.cards, $scope.deck, drawer.state
@@ -99,15 +86,6 @@ angular.module(
 			$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
 			deck.shuffleDeck( $scope.deck )
 			return deck.nextCard($scope.cards, $scope.deck, drawer.state)
-
-		$scope.accept = ()->
-			# pass current Challenge to FindHappi
-			return $scope.challenge
-
-		$scope.later = ()->
-			# set current challenge, then put app to sleep
-			# on wake, should open to current challenge
-			return $scope.challege
 
 		$scope.getPhoto = ()->
 			saveToMoment = (uri)->
@@ -121,24 +99,116 @@ angular.module(
 						id: `new Date().getTime()`
 						src: uri
 					}
+					# update moment
 					moment.photos.push photo
-					alert "moment.photos: " + JSON.stringify _.reduce moment.photos, ((last, o)->
-								last.push o.src 
-								return last 
-							), []
-					syncService.set('moment', $scope.moments)
+					moment.stats.count = moment.photos.length
+					moment.stats.viewed += 1
+					moment.modified = new Date()
 
+					alert "moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
+					syncService.set('moment', $scope.moments)
 				return
 
 
 			if !navigator.camera
-				uri = 'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
 				dfd = $q.defer()
 				dfd.promise.then saveToMoment
+				uri = $scope.testPics.shift()
 				dfd.resolve(uri) 
+				$scope.testPics.push(uri)
 			else
 				cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary).then saveToMoment
-						
+
+
+		$scope.testPics = [
+			'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
+			'http://i1.nyt.com/images/2014/01/30/science/30MOTH_MONARCH/30MOTH_MONARCH-moth.jpg'
+			'http://i1.nyt.com/images/2014/01/31/sports/football/31pads-1/31pads-1-largeHorizontal375.jpg'
+		]
+
+		$scope.challenge_pass = ()->
+			if drawer.state.filter.status=='active' && $scope.card
+				# set status=pass if current card, then show all challenges
+				_.each $scope.card.moments, (o)-> 
+					if o.status=='active'
+						$scope.card.status=o.status='working'
+						$scope.card = o.modified = new Date()
+				$scope.card.status='pass' if $scope.card.status=='active'		
+
+				syncService.set('challenge', $scope.challenges)
+				syncService.set('moment', $scope.moments)
+				return $scope.drawerShowAll()
+			return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
+
+
+		$scope.challenge_done = ()->
+			throw "warning: challenge.status != active in $scope.challenge_done()" if $scope.card.status != 'active'
+
+			c = $scope.card
+			_.each c.moments, (m)-> 
+				if m.status=='active'
+					c.status = m.status='complete'
+					c.modified = m.modified = new Date()
+					m.stats.completedIn += 123						# fix this
+					c.stats.completions.push m.stats.completedIn
+
+			syncService.set('challenge', $scope.challenges)
+			syncService.set('moment', $scope.moments)
+
+			# goto moment
+			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
+
+		$scope.challenge_open = ()->
+			# TODO: check for existing 'active' and set to 'pass'/'working'
+			c = $scope.card
+			_.each c.moments, (m)-> 
+				if m.status=='working'
+					c.status = m.status='active'
+					c.modified = m.modified = new Date()
+			if c.status !='active' && c.moments.length
+					# working moment not found, just activate the first moment
+					m = c.moments[0]
+					c.status = m.status='active'
+					c.modified = m.modified = new Date()
+
+			syncService.set('challenge', $scope.challenges)
+			syncService.set('moment', $scope.moments)		
+			return $scope.drawerItemClick 'findhappi', {name:'current'}
+
+		$scope.challenge_new = ()->
+			# TODO: check for existing 'active' and set to 'pass'/'working'
+			challenge = $scope.card
+			challenge.stats.accept += 1
+			now = new Date()
+			blankMoment = {
+				id: _.reduce $scope.moments, (last, m)->return if last.id > m.id then last.id else m.id
+				userId: $scope.moments[0].userId
+				challengeId: challenge.id
+				stats: 
+					count: 0
+					completedIn: 0
+					viewed: 0
+					rating:
+						moment: null
+						challenge: null
+				status: 'active'
+				created: now
+				modified: now
+				photos: []
+			}
+			challenge.status = blankMoment.status = 'active'
+			$scope.moments.push(blankMoment)
+			challenge.moments.push(blankMoment)
+
+			syncService.set('challenge', $scope.challenges)
+			syncService.set('moment', $scope.moments)
+			return $scope.drawerItemClick 'findhappi', {name:'current'}
+
+		$scope.later = ()->
+			# set current challenge, then put app to sleep
+			# on wake, should open to current challenge
+			return $scope.challege	
+
 		return;
 	]
 ).controller( 'MomentCtrl', [

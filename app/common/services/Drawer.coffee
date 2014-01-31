@@ -45,12 +45,18 @@ angular.module(
             return
 
         sameGroup = drawer.state.group == options.group
-        itemState = _.pick(options, ['group', 'item', 'filter', 'query', 'orderBy'])
+        # get drawerItemGroup options
+        drawerItemOptions = drawer.getDrawerItem(options.group, options.item)
+        drawerItemOptions.item = drawerItemOptions.name
         _.extend( drawer.state, {
+          'group': options.group
           'filter':null
           'query':''
           'orderBy':''
-          }, itemState)
+          'countKey':''
+          }, drawerItemOptions)
+
+
         # save state to localStorage
         localStorageService.set('drawerState', drawer.state)
 
@@ -58,7 +64,7 @@ angular.module(
           drawer.animateClose()
           return cb() if _.isFunction(cb)
         else 
-          $location.path(options.route)
+          $location.path(drawerItemOptions.route)
           drawer.animateClose(500)
         return  
 
