@@ -2,15 +2,19 @@ return if !angular?
 
 angular.module( 
 	'appHappi'
-).service( 'notifyService', ()->
-	this.alerts = []
-	this.alert = (msg=null, type='danger')->
-		this.alerts.push( {msg: msg, type:type} )	if msg?
-		return this.alerts 
-	this.close = (index)->
-		this.alerts.splice(index, 1)
-	return	
-
+).service( 'notifyService', [
+	'$timeout'
+	($timeout)->
+		this.alerts = []
+		this.alert = (msg=null, type='danger', timeout=5000)->
+			this.alerts.push( {msg: msg, type:type} )	if msg?
+			that = this
+			$timeout (()->that.alerts=[]), timeout
+			return this.alerts 
+		this.close = (index)->
+			this.alerts.splice(index, 1)
+		return	
+]
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
@@ -100,7 +104,7 @@ angular.module(
 
 		$scope.getPhoto = ()->
 			saveToMoment = (uri)->
-				notify.alert "camera roll, file $scope.cameraRollSrc=" + uri
+				notify.alert "getPhoto() resolved(). $scope.cameraRollSrc=" + uri
 				$scope.cameraRollSrc = uri
 				
 				moment = _.findWhere $scope.card.moments, {status:'active'}
@@ -116,7 +120,7 @@ angular.module(
 					moment.stats.viewed += 1
 					moment.modified = new Date()
 
-					notify.alert "moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
+					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
 					syncService.set('moment', $scope.moments)
 				return
 
@@ -125,11 +129,11 @@ angular.module(
 				dfd = $q.defer()
 				dfd.promise.then saveToMoment
 				uri = $scope.testPics.shift()
-				dfd.resolve(uri) 
+				dfd.resolve(uri)
 				$scope.testPics.push(uri)
 			else
-				cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
-				.then( saveToMoment).catch( (message)->notify.alert message )
+				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
+				promise.then( saveToMoment ).catch( (message)->notify.alert message )
 
 
 		$scope.testPics = [
