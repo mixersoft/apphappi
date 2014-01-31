@@ -77,9 +77,9 @@ angular.module(
 			gotFileObject : (file)->
 				# Define a target directory for our file in the user files folder
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
-				return notify.alert "Error: gotFileObject() deferred is null" if !_deferred?
+				return notify.alert "Error: gotFileObject() deferred is null", "warning" if !_deferred?
 
-				# notify.alert "gotFileObject(), file="+JSON.stringify file
+				# notify.alert "gotFileObject(), file="+JSON.stringify file, "warning"
 
 				steroids.on "ready", ->
 					# notify.alert "steroids.on('ready'): file="+file.name
@@ -109,7 +109,7 @@ angular.module(
 					cameraService.cleanup()	
 
 			cleanup : ()->
-				navigator.camera.cleanup (()->console.log "Camera.cleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message )
+				navigator.camera.cleanup (()->console.log "Camera.cleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message, "warning" )
 
 		}
 		return cameraService

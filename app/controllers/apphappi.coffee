@@ -7,7 +7,7 @@ angular.module(
 	($timeout)->
 		this.alerts = {}
 		this.timeouts = []
-		this.alert = (msg=null, type='danger', timeout=3000)->
+		this.alert = (msg=null, type='info', timeout=3000)->
 			if msg? 
 				now = new Date().getTime()
 				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
@@ -130,7 +130,7 @@ angular.module(
 					moment.stats.viewed += 1
 					moment.modified = new Date()
 
-					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 10000 
+					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
 					syncService.set('moment', $scope.moments)
 				return
 
@@ -143,7 +143,7 @@ angular.module(
 				$scope.testPics.push(uri)
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message )
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 
 
 		$scope.testPics = [
