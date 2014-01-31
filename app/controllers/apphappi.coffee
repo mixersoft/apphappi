@@ -36,7 +36,8 @@ angular.module(
 	'deckService'
 	'cameraService'
 	'notifyService'
-	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify)->
+	'appConfig'
+	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify, CFG)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -115,7 +116,7 @@ angular.module(
 
 		$scope.getPhoto = ()->
 			saveToMoment = (uri)->
-				$scope.cameraRollSrc = uri
+				# $scope.cameraRollSrc = uri
 				
 				moment = _.findWhere $scope.card.moments, {status:'active'}
 
@@ -128,7 +129,7 @@ angular.module(
 					moment.photos.push photo
 					moment.stats.count = moment.photos.length
 					moment.stats.viewed += 1
-					moment.modified = new Date()
+					moment.modified = new Date().toJSON()
 
 					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
 					syncService.set('moment', $scope.moments)
@@ -138,19 +139,12 @@ angular.module(
 			if !navigator.camera
 				dfd = $q.defer()
 				dfd.promise.then saveToMoment
-				uri = $scope.testPics.shift()
+				uri = CFG.testPics.shift()
 				dfd.resolve(uri)
-				$scope.testPics.push(uri)
+				CFG.testPics.push(uri)
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
-
-
-		$scope.testPics = [
-			'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
-			'http://i1.nyt.com/images/2014/01/30/science/30MOTH_MONARCH/30MOTH_MONARCH-moth.jpg'
-			'http://i1.nyt.com/images/2014/01/31/sports/football/31pads-1/31pads-1-largeHorizontal375.jpg'
-		]
 
 		$scope.challenge_pass = ()->
 			if drawer.state.filter.status=='active' && $scope.card
@@ -158,7 +152,7 @@ angular.module(
 				_.each $scope.card.moments, (o)-> 
 					if o.status=='active'
 						$scope.card.status=o.status='working'
-						$scope.card = o.modified = new Date()
+						$scope.card = o.modified = new Date().toJSON()
 				$scope.card.status='pass' if $scope.card.status=='active'		
 
 				syncService.set('challenge', $scope.challenges)
@@ -174,8 +168,9 @@ angular.module(
 			_.each c.moments, (m)-> 
 				if m.status=='active'
 					c.status = m.status='complete'
-					c.modified = m.modified = new Date()
+					c.modified = m.modified = new Date().toJSON()
 					m.stats.completedIn += 123						# fix this
+					m.stats.viewed += 1
 					c.stats.completions.push m.stats.completedIn
 
 			syncService.set('challenge', $scope.challenges)
@@ -190,12 +185,12 @@ angular.module(
 			_.each c.moments, (m)-> 
 				if m.status=='working'
 					c.status = m.status='active'
-					c.modified = m.modified = new Date()
+					c.modified = m.modified = new Date().toJSON()
 			if c.status !='active' && c.moments.length
 					# working moment not found, just activate the first moment
 					m = c.moments[0]
 					c.status = m.status='active'
-					c.modified = m.modified = new Date()
+					c.modified = m.modified = new Date().toJSON()
 
 			syncService.set('challenge', $scope.challenges)
 			syncService.set('moment', $scope.moments)		
@@ -246,8 +241,10 @@ angular.module(
 	'drawerService'
 	'syncService'
 	'deckService'
+	'cameraService'
 	'notifyService'
-	($scope, $filter, $q, $route, drawer, syncService, deck, notify)->
+	'appConfig'
+	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify, CFG)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -315,6 +312,65 @@ angular.module(
 			deck.shuffleDeck( $scope.deck )
 			return $scope.deckCards = deck.deckCards deck.shuffleDeck $scope.deck 
 			# return deck.nextCard($scope.cards, $scope.deck, drawer.state)
+
+		$scope.moment_cancel = (id)->
+			m = _.findWhere $scope.moments, {id: id}
+			notify.alert "Warning: no undo[photos] NOT found", "warning" if !m.undo['photos']?
+
+			m.photos = m.undo['photos']
+			delete m.undo['photos']
+			$scope.card.status = 'complete'
+			syncService.set('moment', $scope.moments)
+
+		$scope.moment_done = (id)->
+			m = _.findWhere $scope.moments, {id: id}
+			throw "warning: moment.status != active in $scope.moment_done()" if m.status != 'active'
+			m.stats.count = m.photos.length
+			m.stats.completedIn += 123						# fix this
+			m.stats.viewed += 1
+			m.modified = new Date().toJSON()
+			m.status = "complete"
+			delete m.undo['photos']
+			syncService.set('moment', $scope.moments)
+
+		$scope.moment_edit = (id)->
+			# ???: should I set challenge to 'active'
+			m = _.findWhere $scope.moments, {id: id}
+			m.undo = {} if !m.undo?
+			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
+			m.status = "active"
+
+		$scope.moment_getPhoto = (id)->
+			moment = _.findWhere $scope.moments, {id: id}
+
+			saveToMoment = (uri)->
+				# $scope.cameraRollSrc = uri
+
+				if moment? && _.isArray moment.photos
+					photo = {
+						id: `new Date().getTime()`
+						src: uri
+					}
+					# update moment
+					moment.photos.push photo
+					moment.stats.count = moment.photos.length
+					moment.modified = new Date().toJSON()
+
+					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
+					syncService.set('moment', $scope.moments)
+				return
+
+
+			if !navigator.camera
+				dfd = $q.defer()
+				dfd.promise.then saveToMoment
+				uri = CFG.testPics.shift()
+				CFG.testPics.push(uri)
+				dfd.resolve(uri)
+			else
+				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
+
 
 		return;
 	]

@@ -133,8 +133,8 @@ angular.module(
 					for m in moments
 						console.log "moment parseModel: "+m.modified
 						m.humanize = {
-							completed: moment.utc(new Date(m.created)).format("dddd, MMMM Do YYYY, h:mm:ss a")
-							completedAgo: moment.utc(new Date(m.created)).fromNow()
+							completed: moment.utc(new Date(m.modified)).format("dddd, MMMM Do YYYY, h:mm:ss a")
+							completedAgo: moment.utc(new Date(m.modified)).fromNow()
 							completedIn: _asDuration m.stats && m.stats.completedIn || 0
 						}
 					return  moments
