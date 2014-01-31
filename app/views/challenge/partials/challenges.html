@@ -2,6 +2,7 @@
   <div class="row">
     <div class="span2">
       <!--Nav/Sidebar content-->
+      <!-- <ng-include src="'views/partials/_drawer.html'"></ng-include> -->
       <accordion>
         <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
           <accordion-heading>
@@ -34,6 +35,9 @@
       <!--/ Nav/Sidebar content-->
     </div>
     <div class="span10">
+      <div class="notify">
+        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close($index)">{{alert.msg}}</alert>
+      </div>
       <!--Body content-->
       <div ng-model="card" ng-show='!card'
       class="challenge card empty-card summary list-unstyled text-center">

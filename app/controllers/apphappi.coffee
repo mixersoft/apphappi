@@ -2,6 +2,15 @@ return if !angular?
 
 angular.module( 
 	'appHappi'
+).service( 'notifyService', ()->
+	this.alerts = []
+	this.alert = (msg=null, type='danger')->
+		this.alerts.push( {msg: msg, type:type} )	if msg?
+		return this.alerts 
+	this.close = (index)->
+		this.alerts.splice(index, 1)
+	return	
+
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
@@ -11,7 +20,8 @@ angular.module(
 	'syncService'
 	'deckService'
 	'cameraService'
-	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService)->
+	'notifyService'
+	($scope, $filter, $q, $route, drawer, syncService, deck, cameraService, notify)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -20,6 +30,7 @@ angular.module(
 		# attributes
 		$scope.$route = $route
 		$scope.cameraService = cameraService
+		$scope.notify = notify
 
 		# card + deck iterator
 		$scope.deck = {}
@@ -89,7 +100,7 @@ angular.module(
 
 		$scope.getPhoto = ()->
 			saveToMoment = (uri)->
-				alert "camera roll, file $scope.cameraRollSrc=" + uri
+				notify.alert "camera roll, file $scope.cameraRollSrc=" + uri
 				$scope.cameraRollSrc = uri
 				
 				moment = _.findWhere $scope.card.moments, {status:'active'}
@@ -105,7 +116,7 @@ angular.module(
 					moment.stats.viewed += 1
 					moment.modified = new Date()
 
-					alert "moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
+					notify.alert "moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src
 					syncService.set('moment', $scope.moments)
 				return
 
@@ -117,7 +128,8 @@ angular.module(
 				dfd.resolve(uri) 
 				$scope.testPics.push(uri)
 			else
-				cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary).then saveToMoment
+				cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
+				.then( saveToMoment).catch( (message)->notify.alert message )
 
 
 		$scope.testPics = [
@@ -219,7 +231,8 @@ angular.module(
 	'drawerService'
 	'syncService'
 	'deckService'
-	($scope, $filter, $q, $route, drawer, syncService, deck)->
+	'notifyService'
+	($scope, $filter, $q, $route, drawer, syncService, deck, notify)->
 		#
 		# Controller: MomentCtrl
 		#

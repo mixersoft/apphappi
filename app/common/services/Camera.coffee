@@ -4,7 +4,8 @@ angular.module(
 	'appHappi'
 ).factory('cameraService', [
 	'$q'
-	($q)->
+	'notifyService'
+	($q, notify)->
 
 		# for testing in browser, no access to Cordova camera API
 		if !navigator.camera?
@@ -25,7 +26,7 @@ angular.module(
 				fromPhotoLibrary:
 					quality: 100
 					# destinationType: navigator.camera.DestinationType.IMAGE_URI
-					destinationType: navigator.camera.DestinationType.FILE_URI
+					destinationType: navigator.camera.DestinationType.IMAGE_URI
 					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
 					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
 					targetWidth: 600
@@ -35,7 +36,7 @@ angular.module(
 						arrowDir: Camera.PopoverArrowDirection.ARROW_UP
 				fromCamera:
 					quality: 100
-					destinationType: navigator.camera.DestinationType.FILE_URI
+					destinationType: navigator.camera.DestinationType.IMAGE_URI
 					correctOrientation: true
 					targetWidth: 600
 
@@ -65,15 +66,17 @@ angular.module(
 			imageUriReceived : (imageURI)->
 				# if _deferred?
 				#   _deferred.resolve(imageURI).finally ()-> _deferred = null  
-				# alert "image received from CameraRoll, imageURI="+imageURI
+				notify.alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
 			gotFileObject : (file)->
 				# Define a target directory for our file in the user files folder
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
-				return if !_deferred?
+				return notify.alert "Error: gotFileObject() deferred is null" if !_deferred?
 
-				alert "gotFileObject(), file="+JSON.stringify file
+				_dfd = _deferred
+
+				notify.alert "gotFileObject(), file="+JSON.stringify file
 
 				steroids.on "ready", ->
 					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
@@ -83,17 +86,23 @@ angular.module(
 					window.resolveLocalFileSystemURI(
 						targetDirURI
 						(directory)->
-							file.moveTo directory, fileName, cameraService.fileMoved, cameraService.fileError
+							file.moveTo directory, fileName, fileMoved, cameraService.fileError
 						cameraService.fileError
 					)
 
-			# Store the moved file's URL into $scope.imageSrc
-			# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
-			fileMoved : (file)->
-				if _deferred?
-					filepath = "/" + file.name
-					# alert "photo copied to App space from CameraRoll, file="+JSON.stringify file
-					_deferred.resolve(filepath).finally ()-> _deferred = null
+				# Store the moved file's URL into $scope.imageSrc
+				# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
+				fileMoved = (file)->
+					notify.alert "fileMoved(): file="+file.name
+					if _dfd?
+						filepath = "/" + file.name
+						_dfd.resolve(filepath).finally ()-> _dfd = null
+						notify.alert "fileMoved() photo copied to App space from CameraRoll, file="+JSON.stringify file
+					cameraService.cleanup()	
+
+			cleanup : ()->
+				navigator.camera.cleanup (()->console.log "Cameracleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message )
+
 		}
 		return cameraService
 ]   

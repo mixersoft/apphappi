@@ -36,6 +36,9 @@
     </div>
     <div class="span10">
       <!--Body content-->
+      <div class="notify">
+        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close($index)">{{alert.msg}}</alert>
+      </div>
       <div ng-repeat="card in deckCards| filter:drawer.state.query | orderBy:drawer.state.orderBy | limitTo:5" >
       <div ng-model="card"
             class="moment card summary list-unstyled text-center">
