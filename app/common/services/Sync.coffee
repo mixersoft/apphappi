@@ -41,6 +41,7 @@ angular.module(
 					switch key
 						when 'moment', 'challenge'
 							circularKey = if key=='moment' then 'challenge' else 'moments'
+							syncService.parseModel[key] value
 							value = _.reduce value, ((last, o)->
 								last.push _.omit(o, circularKey) 
 								return last 
