@@ -44,28 +44,33 @@ angular.module(
 			cameraError : (message)->
 				# navigator.notification.alert 'Cordova says: ' + message, null, 'Capturing the photo failed!'
 				if _deferred?
-					_deferred.reject( message ).finally ()-> _deferred = null 
+					_deferred.reject( message )
+					_deferred.promise.finally ()-> _deferred = null 
 
 			# File system failure callback
 			fileError : (error)->
 				# navigator.notification.alert "Cordova error code: " + error.code, null, "File system error!"
 				if _deferred?
-					_deferred.reject( "Cordova error code: " + error.code + " File system error!" ).finally ()-> _deferred = null 
+					_deferred.reject( "Cordova error code: " + error.code + " File system error!" )
+					_deferred.promise.finally ()-> _deferred = null 
 
 			# Take a photo using the device's camera with given options, callback chain starts
 			# returns a promise
 			getPicture : (options)->
 				navigator.camera.getPicture cameraService.imageUriReceived, cameraService.cameraError, options
 				if _deferred?
-					_deferred.reject(  'Camera getPicture cancelled'  ).finally ()-> _deferred = null 
+					_deferred.reject(  'Camera getPicture cancelled'  )
+					_deferred.promise.finally ()-> _deferred = null 
 				_deferred = $q.defer()
+				notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred
 				return _deferred.promise
 
 
 			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
 			imageUriReceived : (imageURI)->
 				# if _deferred?
-				#   _deferred.resolve(imageURI).finally ()-> _deferred = null  
+				#   _deferred.resolve(imageURI)
+				#   _deferred.promise.finally ()-> _deferred = null  
 				notify.alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
@@ -74,13 +79,13 @@ angular.module(
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
 				return notify.alert "Error: gotFileObject() deferred is null" if !_deferred?
 
-				_dfd = _deferred
+				# _dfd = _deferred
 
-				notify.alert "gotFileObject(), file="+JSON.stringify file
+				# notify.alert "gotFileObject(), file="+JSON.stringify file
 
 				steroids.on "ready", ->
+					# notify.alert "steroids.on('ready'): file="+file.name
 					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
-					# TODO: need to set filename for each photo
 					fileName = new Date().getTime()+'.jpg'
 
 					window.resolveLocalFileSystemURI(
@@ -93,11 +98,16 @@ angular.module(
 				# Store the moved file's URL into $scope.imageSrc
 				# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
 				fileMoved = (file)->
-					notify.alert "fileMoved(): file="+file.name
-					if _dfd?
+					# notify.alert "fileMoved(): BEFORE deferred.resolve() _dfd="+JSON.stringify _dfd
+					if _deferred?
 						filepath = "/" + file.name
-						_dfd.resolve(filepath).finally ()-> _dfd = null
-						notify.alert "fileMoved() photo copied to App space from CameraRoll, file="+JSON.stringify file
+						# notify.alert "fileMoved(): BEFORE deferred.resolve() filepath="+filepath
+						_deferred.resolve(filepath)
+						_deferred.promise.finally (filepath)-> 
+							_deferred = null
+							notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
+							return
+						notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
 					cameraService.cleanup()	
 
 			cleanup : ()->
