@@ -142,7 +142,7 @@ angular.module(
 					moment.modified = new Date().toJSON()
 
 					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
-					$scope.challengePhotos = moment.photos  	# for display of challenge only 'active'
+					$scope.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 					syncService.set('moment', $scope.moments)
 
 				return
@@ -212,7 +212,7 @@ angular.module(
 					c.modified = m.modified = new Date().toJSON()
 					moment = m
 
-			$scope.challengePhotos = moment.photos  	# for display of challenge only 'active'
+			$scope.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 			syncService.set('challenge', $scope.challenges)
 			syncService.set('moment', $scope.moments)		
 			return $scope.drawerItemClick 'findhappi', {name:'current'}

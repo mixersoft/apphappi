@@ -40,4 +40,14 @@ angular.module( 'appHappi'
 			redirectTo: '/challenges'
 		}
 ]
-)
+).filter('topCard', ()->
+	return (cards, deck)->
+		deck.index=0 if !deck.index? or deck.index >= cards.length
+		if _.isArray(deck.shuffled)
+			return cards[deck.shuffled[deck.index]] if deck.shuffled.length==cards.length
+			deck.shuffled = 'error';
+		return cards[deck.index]
+).filter('reverse', ()->
+  return (items)-> 
+    return items.slice().reverse()
+);
