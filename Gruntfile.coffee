@@ -14,7 +14,21 @@ module.exports = (grunt)->
   
   # Optimize pre-built, web-accessible resources for production, primarily `usemin`
   # run after `grunt server`
-  grunt.registerTask('optimize', [ 'copy:fonts', 'useminPrepare', 'concat', 'uglify', 'cssmin', 'rev', 'usemin', 'express', 'watch' ])
+  # grunt.registerTask('optimize', [ 'copy:fonts', 'useminPrepare', 'concat', 'uglify', 'cssmin', 'rev', 'usemin', 'express', 'watch' ])
+  # grunt.registerTask('optimize', [ 'copy:fonts', 'useminPrepare', 'concat', 'uglify', 'cssmin', 'rev', 'usemin', 'watch' ])
+  grunt.registerTask('optimize', [ 
+    'copy:optimize'
+    'useminPrepare'
+    'uglify'
+    'concat' 
+    'cssmin' 
+    'usemin'
+    'concat:app-full'
+  ])
+
+  uglifyNew = require('grunt-usemin-uglifynew');
+  # grunt.loadNpmTasks('grunt-usemin-uglifynew')
+  
 
   # Configuration
   grunt.config.init
@@ -38,6 +52,9 @@ module.exports = (grunt)->
     DATA_FILES:     '**/*.json'
 
     copy:
+      optimize:
+        src:'<%= WWW_DIR %>/apphappi.html'
+        dest:'<%= BUILD_DIR %>/apphappi.html'
       #
       # "steroids-copy-www": 
       #     src:  '<%= WWW_DIR %>' 
@@ -98,6 +115,14 @@ module.exports = (grunt)->
           cwd:      '<%= WWW_DIR %>'
           src:      ['<%= HTML_FILES %>', '!**/vendor/**', '!**/components/**']
           dest:     '<%= BUILD_DIR %>'
+        ]
+
+      usemin:
+        files: [
+          expand: true
+          cwd: '.tmp/concat/'
+          src: '<%= ALL_FILES %>'
+          dest: '<%= BUILD_DIR %>'
         ]
 
     # Ability to run `jshint` without errors terminating the development server
@@ -219,13 +244,13 @@ module.exports = (grunt)->
 
     # Browser-based testing
     # Minify app `.css` resources -> `.min.css`
-    cssmin: 
-      minify: 
-        expand: true,
-        cwd: '<%= BUILD_DIR %>stylesheets',
-        src: ['*.css', '!*.min.css'],
-        dest: '<%= BUILD_DIR %>stylesheets',
-        ext: '.min.css'
+    # cssmin: 
+    #   minify: 
+    #     expand: true,
+    #     cwd: '<%= BUILD_DIR %>stylesheets',
+    #     src: ['*.css', '!*.min.css'],
+    #     dest: '<%= BUILD_DIR %>stylesheets',
+    #     ext: '.min.css'
 
     # Express requires `server.script` to reload from changes
     express:
@@ -241,11 +266,72 @@ module.exports = (grunt)->
 
     # Output for optimized app index
     usemin:
-      html:         '<%= BUILD_DIR %>index.html'
+      html:         '<%= BUILD_DIR %>apphappi.html'
+
+
 
     # Input for optimized app index
     useminPrepare:
-      html:         '<%= BUILD_DIR %>index.html'
+      html:         '<%= BUILD_DIR %>apphappi.html'
+      options: 
+        flow: 
+          steps: 
+            # js: ['uglifyjs', 'concat']
+            js: [uglifyNew, 'concat']
+            # js: ['concat']
+            css: ['concat', 'cssmin']
+          post: []
+
+    uglify:
+      options:
+        mangle:
+          except: ['**/*.min.js']
+
+    concat:
+      # appMin:
+      #   files: [
+      #     dest: 'dist/javascripts/app.min.js',
+      #     src: [
+      #       '.tmp/uglify/app.js',
+      #       '.tmp/uglify/common/services/Drawer.js',
+      #       '.tmp/uglify/common/services/Sync.js',
+      #       '.tmp/uglify/common/services/Deck.js',
+      #       '.tmp/uglify/common/services/Camera.js',
+      #       '.tmp/uglify/models/restangular.js',
+      #       '.tmp/uglify/controllers/apphappi.js'
+      #     ]
+      #   ]
+      'app-full':
+        files: [
+          dest: 'dist/javascripts/app.min.js',
+          src: [
+            '<%= BUILD_DIR %>/app.js',
+            '<%= BUILD_DIR %>/common/services/Drawer.js',
+            '<%= BUILD_DIR %>/common/services/Sync.js',
+            '<%= BUILD_DIR %>/common/services/Deck.js',
+            '<%= BUILD_DIR %>/common/services/Camera.js',
+            '<%= BUILD_DIR %>/models/restangular.js',
+            '<%= BUILD_DIR %>/controllers/apphappi.js' 
+          ]
+        ]
+      # vendor:
+      #   files: [
+      #     dest: '<%= BUILD_DIR %>/javascripts/vendor-BODY.min.js'
+      #     src: [ 
+      #      # '<%= BUILD_DIR %>/components/parse-js-sdk/lib/parse-1.2.16.min.js',
+      #      '<%= BUILD_DIR %>/components/modernizr/modernizr.js',
+      #      '<%= BUILD_DIR %>/components/lodash/dist/lodash.min.js',
+      #      '<%= BUILD_DIR %>/components/angular/angular.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-bootstrap/ui-bootstrap-tpls.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-animate/angular-animate.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-route/angular-route.min.js',
+      #      '<%= BUILD_DIR %>/components/restangular/dist/restangular.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-local-storage/angular-local-storage.min.js',
+      #      '<%= BUILD_DIR %>/components/moment/min/moment.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-moment/angular-moment.min.js',
+      #      '<%= BUILD_DIR %>/components/angular-sanitize/angular-sanitize.min.js' 
+      #     ]   
+      #   ]
 
     # "Compile CoffeeScript files from app/ and www/ to dist/"
     coffee:
@@ -296,6 +382,10 @@ module.exports = (grunt)->
   grunt.loadNpmTasks('grunt-contrib-less')
   grunt.loadNpmTasks('grunt-contrib-cssmin')
   grunt.loadNpmTasks('grunt-contrib-uglify')
+
+  uglifyNew = require('grunt-usemin-uglifynew');
+  # grunt.loadNpmTasks('grunt-usemin-uglifynew')
+  
   grunt.loadNpmTasks('grunt-parallel')
   grunt.loadNpmTasks('grunt-contrib-watch')
   grunt.loadNpmTasks('grunt-express-server')
