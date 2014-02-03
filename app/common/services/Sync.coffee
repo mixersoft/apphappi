@@ -129,7 +129,7 @@ angular.module(
 							return dfd.promise
 						else 	
 							# get data from Server
-							if false && model=='moment'	
+							if true && model=='moment'	
 								#
 								# do NOT load moment test data, return empty {} instead
 								#

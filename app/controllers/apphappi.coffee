@@ -343,7 +343,9 @@ angular.module(
 			$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
 			$scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 			# for use with ng-repeat, card in deckCards
-			$scope.deckCards = deck.deckCards($scope.deck) 
+			$scope.deckCards = deck.deckCards($scope.deck)
+
+			$scope.set_editMode($scope.card) if $route.current.params.id? && $scope.card.status=='active'
 			return      
 
 		# methods
@@ -398,14 +400,20 @@ angular.module(
 
 			$location.path drawer.state.route 
 
-
 		$scope.moment_edit = (id)->
-			# ???: should I set challenge to 'active'
 			m = _.findWhere $scope.cards, {id: id}
+			m.status = "active"
+			m.stale = new Date().toJSON()
+			syncService.set('moment', m)
+			drawer.updateCounts( null, $scope.moments )
+			# nav to new route, then open in editMode
+			$location.path editRroute = drawer.state.route + '/' + id
+
+		$scope.set_editMode = (m)->
+			# ???: should I set challenge to 'active'
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
-			m.status = "active"
-			$location.path editRroute = drawer.state.route + '/' + id
+			$scope.isCardExpanded = true
 
 		$scope.moment_getPhoto = (id)->
 			moment = _.findWhere $scope.cards, {id: id}
