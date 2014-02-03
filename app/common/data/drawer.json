@@ -11,29 +11,34 @@
       "name": "mostRecent",
       "label": "Most Recent",
       "orderBy": "-modified",
+      "filter": {"status":"!pass"},
       "route": "/moments"
      },
      {
       "name": "rating",
       "label": "Top Rated",
+      "filter": {"status":"!pass"},
       "orderBy": "-stats.rating.moment",
       "route": "/moments"
      },
      {
       "name": "name",
       "label": "by Name",
+      "filter": {"status":"!pass"},
       "orderBy": "challenge.name",
       "route": "/moments"
      },
      {
       "name": "category",
       "label": "by Category",
+      "filter": {"status":"!pass"},
       "orderBy": "challenge.category",
       "route": "/moments"
      },
      {
       "name": "shuffle",
       "label": "Shuffle",
+      "filter": {"status":"!pass"},
       "orderBy": "",
       "route": "/moments"
      }

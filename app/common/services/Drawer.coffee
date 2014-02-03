@@ -93,16 +93,17 @@ angular.module(
         return drawer
 
       _getCounts: (challenges, moments)->
-        challengeStatusCount = {
+        return _.reduce challenges, (
+          (result, challenge)->
+            result[challenge.status]++
+            return result
+        ), {
           new: 0
           pass: 0 
           complete: 0
           working: 0
           active: 0
         }
-        for challenge in challenges
-          challengeStatusCount[challenge.status]++
-        return challengeStatusCount
 
       updateCounts: (challenges, moments)->
         drawer.state.counts = _.extend (drawer.state.counts || {}), (drawer._getCounts challenges)
@@ -114,11 +115,11 @@ angular.module(
           drawerGroup = _.findWhere drawer.json.data, {name: groupName}
           switch groupName
             when 'findhappi' 
-              drawerGroup.count = challenges.length
-              drawer.state.counts[groupName] = challenges.length
+              drawerGroup.count = _.values( challenges ).length
             when 'gethappi' 
-              drawerGroup.count = (_.filter moments, (o)-> o.status!='pass').length
-              drawer.state.counts[groupName] = (_.filter moments, (o)-> o.status!='pass').length
+              drawerGroup.count = _.values( _.filter moments, (o)-> o.status!='pass').length
+          drawer.state.counts[groupName] = drawerGroup.count
+        localStorageService.set('drawerState', drawer.state)  
         return drawer
 
       ready: (drawer)->   # should be a promise
