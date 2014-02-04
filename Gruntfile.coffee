@@ -96,8 +96,8 @@ module.exports = (grunt)->
 
         , # for use with Topcoat ONLY         
           expand:   true
-          cwd:      '<%= WWW_DIR %>'
-          src:      ['**/font/*', '!**/font-awesome/**']
+          cwd:      '<%= WWW_DIR %>vendor/topcoat/'
+          src:      ['css/*', 'font/*']
           dest:     '<%= BUILD_DIR %>font/'
           flatten:  true
           filter:   'isFile'
@@ -107,9 +107,9 @@ module.exports = (grunt)->
       html:     # WARING: overwrites results from steroids-compile-views
         files:      [
           expand:   true
-          cwd:      '<%= APP_DIR %>views/'
-          src:      '**/partials/<%= HTML_FILES %>'
-          dest:     '<%= BUILD_DIR %>views/'
+          cwd:      '<%= APP_DIR %>'
+          src:      '**/templates/<%= HTML_FILES %>'
+          dest:     '<%= BUILD_DIR %>'
         ,
           expand:   true
           cwd:      '<%= WWW_DIR %>'

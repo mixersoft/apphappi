@@ -1,38 +1,6 @@
 <div class="container">
   <div class="row">
-    <div class="span2">
-      <!--Nav/Sidebar content-->
-      <accordion>
-        <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
-          <accordion-heading>
-            <i class='fa fa-bars fa-lg'></i>
-          </accordion-heading>
-          <div class='item'><input ng-model="drawer.state.query" placeholder="Search"></div>
-          <div class='item'>
-            <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
-          </div>
-
-          <accordion close-others="true">
-            <accordion-group class='drawer-group inverse {{group.name}}'
-            ng-repeat="group in drawer.json.data" 
-            is-open="group.isOpen" >
-              <accordion-heading>
-                <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
-                <span ng-bind="group.count" class="badge badge-default"></span>
-              </accordion-heading>
-              <div ng-repeat="options in group.items" 
-              class="item"
-              ng-class="{active: options.name==drawer.state.item}"
-              ng-click="drawerItemClick(group.name, options)">
-                <span ng-bind-html="options.label"></span>
-                <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
-              </div>
-            </accordion-group>
-          </accordion>
-
-        </accordion-group> 
-      </accordion>
-      <!--/ Nav/Sidebar content-->
+    <div class="span2" ng-include="'/views/drawer/_drawer.html'">
     </div>
     <div class="span10">
       <!--Body content-->
@@ -120,37 +88,8 @@
         </div> 
       </div>
       <div class="gallery clearfix">
-        <div ng-repeat="photo in card.photos"
-          id="{{photo.id}}" 
-          class="thumb fade in {{photo.orientationLabel}}" 
-          style="{{top}}{{position}}">
-              <div class="crop-wrap">
-                <div class="crop">
-                  <img class=""  
-                    data-w0="{{photo.origW}}"
-                    data-h0="{{photo.origH}}"
-                    data-root-src="{{photo.rootSrc}}"
-                    ng-src="{{photo.src}}" 
-                  >
-              </div>
-            </div>
-          <div class="meta">
-            <div ng-show="!!photo.caption" class="title truncate">
-              {{photo.caption}}
-            </div>
-            <div class='bottom-row'> 
-              <span class="inline-icons left">
-                <i ng-show="!!photo.shotCount" class='btn-icon fa fa-reorder show-hidden-shot' title='click to hide duplicate shots'></i>
-                <rating value="photo.rating" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
-              </span>
-              <span class="inline-icons right">
-                <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>
-                <i class='btn-icon fa fa-info-circle'  title='show info'></i>
-                <i class='btn-icon zoom-in fa fa-arrow-right' title='show full screen (planned)'></i>
-              </span>
-            </div>
-          </div>
-        </div>  <!-- /div.thumb -->
+        <div ng-repeat="photo in card.photos" ng-include="'/common/templates/_thumbnail.html'">
+        </div>
       </div>
       </div>
     </div>

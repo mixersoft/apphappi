@@ -1,11 +1,11 @@
 angular.module( 'appHappi'
 , [
 	'ngRoute'
-	, 'ngSanitize'
-	, 'ui.bootstrap'
-	, 'angularMoment'
-	, 'LocalStorageModule'
-	, 'restangular'
+	'ngSanitize'
+	'ui.bootstrap'
+	'angularMoment'
+	'LocalStorageModule'
+	'restangular'
 ]
 ).value('appConfig', {
 	userId: null,
@@ -18,27 +18,38 @@ angular.module( 'appHappi'
 }
 ).config( [
 	'$routeProvider'
-	($routeProvider)->
+	'$locationProvider'
+	($routeProvider, $locationProvider)->
 		$routeProvider
 		.when('/challenges', {
-			templateUrl: 'views/challenge/partials/challenges.html'
+			templateUrl: 'views/challenge/_challenges.html'
 			controller: 'ChallengeCtrl'
 			})
 		.when('/challenges/:id', {
-			templateUrl: 'views/challenge/partials/challenges.html'
+			templateUrl: 'views/challenge/_challenges.html'
+			controller: 'ChallengeCtrl'
+			})
+		.when('/challenge/:id', {
+			templateUrl: 'views/challenge/_challenges.html'
 			controller: 'ChallengeCtrl'
 			})
 		.when('/moments', {
-			templateUrl: 'views/moment/partials/moments.html'
+			templateUrl: 'views/moment/_moments.html'
 			controller: 'MomentCtrl'
 			})
 		.when('/moments/:id', {
-			templateUrl: 'views/moment/partials/moments.html'
+			templateUrl: 'views/moment/_moments.html'
+			controller: 'MomentCtrl'
+			})
+		.when('/moment/:id', {
+			templateUrl: 'views/moment/_moments.html'
 			controller: 'MomentCtrl'
 			})
 		.otherwise {
 			redirectTo: '/challenges'
 		}
+		# TODO: use html5Mode with /index.html
+		$locationProvider.html5Mode(false).hashPrefix('!')
 ]
 ).filter('topCard', ()->
 	return (cards, deck)->
