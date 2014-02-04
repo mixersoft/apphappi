@@ -8,9 +8,9 @@ hostconfig = {
 
 baseurl = [
 	'http://'
-	hostconfig['home']
+	hostconfig['1776']
 	":"
-	window.location.port
+	window.location.port || 4000
 	'/common/data'
 ]
 

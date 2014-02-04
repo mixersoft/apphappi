@@ -10,3 +10,7 @@ input, textarea, [contenteditable] * {
 .content-padded {
   padding: 10px;
 }
+
+body {
+	font-family: "Roboto";
+}

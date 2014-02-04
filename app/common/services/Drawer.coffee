@@ -40,8 +40,8 @@ angular.module(
         if options.group=='settings'
           if options.item=='reset'
             localStorageService.clearAll()
-            $location.path('')
             drawer.animateClose(500)
+            $timeout (()->window.location.reload()), 1000
             return
 
         sameGroup = drawer.state.group == options.group
