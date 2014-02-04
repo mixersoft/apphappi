@@ -6,6 +6,7 @@ angular.module( 'appHappi'
 	'angularMoment'
 	'LocalStorageModule'
 	'restangular'
+	'angular-gestures'
 ]
 ).value('appConfig', {
 	userId: null,
