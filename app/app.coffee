@@ -1,5 +1,4 @@
-angular.module( 'appHappi'
-, [
+angular.module( 'appHappi', [
 	'ngRoute'
 	'ngSanitize'
 	'ui.bootstrap'
@@ -52,14 +51,20 @@ angular.module( 'appHappi'
 		# TODO: use html5Mode with /index.html
 		$locationProvider.html5Mode(false).hashPrefix('!')
 ]
-).filter('topCard', ()->
-	return (cards, deck)->
-		deck.index=0 if !deck.index? or deck.index >= cards.length
-		if _.isArray(deck.shuffled)
-			return cards[deck.shuffled[deck.index]] if deck.shuffled.length==cards.length
-			deck.shuffled = 'error';
-		return cards[deck.index]
 ).filter('reverse', ()->
   return (items)-> 
     return items.slice().reverse()
 );
+
+
+
+# bootstrap 
+window.deviceReady = false
+if window.Modernizr.touch
+	document.addEventListener "deviceready", ()->
+		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
+		window.deviceReady = navigator.camera
+
+else 
+	angular.element(document).ready ()->
+		angular.bootstrap document.getElementById('ng-app'), ['appHappi']

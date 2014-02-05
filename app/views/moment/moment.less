@@ -12,45 +12,10 @@
 
 @font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
 
+@card-width: 320px;
 
-.device {
-	&.device-border {
-		position: fixed;	
-		border: 1px solid green;
-	}
-	&.device-wrap {
-		position: relative;	
-		background-color: @gray-light;
-	}
-	
-	box-sizing: border-box;
-	&.iphone4 {
-		width: 320px;
-		height: 480px;
-		
-	}
-	&.iphone5 {
-		width: 320px;
-		height: 568px;	
-	}
-}
 
-i.fa {
-  cursor: default;
-}
 
-.force-dl-horizontal dt {
-	float: left;
-	overflow: hidden;
-	clear: left;
-	text-align: right;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-ul.moments {
-	padding-left: 0;
-}
 .moment {
 	figure {
 		.icon {
@@ -141,17 +106,12 @@ ul.moments {
 	}
 
 	&.card {
-		border: 2px solid black;
-		border-radius: 10px;
-    margin: 10px;
-		padding: 10px 10px 0 10px;
 	}
 }
 
 .gallery {
-  width: 50%;
   min-width: 320px;
-  position: relative;
+  padding: 0 5px;
   .crop img {
     width: 100%;
   }

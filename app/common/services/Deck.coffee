@@ -2,6 +2,14 @@ return if !angular?
 
 angular.module( 
 	'appHappi'
+).filter('topCard', ()->
+	return (deck)->
+		deck.index=0 if !deck.index? or deck.index >= deck.cards.length
+		deck.index=deck.cards.length-1 if deck.index<0
+		if _.isArray(deck.shuffled)
+			return deck.cards[deck.shuffled[deck.index]] if deck.shuffled.length==deck.cards.length
+			deck.shuffled = 'error';
+		return deck.cards[deck.index]	
 ).factory('deckService', [
 	'$filter'
 	'drawerService'
@@ -35,11 +43,11 @@ angular.module(
 				return o    
 
 			topCard : (deck)->
-				return $filter('topCard') deck.cards, deck
+				return $filter('topCard') deck
 
 			nextCard : (cards, deck={}, options={})->
 				if deckService.validateDeck cards, deck, options
-					deck.index++
+					deck.index += (options.increment || 1)
 				else
 					valid = deckService.setupDeck cards, deck, options
 				return deckService.topCard deck

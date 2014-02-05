@@ -15,9 +15,28 @@ angular.module(
 					return _deferred.promise
 			}
 
-		# for devices with access to Cordova camera API
-		# privabe
+		# private
 		_deferred = null
+		_fsRoot = null
+
+		# for devices with access to Cordova camera API
+		if false && "request LocalFileSystem.PERSISTENT"
+			notify.alert "1. window.deviceReady. navigator.camera"+JSON.stringify(navigator.camera), null, 10000
+			_fsDeferred = $q.defer()
+			window.requestFileSystem(
+				LocalFileSystem.PERSISTENT, 
+				50000*1024, 
+				(fs)-> 
+					notify.alert "2. window.requestFileSystem, FS= "+JSON.stringify(fs), null, 10000
+					_fsRoot = fs.root
+					_fsDeferred.resolve(_fsRoot)
+				(ev)->
+					notify.alert "3. Error: requestFileSystem failed. "+ev.target.error.code, 'danger', 10000
+					_fsDeferred.reject(ev)
+			)
+			_fsDeferred.promise.finally ()-> 
+				notify.alert "4. window.requestFileSystem(), Deferred.promise.finally(), args"+JSON.stringify arguments, 'danger', 10000
+			notify.alert "5. continue with cameraService init"	
 
 
 		cameraService = {
@@ -71,7 +90,7 @@ angular.module(
 				# if _deferred?
 				#   _deferred.resolve(imageURI)
 				#   _deferred.promise.finally ()-> _deferred = null  
-				notify.alert "image received from CameraRoll, imageURI="+imageURI
+				# notify.alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
 			gotFileObject : (file)->
@@ -83,13 +102,13 @@ angular.module(
 
 				steroids.on "ready", ->
 					# notify.alert "steroids.on('ready'): file="+file.name
+					# targetDirURI = _fsRoot.fullpath		
 					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
 					fileName = new Date().getTime()+'.jpg'
 
 					window.resolveLocalFileSystemURI(
 						targetDirURI
-						(directory)->
-							file.moveTo directory, fileName, fileMoved, cameraService.fileError
+						((directory)->file.moveTo directory, fileName, fileMoved, cameraService.fileError)
 						cameraService.fileError
 					)
 
