@@ -25,13 +25,6 @@ challengeApp = angular.module( 'challengeApp'
 			redirectTo: '/challenges'
 		}
 ]
-).filter('topCard', ()->
-	return (list, deck)->
-		deck.index=0 if !deck.index? or deck.index >= list.length
-		if _.isArray(deck.shuffled)
-			return list[deck.shuffled[deck.index]] if deck.shuffled.length==list.length
-			deck.shuffled = 'error';
-		return list[deck.index]
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
