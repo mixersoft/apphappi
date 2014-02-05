@@ -13,7 +13,6 @@ angular.module(
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
-      isCardExpanded: false
       json: {}    # drawer config object 
       # initial defaultDrawerItemState, override on drawer.init() in controller 
       defaultDrawerItemState: {  

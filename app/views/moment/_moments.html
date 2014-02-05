@@ -29,7 +29,7 @@
       <div class="filmstrip"
           hm-swipe="(card.status !='active') && swipe('filmstrip', $event)"
           hm-swipe-opts="{drag_block_horizontal: true}">
-          
+
         <div class="hscroll" ng-style="setFilmstripPos()">
           <div class="card-wrap inline"
           ng-repeat="card in deck.cards" 
@@ -40,7 +40,7 @@
             hm-swipe="swipe('card', $event)"
             hm-swipe-opts="{drag_block_vertical: true}">
               <ul class='header list-inline list-unstyled'
-              ng-click="isCardExpanded = !isCardExpanded">   
+              ng-click="card.isCardExpanded = !card.isCardExpanded">   
                 <li>
                   <figure class="icon">
                     <i class="icon {{card.challenge.icon}} fa-3x"></i>
@@ -49,10 +49,10 @@
                 </li>
                 <li class="title">
                   {{card.challenge.title}} 
-                  <i class="toggle fa fa-fw fa-chevron-down" ng-show="!isCardExpanded"></i>
+                  <i class="toggle fa fa-fw fa-chevron-down" ng-show="!card.isCardExpanded"></i>
                 </li>
               </ul>
-              <div collapse="!isCardExpanded"> 
+              <div collapse="!card.isCardExpanded"> 
                 <div class="body clearfix">
                   <div class="meta well pull-left">
                     <div class="header inverse">Moment</div>

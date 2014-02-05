@@ -26,6 +26,114 @@ angular.module(
 			this.timeouts = []	
 		return	
 ]
+).factory( 'actionService', [ 
+	'drawerService'
+	'deckService'
+	'notifyService'
+	'$location'
+	(drawerService, deckService, notify, $location)->
+		self = {
+
+			drawerItemClick : (groupName, options)->
+				scope = this
+				options.group = groupName
+				options.item = options.name
+				return drawerService.itemClick options, ()->
+					if options.name=='shuffle'
+						scope.deck = deckService.setupDeck scope.cards, scope.deck, drawerService.state
+					$location.path(options.route) if options.route != $location.path()	
+					scope.deckCards = deckService.deckCards deckService.shuffleDeck scope.deck 
+					scope.deck.index = 0	
+					# return scope.card = deckService.nextCard(scope.cards, scope.deck, drawerService.state) 
+
+			swipe : ( target, ev, index)->
+				# target = ev.currentTarget
+				dir = ev.gesture.direction
+				action = [target, dir].join('-')
+				scope = this
+				card = scope.card
+
+				notify.alert [ev.type, target, dir].join('-'), null, 1000
+				switch target
+					when 'thumb-img'
+						# ?? use status='edit'
+						throw "Error: removePhoto(), $index was NOT passed to swipe" if !index?
+						sliced = self.removePhoto.call(scope, card, ev.currentTarget.id, index)
+						ev.gesture.preventDefault()
+						ev.stopImmediatePropagation()
+						return sliced	
+
+				switch action
+					when 'filmstrip-left'
+						self.nextCard.call(scope)
+						ev.gesture.preventDefault()
+					when 'filmstrip-right'
+						self.nextCard.call(scope, 'prev')
+						ev.gesture.preventDefault()
+					when 'card-down'
+						card.isCardExpanded = true	
+						ev.gesture.preventDefault()
+					when 'card-up'
+						card.isCardExpanded = false
+						ev.gesture.preventDefault()
+
+			removePhoto : (card, id, i)->
+				try
+					throw "removePhoto() where card.status != active" if card.status!='active'
+					model = card.type 
+					switch model 
+						when "moment"
+							momentIndex = i
+							momentPhotos = card.photos
+						when "challenge"	
+							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id.toString()
+							moment = _.findWhere card.moments, {status:'active'}
+							momentPhotos = moment.photos
+							momentIndex = momentPhotos.length - (i+1)	# reversed array
+							check2 = card.challengePhotos.splice(i, 1)
+						else throw "invalid card type"
+
+					throw "removePhoto() id mismatch" if id != momentPhotos[momentIndex].id.toString()
+					return check1 = momentPhotos.splice(momentIndex, 1)
+				catch error
+					notify.alert error, 'warning', 10000
+					return false
+
+			setFilmstripPos : ( w=320 )->
+				scope = this
+				if !deckService.validateDeck(scope.cards, scope.deck, drawerService.state)
+					scope.deck = deckService.setupDeck(scope.cards, scope.deck, drawerService.state)
+				# Modernizr: cssanimations csstransforms csstranisitions	
+				if window.Modernizr.touch
+					style = {
+						width: scope.deck.cards.length * w + 'px'
+						left: -1 * scope.deck.index * w + 'px'
+					}
+				else 
+					translateCss = 'translate(' + -1 * scope.deck.index * w + 'px, 0)'
+					style = {
+						width: scope.deck.cards.length * w + 'px'
+						'transform': translateCss
+						'-webkit-transform': translateCss
+						'-ms-transform': translateCss
+					}
+				return style
+
+			nextCard : ( dir='next')->
+				scope = this
+				options = _.clone drawerService.state
+				if dir == 'prev'
+					options.increment = -1
+				return scope.card = deckService.nextCard(scope.cards, scope.deck, options)
+
+			shuffleDeck : ()->
+				scope = this
+				scope.deck = deckService.setupDeck(scope.cards, scope.deck, drawerService.state)
+				deckService.shuffleDeck( scope.deck )
+				return deckService.nextCard(scope.cards, scope.deck, drawerService.state)	
+		}
+		return self
+]
 ).controller( 'ChallengeCtrl', [
 	'$scope'
 	'$filter'
@@ -37,8 +145,9 @@ angular.module(
 	'deckService'
 	'cameraService'
 	'notifyService'
+	'actionService'
 	'appConfig'
-	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, CFG)->
+	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, actionService, CFG)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -49,6 +158,7 @@ angular.module(
 		$scope.$location = $location
 		$scope.cameraService = cameraService
 		$scope.notify = notify
+		_.extend $scope, actionService 		# add methods to scope
 
 		# card + deck iterator
 		$scope.deck = {}
@@ -70,7 +180,7 @@ angular.module(
 			syncService.setForeignKeys(o.challenge, o.moment)
 			# reload or init drawer
 			state = syncService.get('drawerState')
-			if _.isEmpty(state) || state.group !='findhappi'
+			if _.isEmpty(state) # || state.group !='findhappi'
 				drawerItemOptions = drawer.getDrawerItem('findhappi', 'current')
 				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
@@ -102,96 +212,10 @@ angular.module(
       	return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 
-    # gestures
-		$scope.swipe = ( target, $ev, index)->
-			# target = $ev.currentTarget
-			dir = $ev.gesture.direction
-			action = [target, dir].join('-')
-
-			notify.alert [$ev.type, target, dir].join('-'), null, 1000
-			switch target
-				when 'thumb-img'
-					# ?? use status='edit'
-					throw "Error: removePhoto(), $index was NOT passed to swipe" if !index?
-					sliced = $scope.removePhoto($ev.currentTarget.id, index)
-					$ev.gesture.preventDefault()
-					$ev.stopImmediatePropagation()
-					return sliced	
-
-			switch action
-				when 'filmstrip-left'
-					$scope.nextCard()
-					$ev.gesture.preventDefault()
-				when 'filmstrip-right'
-					$scope.nextCard('prev')
-					$ev.gesture.preventDefault()
-				when 'card-down'
-					this.isCardExpanded = true
-					$ev.gesture.preventDefault()
-				when 'card-up'
-					this.isCardExpanded = false
-					$ev.gesture.preventDefault()
-
-		# methods
-		$scope.removePhoto = (id, i)->
-			try
-				model = $scope.card.type 
-				switch model 
-					when "moment"
-						momentIndex = i
-						momentPhotos = $scope.card.photos
-					when "challenge"	
-						throw "removePhoto() id mismatch" if id != $scope.challengePhotos[i].id.toString()
-						moment = _.findWhere $scope.card.moments, {status:'active'}
-						momentPhotos = moment.photos
-						momentIndex = momentPhotos.length - (i+1)	# reversed array
-						check2 = $scope.challengePhotos.splice(i, 1)
-					else throw "invalid card type"
-
-				throw "removePhoto() id mismatch" if id != momentPhotos[momentIndex].id.toString()
-				return check1 = momentPhotos.splice(momentIndex, 1)
-			catch error
-				notify.alert error, 'warning', 10000
-				return false
-
-
-		$scope.setFilmstripPos = ( w=320 )->
-			if !deck.validateDeck($scope.cards, $scope.deck, drawer.state)
-				$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
-			translateCss = 'translate(' + -1 * $scope.deck.index * w + 'px, 0)'
-			return {
-				width: $scope.deck.cards.length * w + 'px'
-				# left: -1 * $scope.deck.index * w + 'px'
-				'transform': translateCss
-				'-webkit-transform': translateCss
-				'-ms-transform': translateCss
-			}
-
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			return $scope.drawerItemClick 'findhappi', options
 
-		$scope.nextCard = (dir='next')->
-			options = _.clone drawer.state
-			if dir == 'prev'
-				options.increment = -1
-			return $scope.card = deck.nextCard($scope.cards, $scope.deck, options)
-
-		# returns deck.TopCard()
-		$scope.drawerItemClick = (groupName, options)->
-			options.group = groupName
-			options.item = options.name || options.item
-			return drawer.itemClick options, ()->
-				if options.name=='shuffle'
-					$scope.deck = deck.setupDeck $scope.cards, $scope.deck, drawer.state
-					deck.shuffleDeck( $scope.deck )
-				$location.path(options.route) if options.route != $location.path()
-				return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state) 
-
-		$scope.shuffleDeck = ()->
-			$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
-			deck.shuffleDeck( $scope.deck )
-			return deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		$scope.challenge_getPhoto = ()->
 			saveToMoment = (uri)->
@@ -211,7 +235,7 @@ angular.module(
 					moment.stale = moment.modified = new Date().toJSON()
 
 					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
-					$scope.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
+					$scope.card.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 					syncService.set('moment', moment)
 
 				return
@@ -243,7 +267,7 @@ angular.module(
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
 				drawer.updateCounts( $scope.challenges, $scope.moments )	
-				$scope.challengePhotos = null;
+				$scope.card.challengePhotos = null;
 				return $scope.drawerShowAll()
 			return $scope.nextCard()
 
@@ -267,7 +291,7 @@ angular.module(
 			drawer.updateCounts( $scope.challenges, $scope.moments )
 
 			# clear 'active' challenge photos
-			$scope.challengePhotos = null;
+			$scope.card.challengePhotos = null;
 
 			# goto moment
 			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
@@ -292,7 +316,7 @@ angular.module(
 					stale.push m
 					moment = m
 
-			$scope.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
+			$scope.card.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			drawer.updateCounts( $scope.challenges, $scope.moments )
@@ -334,7 +358,7 @@ angular.module(
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
 			drawer.updateCounts( $scope.challenges, $scope.moments )
-			$scope.challengePhotos = m.photos  	# for display of challenge only 'active'
+			$scope.card.challengePhotos = m.photos  	# for display of challenge only 'active'
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		$scope.challenge_later = ()->
@@ -356,8 +380,9 @@ angular.module(
 	'deckService'
 	'cameraService'
 	'notifyService'
+	'actionService'
 	'appConfig'
-	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, CFG)->
+	($scope, $filter, $q, $route, $location, drawer, syncService, deck, cameraService, notify, actionService, CFG)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -367,6 +392,7 @@ angular.module(
 		$scope.$location = $location
 		$scope.cameraService = cameraService
 		$scope.notify = notify
+		_.extend $scope, actionService 		# add methods to scope
 
 		# card + deck iterator
 		$scope.deck = {}
@@ -419,84 +445,9 @@ angular.module(
 			$scope.set_editMode($scope.card) if $route.current.params.id? && $scope.card.status=='active'
 			return      
 
-		# gestures
-		$scope.swipe = ( target, $ev )->
-			# target = $ev.currentTarget
-			dir = $ev.gesture.direction
-			action = [target, dir].join('-')
-
-			notify.alert [$ev.type, target, dir].join('-'), null, 1000
-			switch target
-				when 'thumb-img'
-					# ?? use status='edit'
-					if ($scope.card.status =='active') && arguments.length>2
-						i = arguments[2]
-						if $scope.card.photos[i].id.toString() == $ev.currentTarget.id
-							$scope.removePhoto($scope.card, i)
-							$ev.gesture.preventDefault()
-							$ev.stopImmediatePropagation()
-							return
-
-			switch action
-				when 'filmstrip-left'
-					$scope.nextCard()
-					$ev.gesture.preventDefault()
-				when 'filmstrip-right'
-					$scope.nextCard('prev')
-					$ev.gesture.preventDefault()
-				when 'card-down'
-					this.isCardExpanded = true
-					$ev.gesture.preventDefault()
-				when 'card-up'
-					this.isCardExpanded = false
-					$ev.gesture.preventDefault()
-				
-
-
-
-
-
-		# methods
-		$scope.removePhoto = (moment, i)->
-			return moment.photos.splice(i, 1)
-
-		$scope.setFilmstripPos = ( w=320 )->
-			if !deck.validateDeck($scope.cards, $scope.deck, drawer.state)
-				$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
-			translateCss = 'translate(' + -1 * $scope.deck.index * w + 'px, 0)'
-			return {
-				width: $scope.deck.cards.length * w + 'px'
-				# left: -1 * $scope.deck.index * w + 'px'
-				'transform': translateCss
-				'-webkit-transform': translateCss
-				'-ms-transform': translateCss
-			}	
-
-		$scope.nextCard = (dir='next')->
-			options = _.clone drawer.state
-			if dir == 'prev'
-				options.increment = -1
-			return $scope.card = deck.nextCard($scope.cards, $scope.deck, options)
-
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			return $scope.drawerItemClick 'findhappi', options
-
-		$scope.drawerItemClick = (groupName, options)->
-			options.group = groupName
-			options.item = options.name
-			return drawer.itemClick options, ()->
-				if options.name=='shuffle'
-					$scope.deck = deck.setupDeck $scope.cards, $scope.deck, drawer.state
-				$location.path(options.route) if options.route != $location.path()	
-				$scope.deckCards = deck.deckCards deck.shuffleDeck $scope.deck 
-				# return $scope.card = deck.nextCard($scope.cards, $scope.deck, drawer.state) 
-
-		$scope.shuffleDeck = ()->
-			$scope.deck = deck.setupDeck($scope.cards, $scope.deck, drawer.state)
-			deck.shuffleDeck( $scope.deck )
-			return $scope.deckCards = deck.deckCards deck.shuffleDeck $scope.deck 
-			# return deck.nextCard($scope.cards, $scope.deck, drawer.state)
 
 		$scope.moment_cancel = (id)->
 			m = _.findWhere $scope.cards, {id: id}
@@ -539,7 +490,7 @@ angular.module(
 			# ???: should I set challenge to 'active'
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
-			$scope.isCardExpanded = true
+			$scope.card.isCardExpanded = true
 
 		$scope.moment_getPhoto = (id)->
 			moment = _.findWhere $scope.cards, {id: id}
