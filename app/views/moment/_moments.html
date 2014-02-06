@@ -61,7 +61,8 @@
                       <dt>Duration</dt><dd>{{card.humanize.completedIn}}</dd>
                       <dt>Photos</dt><dd>{{card.stats.count}}</dd>
                       <dt>Viewed</dt><dd ng-pluralize count="card.stats.viewed" when="{'one':'1 time','other':'{} times'}"></dd>
-                      <rating value="card.stats.rating.moment" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+                      <rating rating-type="moment" ng-click="persistRating($event,$index)" 
+                      value="card.stats.rating.moment" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
                     </dl>
                   </div>
                   <div class="meta well pull-right">
@@ -71,7 +72,8 @@
                       <dt>Accept</dt><dd>{{card.challenge.humanize.acceptPct | number:1}}%</dd>
                       <dt>Pass</dt><dd>{{card.challenge.humanize.passPct | number:1}}%</dd>
                       <dt>Avg Time</dt><dd>{{card.challenge.humanize.avgDuration}}</dd>
-                      <rating value="card.stats.rating.challenge" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+                      <rating rating-type="challenge" ng-click="persistRating($event,$index)" 
+                      value="card.stats.rating.challenge" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
                       <span class="label label-default" title="average rating for this challenge">{{card.challenge.humanize.avgRating}}</span>
                     </dl>
                   </div>

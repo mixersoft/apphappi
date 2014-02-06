@@ -29,10 +29,35 @@ angular.module(
 ).factory( 'actionService', [ 
 	'drawerService'
 	'deckService'
+	'syncService'
 	'notifyService'
 	'$location'
-	(drawerService, deckService, notify, $location)->
+	(drawerService, deckService, syncService, notify, $location)->
 		self = {
+
+			persistRating : (ev, i)->
+				$target = angular.element(ev.currentTarget)
+				switch $target.attr('rating-type')
+					when "photo"
+						switch this.card.type
+							when "moment"
+								this.card.stale = true
+								syncService.set('moment', this.card)
+							when "challenge"
+								this.moment.stale = true
+								syncService.set('moment', this.moment)
+
+					when "moment"
+						this.card.stale = true
+						syncService.set('moment', this.card)
+					when "challenge"
+						this.card.stale = true
+						syncService.set('moment', this.card)
+						# also update challenge
+						c = this.card.challenge
+						c.stats.ratings.push(this.card.stats.rating.challenge)
+						c.stale = true	
+						syncService.set('challenge', this.card.challenge)
 
 			drawerItemClick : (groupName, options)->
 				scope = this
@@ -221,7 +246,7 @@ angular.module(
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri
 				
-				moment = _.findWhere $scope.card.moments, {status:'active'}
+				$scope.moment = moment = _.findWhere $scope.card.moments, {status:'active'}
 
 				if moment? && _.isArray moment.photos
 					photo = {
