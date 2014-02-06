@@ -32,7 +32,6 @@ angular.module(
 
       # set properties for drawerItem click
       itemClick: (options, cb)->
-        # drawer = $scope.$root.drawer
         # same drawer-group, stay on page
 
         # special case for reset
@@ -61,10 +60,10 @@ angular.module(
 
         if sameGroup
           drawer.animateClose()
-          return cb() if _.isFunction(cb)
         else 
           $location.path(drawerItemOptions.route)
           drawer.animateClose(500)
+        return cb() if _.isFunction(cb)
         return  
 
       getDrawerItem: (drawerGroup, itemName) ->
@@ -128,7 +127,6 @@ angular.module(
         url = drawer.url if _.isEmpty(url)
         console.log "*** drawer.load()"  
         drawer.ready = $http.get(url).success (data, status, headers, config)->
-          # drawer = $scope.$root.drawer
           drawer.json = data
           # console.log "*** drawer ready"
           return 

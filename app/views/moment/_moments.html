@@ -8,7 +8,7 @@
         <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
       </div>
       
-      <div ng-model="card" ng-show='!card'
+      <div ng-model="card" ng-show='root.deck.size()==0'
       class="challenge card empty-card summary list-unstyled text-center">
         <div class="header">
           <figure class="icon">
@@ -32,7 +32,7 @@
 
         <div class="hscroll" ng-style="setFilmstripPos()">
           <div class="card-wrap inline"
-          ng-repeat="card in deck.cards" 
+          ng-repeat="card in root.deck.cards()" 
           >
             <div ng-model="card"
             class="moment card inline text-center status-{{card.status}}"
