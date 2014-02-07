@@ -65,12 +65,12 @@ angular.module(
 				scope = this
 				options.group = groupName
 				options.item = options.name
-				scope.root.deck.index(0)
+				scope.deck.index(0)
 				return drawerService.itemClick options, ()->
 					# drawerService.state is updated with new filter/query/search, setupDeck
-					if !scope.root.deck.validateDeck(scope.root.cards)
-						scope.root.deck.cards(scope.root.cards)
-					scope.root.deck.shuffle() if options.name=='shuffle'
+					if !scope.deck.validateDeck(scope.cards)
+						scope.deck.cards(scope.cards)
+					scope.deck.shuffle() if options.name=='shuffle'
 					$location.path(options.route) if options.route != $location.path()	
 
 			swipe : ( target, ev, index)->
@@ -92,10 +92,10 @@ angular.module(
 
 				switch action
 					when 'filmstrip-left'
-						scope.card = scope.root.deck.nextCard(drawerService.state)
+						scope.card = scope.deck.nextCard(drawerService.state)
 						ev.gesture.preventDefault()
 					when 'filmstrip-right'
-						scope.card = scope.root.deck.nextCard(drawerService.state, -1)
+						scope.card = scope.deck.nextCard(drawerService.state, -1)
 						ev.gesture.preventDefault()
 					when 'card-down'
 						card.isCardExpanded = true	
@@ -129,11 +129,11 @@ angular.module(
 			setFilmstripPos : ( w=320 )->
 				scope = this
 				# Modernizr: cssanimations csstransforms csstranisitions
-				if !scope.root.deck?
+				if !scope.deck?
 					length = index = 0
 				else 		
-					length = scope.root.deck.size()
-					index = scope.root.deck.index()
+					length = scope.deck.size()
+					index = scope.deck.index()
 				if window.Modernizr.touch
 					style = {
 						width: length * w + 'px'
@@ -151,9 +151,9 @@ angular.module(
 
 			shuffleDeck : ()->
 				scope = this
-				if !scope.root.deck.validateDeck(scope.root.cards)
-						scope.root.deck.cards(scope.root.cards)
-				return scope.root.deck.shuffle().nextCard() 
+				if !scope.deck.validateDeck(scope.cards)
+						scope.deck.cards(scope.cards)
+				return scope.deck.shuffle().nextCard() 
 		}
 		return self
 ]
@@ -184,12 +184,13 @@ angular.module(
 		_.extend $scope, actionService 		# add methods to scope
 
 		# for common scope inside ng-repeat
-		$scope.root = {
-			deck : null			# Class Deck
-			cards : []			# all challenge cards
-			moment : null		# current moment, status=active only
-			drawer : drawer
-		}
+		# $scope.root = {
+		# 	deck : null			# Class Deck
+		# 	cards : []			# all challenge cards
+		# 	moment : null		# current moment, status=active only
+		# 	drawer : drawer
+		# }
+		$scope.drawer = drawer;
 
 		$scope.initialDrawerState = {  
 			group: 'findhappi'  
@@ -223,8 +224,8 @@ angular.module(
 			else 
 				$scope.challenges = o.challenge 
 
-			$scope.root.cards = _.values $scope.challenges
-			$scope.root.deck = deckService.setupDeck($scope.root.cards, drawer.state)
+			$scope.cards = _.values $scope.challenges
+			$scope.deck = deckService.setupDeck($scope.cards, drawer.state)
 
 			# redirect to all if no active challenge
 			if drawer.state.group=='findhappi' &&
@@ -242,8 +243,8 @@ angular.module(
 		$scope.challenge_getPhoto = ()->
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri
-				m = $scope.root.moment || 
-					_.findWhere $scope.root.deck.topCard().moments, {status:'active'} 
+				m = $scope.moment || 
+					_.findWhere $scope.deck.topCard().moments, {status:'active'} 
 				now = new Date()
 				if m? && _.isArray m.photos
 					photo = {
@@ -257,7 +258,7 @@ angular.module(
 					m.stale = m.modified = now.toJSON()
 
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
-					$scope.root.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
+					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 					syncService.set('moment', m)
 				return
 
@@ -273,7 +274,7 @@ angular.module(
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 
 		$scope.challenge_pass = ()->
-			if drawer.state.filter.status=='active' && (c = $scope.root.deck.topCard())
+			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
 				stale = [c]
 				_.each c.moments, (m)-> 
@@ -288,15 +289,15 @@ angular.module(
 				syncService.set('moment', stale)
 				drawer.updateCounts( $scope.challenges, $scope.moments )	
 				c.challengePhotos = null;
-				$scope.root.moment = null
+				$scope.moment = null
 				return $scope.drawerShowAll()
-			return $scope.root.deck.nextCard()
+			return $scope.deck.nextCard()
 
 
 		$scope.challenge_done = ()->
-			c = $scope.root.deck.topCard()
+			c = $scope.deck.topCard()
 			now = new Date().toJSON()
-			m = $scope.root.moment || 
+			m = $scope.moment || 
 					_.findWhere c.moments, {status:'active'} 
 			throw "warning: challenge.status != active in $scope.challenge_done()" if c.status != 'active'
 			throw "warning: moment.status != active in $scope.challenge_done()" if m.status != 'active'
@@ -314,7 +315,7 @@ angular.module(
 			drawer.updateCounts( $scope.challenges, $scope.moments )
 
 			# clear 'active' challenge photos
-			$scope.root.moment = null
+			$scope.moment = null
 
 			# goto moment
 
@@ -322,7 +323,7 @@ angular.module(
 
 		$scope.challenge_open = ()->
 			# TODO: check for existing 'active' moment by challenge.moments and set to 'pass'/'working'
-			c = $scope.root.deck.topCard()
+			c = $scope.deck.topCard()
 			stale = [c]
 			now = new Date().toJSON()
 
@@ -341,7 +342,7 @@ angular.module(
 					stale.push m
 					moment = m
 
-			$scope.root.moment = moment
+			$scope.moment = moment
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
@@ -351,7 +352,7 @@ angular.module(
 		# TODO: change to accept
 		$scope.challenge_new = ()->
 			# TODO: check for existing 'active' and set to 'pass'/'working'
-			c = $scope.root.deck.topCard()
+			c = $scope.deck.topCard()
 			c.stats.accept += 1
 			now = new Date()
 			stale = [c]
@@ -366,8 +367,8 @@ angular.module(
 					completedIn: 0
 					viewed: 0
 					rating:
-						moment: null
-						challenge: null
+						moment: 0
+						challenge: 0
 				status: 'active'
 				created: now
 				modified: now
@@ -379,7 +380,7 @@ angular.module(
 			stale.push m
 			c.moments.push(m)
 			$scope.moments[m.id] = m
-			$scope.root.moment = m
+			$scope.moment = m
 
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
@@ -421,12 +422,13 @@ angular.module(
 		_.extend $scope, actionService 		# add methods to scope
 
 		# for common scope inside ng-repeat
-		$scope.root = {
-			deck : null			# Class Deck
-			cards : []			# all challenge cards
-			moment : null		# current moment, status=active only
-			drawer : drawer
-		}
+		# $scope.root = {
+		# 	deck : null			# Class Deck
+		# 	cards : []			# all challenge cards
+		# 	moment : null		# current moment, status=active only
+		# 	drawer : drawer
+		# }
+		$scope.drawer = drawer;
 
 		$scope.initialDrawerState = {
 			group: 'gethappi'
@@ -463,10 +465,10 @@ angular.module(
 
 
 			# get nextCard
-			$scope.root.cards = _.values $scope.moments 
-			$scope.root.deck = deckService.setupDeck($scope.root.cards, drawer.state)
+			$scope.cards = _.values $scope.moments 
+			$scope.deck = deckService.setupDeck($scope.cards, drawer.state)
 
-			m = $scope.root.deck.topCard()
+			m = $scope.deck.topCard()
 			if $route.current.params.id? && m?.status=='active'
 				$scope.set_editMode(m) 
 			return      
@@ -476,7 +478,7 @@ angular.module(
 			return $scope.drawerItemClick 'findhappi', options
 
 		$scope.moment_cancel = (id)->
-			m = _.findWhere $scope.root.cards, {id: id}
+			m = _.findWhere $scope.cards, {id: id}
 			notify.alert "Warning: no undo[photos] NOT found", "warning" if !m.undo['photos']?
 
 			m.photos = m.undo['photos']
@@ -490,7 +492,7 @@ angular.module(
 			$location.path drawer.state.route 
 
 		$scope.moment_done = (id)->
-			m = _.findWhere $scope.root.cards, {id: id}
+			m = _.findWhere $scope.cards, {id: id}
 			throw "warning: moment.status != active in $scope.moment_done()" if m.status != 'active'
 			m.stats.count = m.photos.length
 			m.stats.completedIn += 123						# fix this
@@ -504,7 +506,7 @@ angular.module(
 			$location.path drawer.state.route 
 
 		$scope.moment_edit = (id)->
-			m = _.findWhere $scope.root.cards, {id: id}
+			m = _.findWhere $scope.cards, {id: id}
 			m.status = "active"
 			m.stale = new Date().toJSON()
 			syncService.set('moment', m)
@@ -519,7 +521,7 @@ angular.module(
 			$scope.card.isCardExpanded = true
 
 		$scope.moment_getPhoto = (id)->
-			moment = _.findWhere $scope.root.cards, {id: id}
+			moment = _.findWhere $scope.cards, {id: id}
 
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri

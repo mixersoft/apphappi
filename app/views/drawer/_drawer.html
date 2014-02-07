@@ -1,28 +1,28 @@
 <!-- <ng-include src="'views/partials/_drawer.html'"></ng-include> -->
 <accordion>
-  <accordion-group class='drawer inverse' is-open="root.drawer.isDrawerOpen">
+  <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
     <accordion-heading>
       <i class='fa fa-bars fa-lg'></i><i class="fa fa-plane pull-right"></i>
     </accordion-heading>
-    <div class='item'><input ng-model="root.drawer.query" placeholder="Search"></div>
+    <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
     <div class='item'>
       <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
     </div>
 
     <accordion close-others="true">
       <accordion-group class='drawer-group inverse {{group.name}}'
-      ng-repeat="group in root.drawer.json.data" 
+      ng-repeat="group in drawer.json.data" 
       is-open="group.isOpen" >
         <accordion-heading>
-          <span ng-bind-html="group.label" ng-click="root.drawer.forceGroupOpen(group)"></span>
+          <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
           <span ng-bind="group.count" class="badge badge-default"></span>
         </accordion-heading>
         <div ng-repeat="options in group.items" 
         class="item"
-        ng-class="{active: options.name==root.drawer.state.item}"
+        ng-class="{active: options.name==drawer.state.item}"
         ng-click="drawerItemClick(group.name, options)">
           <span ng-bind-html="options.label"></span>
-          <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{root.drawer.state.counts[options.countKey]}}</span>
+          <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
         </div>
       </accordion-group>
     </accordion>

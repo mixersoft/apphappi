@@ -32,7 +32,7 @@
       "name": "category",
       "label": "by Category",
       "filter": {"status":"!pass"},
-      "orderBy": "challenge.category",
+      "orderBy": "challenge.humanize.category",
       "route": "/moments"
      },
      {

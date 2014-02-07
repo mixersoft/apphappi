@@ -170,6 +170,7 @@ angular.module(
 								a+b
 							, 0
 						)/c.stats.ratings.length, 1)
+						category : c.category.join(':')
 					}
 					return c
 				'moment': (m)->

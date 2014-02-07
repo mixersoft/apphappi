@@ -9,7 +9,7 @@
       <!--Body content-->
 
 
-      <div ng-model="card" ng-show='root.deck.size()==0'
+      <div ng-model="card" ng-show='deck.size()==0'
       class="challenge card empty-card summary list-unstyled text-center">
         <div class="header">
           <figure class="icon">
@@ -33,14 +33,14 @@
 
         <div class="hscroll" ng-style="setFilmstripPos()">
           <div class="card-wrap inline"
-          ng-repeat="card in root.deck.cards()" 
+          ng-repeat="card in deck.cards()" 
           >
             <div ng-model="card" 
               hm-swipe="swipe('card', $event)"
               hm-swipe-opts="{drag_block_vertical: true}"
               class="challenge card summary list-unstyled text-center">
                 <div class="header">
-                  <span class="pull-right">{{($index + 1) + "/"  + root.deck.size()}}</span>
+                  <span class="pull-right">{{($index + 1) + "/"  + deck.size()}}</span>
                   <figure class="icon">
                     <i class="icon {{card.icon}} fa-3x"></i>
                     <figcaption class="category">{{card.category.join(":")}}</figcaption>
@@ -67,7 +67,7 @@
                   ng-show="['new','pass'].indexOf(card.status)>=0">
                     <button type="button" class="btn btn-primary" ng-click="challenge_new()">Accept</button>
                     <button type="button" class="btn btn-default" ng-click="challenge_later()">Later</button>
-                    <button type="button" ng-click="root.deck.nextCard()"  class="btn btn-default">Pass</button>
+                    <button type="button" ng-click="deck.nextCard()"  class="btn btn-default">Pass</button>
                   </div>
                   <div class="btn-group status-active"
                   ng-show="['active'].indexOf(card.status)>=0">
@@ -79,12 +79,12 @@
                   ng-show="['complete'].indexOf(card.status)>=0">
                     <button type="button" class="btn btn-primary" ng-click="challenge_open()">Open</button>
                     <button type="button" class="btn btn-default" title="repeat this challenge" ng-click="challenge_new()"><i class="fa fa-copy"></i> Repeat</button>
-                    <button type="button" class="btn btn-default" ng-click="root.deck.nextCard()">Next</button>
+                    <button type="button" class="btn btn-default" ng-click="deck.nextCard()">Next</button>
                   </div>
                   <div class="btn-group status-working"
                   ng-show="['working'].indexOf(card.status)>=0">
                     <button type="button" class="btn btn-primary" ng-click="challenge_open()">Open</button>
-                    <button type="button" class="btn btn-default" ng-click="root.deck.nextCard()">Next</button>
+                    <button type="button" class="btn btn-default" ng-click="deck.nextCard()">Next</button>
                   </div>
                   <div class="btn-group status-sleep"
                   ng-show="['sleep'].indexOf(card.status)>=0">

@@ -20,21 +20,20 @@ angular.module(
 			return o    
 
 		_deckCounter = 0	
-		_index = {}
 
 		class Deck
 			constructor: (cards, options)->
 				this.id = _deckCounter++
 				this.allCards = null
-				this.deckCards = null
+				this._index = this.deckCards = null
 				this.options = _.pick(options, ['filter', 'query', 'orderBy'])
 				this.shuffled = this.shuffledCards = null
 				this.cards(cards, options)
 				return this
 
 			index: (i)->
-				_index[this.id] = i if typeof i != 'undefined'
-				return	_index[this.id]
+				this._index = i if typeof i != 'undefined'
+				return	this._index
 				
 			cards: (cards, options)->
 				if options?
@@ -52,9 +51,9 @@ angular.module(
 					# deck has changed, update deckCards
 					# filter/orderBy cards
 					step = this.allCards
-					step = $filter('filter') step, options.filter if options.filter?
-					step = $filter('filter') step, options.query if options.query?
-					step = $filter('orderBy') step, options.orderBy if options.orderBy?
+					step = $filter('filter') step, options.filter if !_.isEmpty(options.filter)
+					step = $filter('filter') step, options.query if !_.isEmpty(options.query)
+					step = $filter('orderBy') step, options.orderBy if !_.isEmpty(options.orderBy)
 					this.deckCards = step
 				return this.deckCards if !this.shuffled?
 				# shuffled
