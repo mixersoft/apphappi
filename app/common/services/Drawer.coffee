@@ -2,14 +2,33 @@ return if !angular?
 
 angular.module( 
   'appHappi'
+).directive('onOffSwitch', ()->
+  link = (scope, element, attrs)->
+    ngModel = scope.$parent?.options?.switch
+    # BUG: how do I get the ng-model to bind to scope.$parent.options.switch????
+    # also initial state is not reflecting CFG.debug==false
+    if ngModel?
+      element.attr('mirror', ngModel)
+      # _.each(element.children().children(), ((o)->o.setAttribute 'ng-model', ngModel) )
+    return
+
+  return {
+    template: '<div class="btn-group">
+    <button type="button" class="btn btn-primary btn-sm" ng-model="CFG.debug" btn-radio="false">Off</button>
+    <button type="button" class="btn btn-primary btn-sm" ng-model="CFG.debug" btn-radio="true">On</button>
+</div>'
+    restrict: 'AE'
+    scope: 
+      mirror: '='     # this is NOT working, scope.mirror is not set
+    link: link 
+  }
 ).factory('drawerService', [
   'appConfig'
   '$location'
   '$http'
   '$timeout'
-  '$rootScope'
   'localStorageService'
-, (appConfig, $location, $http, $timeout, $rootScope, localStorageService)->
+, (appConfig, $location, $http, $timeout, localStorageService)->
     drawer = {
       url: '/common/data/drawer.json'
       isDrawerOpen: false
@@ -36,11 +55,15 @@ angular.module(
 
         # special case for reset
         if options.group=='settings'
-          if options.item=='reset'
-            localStorageService.clearAll()
-            drawer.animateClose(500)
-            $timeout (()->window.location.reload()), 1000
-            return
+          switch options.item
+            when 'reset'
+              localStorageService.clearAll()
+              drawer.animateClose(500)
+              $timeout (()->window.location.reload()), 1000
+              return
+            when 'debug'
+              appConfig.debug = !appConfig.debug
+
 
         sameGroup = drawer.state.group == options.group
         # get drawerItemGroup options
@@ -60,8 +83,10 @@ angular.module(
 
         if sameGroup
           drawer.animateClose()
+        else if !drawerItemOptions.route
+          drawer.animateClose()
         else 
-          $location.path(drawerItemOptions.route)
+          $location.path(drawerItemOptions.route) 
           drawer.animateClose(500)
         return cb() if _.isFunction(cb)
         return  

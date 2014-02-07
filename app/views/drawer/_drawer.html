@@ -23,6 +23,7 @@
         ng-click="drawerItemClick(group.name, options)">
           <span ng-bind-html="options.label"></span>
           <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
+          <on-off-switch ng-if="!!options.switch" class="pull-right"></on-off-switch>
         </div>
       </accordion-group>
     </accordion>

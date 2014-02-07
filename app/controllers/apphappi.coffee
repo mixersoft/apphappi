@@ -4,10 +4,12 @@ angular.module(
 	'appHappi'
 ).service( 'notifyService', [
 	'$timeout'
-	($timeout)->
+	'appConfig'
+	($timeout, appConfig)->
 		this.alerts = {}
 		this.timeouts = []
 		this.alert = (msg=null, type='info', timeout=3000)->
+			return if !appConfig.debug || appConfig.debug=='off'
 			if msg? 
 				now = new Date().getTime()
 				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
@@ -181,6 +183,7 @@ angular.module(
 		$scope.$location = $location
 		$scope.cameraService = cameraService
 		$scope.notify = notify
+		$scope.CFG = CFG
 		_.extend $scope, actionService 		# add methods to scope
 
 		# for common scope inside ng-repeat
@@ -419,6 +422,7 @@ angular.module(
 		$scope.$location = $location
 		$scope.cameraService = cameraService
 		$scope.notify = notify
+		$scope.CFG = CFG
 		_.extend $scope, actionService 		# add methods to scope
 
 		# for common scope inside ng-repeat

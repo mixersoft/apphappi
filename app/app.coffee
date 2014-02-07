@@ -10,6 +10,7 @@ angular.module( 'appHappi', [
 ).value('appConfig', {
 	userId: null,
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
+	debug: false
 	testPics: [
 		'http://ww2.hdnux.com/photos/25/76/31/5760625/8/centerpiece.jpg'
 		'http://i1.nyt.com/images/2014/01/30/science/30MOTH_MONARCH/30MOTH_MONARCH-moth.jpg'

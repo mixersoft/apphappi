@@ -102,17 +102,34 @@
     ]
   },
   {
+    "name": "timeline",
+    "label": "<i class=\"fa fa-calendar\"></i> Timeline",
+    "state": {
+    },
+    "items": [
+      {
+        "name": "photos",
+        "label": "Happi Photos"
+      }
+    ]
+  },
+  {
     "name": "scoreboard",
     "label": "<i class=\"fa fa-list\"></i> Scoreboard",
     "state": {
     }
-   },
-   {
+  },  
+  {
     "name": "settings",
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "state": {
     },
     "items": [
+      {
+        "name": "debug",
+        "label": "Developer Mode",
+        "switch": "CFG.debug"
+      },
       {
         "name": "reset",
         "label": "Reset local data",
