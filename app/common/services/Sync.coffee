@@ -33,8 +33,9 @@ angular.module(
 			lastModified: {}
 			promises: {}
 
-			get: (key)->				
-				return localStorageService.get(key)
+			get: (key)->	
+				return syncService.localData[key]? if !syncService.localData[key]?.stale
+				return localStorageService.get(key)			
 
 			# save to localStorageService, checks for o.type=key and o.stale=true
 			set: (key, collection)->
@@ -45,7 +46,7 @@ angular.module(
 					# if key=='challenge' && drawer.json.data?
 					# 	drawer.updateCounts collection
 					# 	localStorageService.set('drawerState', drawer.state)
-
+					now = new Date()
 					switch key
 						when 'moment', 'challenge'
 							
@@ -67,7 +68,9 @@ angular.module(
 									console.info "saving "+pk+" to localStorage..."
 									o.type = key
 									localData[o.id] = o
-								localStorageService.set(key, localData)	
+								localStorageService.set(key, localData)
+								syncService.localData[key] = localData
+								notify.alert "syncService.set() elapsed="+(new Date().getTime() - now.getTime())
 								return saveData
 
 							return null
@@ -155,7 +158,20 @@ angular.module(
 								
 			parseModel: {
 				'challenge': (c)->
-					console.log "challenge parseModel: "+c.modified
+					defaults = {
+			      description: null,
+			      icon: "fa fa-smile-o",
+			      modified: null,
+			      stats: {
+			        viewed: 0,
+			        accept: 0,
+			        pass: 0,
+			        completions: [],
+			        ratings: []
+			      }
+			    }
+			    c.stats  = _.defaults(c.stats || {}, defaults.stats)
+			    _.defaults(c, defaults)
 					c.humanize = {
 						completions: c.stats.completions.length
 						acceptPct: 100*c.stats.accept/c.stats.viewed

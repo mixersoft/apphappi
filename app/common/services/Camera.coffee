@@ -9,9 +9,54 @@ angular.module(
 
 		# for testing in browser, no access to Cordova camera API
 		if !navigator.camera?
+			#
+			# private
+			#
+			_deferred = null
+			_fileInput = null
+			_fileReader = new FileReader()
+			_tempImg = new Image()
+
+			_fileReader.onload = (event)->
+				_tempImg.src = event.target.result
+
+			_tempImg.onload = ()->
+				dataURL = _downsize(this)
+				_deferred.resolve(dataURL)	# dataURL	
+
+			_downsize = (img, MAX_WIDTH=320)->
+				tempW = _tempImg.width;
+				tempH = _tempImg.height;
+				if (tempW > MAX_WIDTH) 
+					 tempH *= MAX_WIDTH / tempW;
+					 tempW = MAX_WIDTH;
+
+				canvas = document.createElement('canvas');
+				canvas.width = tempW;
+				canvas.height = tempH;
+				ctx = canvas.getContext("2d");
+				ctx.drawImage(img, 0, 0, tempW, tempH)
+				return dataURL = canvas.toDataURL("image/jpeg")
+
+			#
+			# this is the actual service
+			#	
 			return NO_cameraService = {
+				# use HTML5 File api in browser
 				getPicture: ()->
-					_deferred = $q.defer().reject('ERROR: the Steriods camera API is not available')
+					if _deferred?
+						_deferred.reject(  '(HTML5 getPicture() cancelled'  )
+						_deferred.promise.finally ()-> _deferred = null 
+					_deferred = $q.defer()
+
+					if !_fileInput?
+						_fileInput = document.getElementById('html5-get-file')	
+						_fileInput.onchange = (e)->
+								e.preventDefault();
+								file = _fileInput.files[0]
+								_fileReader.readAsDataURL(file);
+								return false
+					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 					return _deferred.promise
 			}
 

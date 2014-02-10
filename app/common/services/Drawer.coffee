@@ -139,7 +139,7 @@ angular.module(
           switch groupName
             when 'findhappi' 
               drawerGroup.count = _.values( challenges ).length
-            when 'gethappi' 
+            when 'gethappi' # moments
               drawerGroup.count = _.values( _.filter moments, (o)-> o.status!='pass').length
           drawer.state.counts[groupName] = drawerGroup.count
         localStorageService.set('drawerState', drawer.state)  

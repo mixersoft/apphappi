@@ -136,7 +136,7 @@ angular.module(
 				else 		
 					length = scope.deck.size()
 					index = scope.deck.index()
-				if window.Modernizr.touch
+				if true || window.Modernizr.touch
 					style = {
 						width: length * w + 'px'
 						left: -1 * index * w + 'px'
@@ -177,6 +177,7 @@ angular.module(
 		#
 		# Controller: ChallengeCtrl
 		#
+		CFG.$curtain.find('h3').html('Loading Challenges...')
 
 		# attributes
 		$scope.$route = $route
@@ -200,6 +201,7 @@ angular.module(
 			item: 'current'
 		}
 
+
 		# reset for testing
 		syncService.clearAll() if $scope.$route.current.params.reset
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer']) 
@@ -215,8 +217,8 @@ angular.module(
 			drawer.init o.challenge, o.moment, state
 
 # ???: why do I need this?
-			o.moment = $filter('filter')(o.moment, {status:"!pass"})
-			$scope.moments = o.moment 		
+			# o.moment = $filter('filter')(o.moment, {status:"!pass"})
+			# $scope.moments = o.moment 		
 
 			if $route.current.params.id?
 				# filter challenges by id
@@ -228,14 +230,17 @@ angular.module(
 				$scope.challenges = o.challenge 
 
 			$scope.cards = _.values $scope.challenges
-			$scope.deck = deckService.setupDeck($scope.cards, drawer.state)
+			$scope.deck = deckService.setupDeck($scope.cards, drawer.state).shuffle()
 
 			# redirect to all if no active challenge
-			if drawer.state.group=='findhappi' &&
-          drawer.state.item=='current' &&
-          drawer.state.counts['active'] == 0
-        $scope.drawerShowAll()
-      return
+			if (drawer.state.group=='findhappi' &&
+							drawer.state.item=='current' &&
+							drawer.state.counts['active'] == 0)
+				$scope.drawerShowAll()
+
+			# hide loading
+			CFG.$curtain.addClass 'hidden'
+			return
 
 
 		$scope.drawerShowAll = ()->
@@ -243,7 +248,7 @@ angular.module(
 			return $scope.drawerItemClick 'findhappi', options
 
 
-		$scope.challenge_getPhoto = ()->
+		$scope.challenge_getPhoto = (e)->
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri
 				m = $scope.moment || 
@@ -267,11 +272,9 @@ angular.module(
 
 
 			if !navigator.camera
-				dfd = $q.defer()
-				dfd.promise.then saveToMoment
-				uri = CFG.testPics.shift()
-				dfd.resolve(uri)
-				CFG.testPics.push(uri)
+				promise = cameraService.getPicture()
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				return true	# continue to input[type=file] handler
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
@@ -290,7 +293,7 @@ angular.module(
 
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
-				drawer.updateCounts( $scope.challenges, $scope.moments )	
+				drawer.updateCounts( $scope.challenges )	
 				c.challengePhotos = null;
 				$scope.moment = null
 				return $scope.drawerShowAll()
@@ -315,7 +318,7 @@ angular.module(
 			c.challengePhotos = null;
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			drawer.updateCounts( $scope.challenges, $scope.moments )
+			drawer.updateCounts( $scope.challenges )
 
 			# clear 'active' challenge photos
 			$scope.moment = null
@@ -349,7 +352,7 @@ angular.module(
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
-			drawer.updateCounts( $scope.challenges, $scope.moments )
+			drawer.updateCounts( $scope.challenges)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		# TODO: change to accept
@@ -382,12 +385,12 @@ angular.module(
 			c.stale = m.stale = c.modified = m.modified = now
 			stale.push m
 			c.moments.push(m)
-			$scope.moments[m.id] = m
+			# $scope.moments[m.id] = m
 			$scope.moment = m
 
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			drawer.updateCounts( $scope.challenges, $scope.moments )
+			drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
 			c.challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
@@ -416,6 +419,7 @@ angular.module(
 		#
 		# Controller: MomentCtrl
 		#
+		CFG.$curtain.find('h3').html('Loading Moments...')
 
 		# attributes
 		$scope.$route = $route
@@ -453,8 +457,8 @@ angular.module(
 				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
-# ???: why do I need this?
-			$scope.challenges = o.challenge 
+			# wrap challenges in a Deck
+			$scope.challenges = deckService.setupDeck(o.challenge)
 
 			if $route.current.params.id?
 				# filter moments by id
@@ -475,6 +479,10 @@ angular.module(
 			m = $scope.deck.topCard()
 			if $route.current.params.id? && m?.status=='active'
 				$scope.set_editMode(m) 
+
+
+			# hide loading
+			CFG.$curtain.addClass 'hidden'
 			return      
 
 		$scope.drawerShowAll = ()->
@@ -510,7 +518,8 @@ angular.module(
 			$location.path drawer.state.route 
 
 		$scope.moment_edit = (id)->
-			m = _.findWhere $scope.cards, {id: id}
+			# m = _.findWhere $scope.cards, {id: id}
+			m = $scope.deck.topCard()
 			m.status = "active"
 			m.stale = new Date().toJSON()
 			syncService.set('moment', m)
@@ -522,9 +531,9 @@ angular.module(
 			# ???: should I set challenge to 'active'
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
-			$scope.card.isCardExpanded = true
+			m.isCardExpanded = true
 
-		$scope.moment_getPhoto = (id)->
+		$scope.moment_getPhoto = (id, $event)->
 			moment = _.findWhere $scope.cards, {id: id}
 
 			saveToMoment = (uri)->
@@ -545,11 +554,9 @@ angular.module(
 				return
 
 			if !navigator.camera
-				dfd = $q.defer()
-				dfd.promise.then saveToMoment
-				uri = CFG.testPics.shift()
-				CFG.testPics.push(uri)
-				dfd.resolve(uri)
+				promise = cameraService.getPicture()
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				return true	# continue to input[type=file] handler
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			

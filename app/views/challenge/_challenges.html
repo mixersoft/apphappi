@@ -39,8 +39,9 @@
               hm-swipe="swipe('card', $event)"
               hm-swipe-opts="{drag_block_vertical: true}"
               class="challenge card summary list-unstyled text-center">
+                <span class="page-no pull-right label label-info"
+                ng-click="deck.nextCard()">{{($index + 1) + "/"  + deck.size()}}</span>
                 <div class="header">
-                  <span class="pull-right">{{($index + 1) + "/"  + deck.size()}}</span>
                   <figure class="icon">
                     <i class="icon {{card.icon}} fa-3x"></i>
                     <figcaption class="category">{{card.category.join(":")}}</figcaption>
@@ -56,7 +57,7 @@
                       <div><b>{{card.humanize.completions}} completed</b></div>
                       <dt>Accept</dt><dd>{{card.humanize.acceptPct | number:1}}%</dd>
                       <dt>Pass</dt><dd>{{card.humanize.passPct | number:1}}%</dd>
-                      <dt>Avg Time</dt><dd>{{card.humanize.avgDuration}}</dd>
+                      <dt>Avg Time</dt><dd>{{card.humanize.avgDuration || 0}}</dd>
                       <rating value="card.humanize.avgRating" readonly='true' state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
                       <span class="label label-default" title="average rating for this challenge">{{card.humanize.avgRating}}</span>
                     </dl>
@@ -72,7 +73,14 @@
                   <div class="btn-group status-active"
                   ng-show="['active'].indexOf(card.status)>=0">
                     <button type="button" class="btn btn-default" ng-click="challenge_done()">Done</button>
-                    <button type="button" class="btn btn-primary" ng-click="challenge_getPhoto()"><i class="fa fa-camera"></i> Camera Roll</button>
+                    <span class='no-camera-hack'>
+                      <button type="button" class="btn btn-primary" ng-click="challenge_getPhoto()">
+                        <i class="fa fa-camera"></i> Camera Roll
+                      </button>
+                      <input id="html5-get-file" class="transparent-overlay"  type="file" 
+                       ng-click="challenge_getPhoto($event)"
+                       ng-if="!window.navigator.camera"/>  
+                    </span>
                     <button type="button" class="btn btn-default" ng-click="challenge_pass()">Pass</button>
                   </div> 
                   <div class="btn-group status-complete"

@@ -15,7 +15,7 @@ angular.module(
 	'drawerService'
 	($filter, drawerService)->
 
-		_shuffleArray : (o)->
+		_shuffleArray = (o)->
 			`for (i = o.length; i; j = Math.floor(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x)`
 			return o    
 
@@ -58,8 +58,9 @@ angular.module(
 				return this.deckCards if !this.shuffled?
 				# shuffled
 				if !this.shuffledCards?
-					this.shuffledCards = _.map this.shuffled, (el)->
-						return this.deckCards[el]
+					this.shuffledCards = _.map this.shuffled, ((el)->
+						return this.deckCards[el])
+					, this
 				return this.shuffledCards
 
 			size: (all)	->

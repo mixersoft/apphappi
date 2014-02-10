@@ -9,7 +9,7 @@
       </div>
       
       <div ng-model="card" ng-show='deck.size()==0'
-      class="challenge card empty-card summary list-unstyled text-center">
+      class="moment card empty-card summary list-unstyled text-center">
         <div class="header">
           <figure class="icon">
             <i class="icon fa fa-meh-o fa-3x"></i>
@@ -39,6 +39,8 @@
             ng-class="{ active: $parent.card == deck.cards[$index] }"
             hm-swipe="swipe('card', $event)"
             hm-swipe-opts="{drag_block_vertical: true}">
+              <span class="page-no pull-right label label-info"
+              ng-click="deck.nextCard()">{{($index + 1) + "/"  + deck.size()}}</span>
               <ul class='header list-inline list-unstyled'
               ng-click="card.isCardExpanded = !card.isCardExpanded">   
                 <li>
@@ -93,7 +95,14 @@
                   </div>
                   <div class="btn-group" ng-show="card.status=='active'">
                     <button type="button" class="btn btn-default" ng-click="moment_cancel(card.id)"><i class="fa fa-times-circle"></i></button>
-                    <button type="button" class="btn btn-info" ng-click="moment_getPhoto(card.id)"><i class="fa fa-camera"></i> Camera Roll</button>
+                    <span class='no-camera-hack'>
+                      <button type="button" class="btn btn-primary" ng-click="moment_getPhoto(card.id)">
+                        <i class="fa fa-camera"></i> Camera Roll
+                      </button>
+                      <input id="html5-get-file" class="transparent-overlay"  type="file" 
+                       ng-click="moment_getPhoto(card.id, $event)"
+                       ng-if="!window.navigator.camera"/>  
+                    </span>
                     <button type="button" class="btn btn-default" ng-click="moment_done(card.id)"><i class="fa fa-save"></i> Done</button>
                   </div>
                 </div>
