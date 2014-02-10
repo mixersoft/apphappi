@@ -13,7 +13,6 @@ angular.module(
 			# private
 			#
 			_deferred = null
-			_fileInput = null
 			_fileReader = new FileReader()
 			_tempImg = new Image()
 			_icon = null
@@ -52,11 +51,13 @@ angular.module(
 					_deferred.promise.finally ()-> _deferred = null
 					_icon =  angular.element(e.currentTarget.parentNode).find('i')
 
-					if !_fileInput?
-						_fileInput = document.getElementById('html5-get-file')	
-						_fileInput.onchange = (e)->
+					if (e.currentTarget.tagName=='INPUT' && 
+											e.currentTarget.type=='file' && 
+											!e.currentTarget.onchange?)
+						# input[type="file"]
+						e.currentTarget.onchange = (e)->
 								e.preventDefault();
-								file = _fileInput.files[0]
+								file = e.currentTarget.files[0]
 								if file 
 									_fileReader.readAsDataURL(file)
 									_icon.addClass('fa-spin') if _icon?

@@ -87,7 +87,7 @@ angular.module(
 					# drawerService.state is updated with new filter/query/search, setupDeck
 					if !scope.deck.validateDeck(scope.cards)
 						scope.deck.cards(scope.cards)
-					scope.deck.shuffle() if options.name=='shuffle'
+					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
 					$location.path(options.route) if options.route != $location.path()	
 
 			swipe : ( target, ev, index)->
@@ -245,7 +245,7 @@ angular.module(
 				$scope.challenges = o.challenge 
 
 			$scope.cards = _.values $scope.challenges
-			$scope.deck = deckService.setupDeck($scope.cards, drawer.state).shuffle()
+			$scope.deck = deckService.setupDeck($scope.cards, drawer.state)
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' &&
@@ -260,12 +260,12 @@ angular.module(
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
+			options.shuffle = true
 			return $scope.drawerItemClick 'findhappi', options
 
 
 		$scope.challenge_getPhoto = ($event)->
 			saveToMoment = (uri)->
-				# $scope.cameraRollSrc = uri
 				m = $scope.moment || 
 					_.findWhere $scope.deck.topCard().moments, {status:'active'} 
 				now = new Date()
@@ -297,14 +297,8 @@ angular.module(
 		$scope.challenge_pass = ()->
 			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
-				now = new Date()
-				stale = [c]
-				_.each c.moments, (m)-> 
-					if m.status=='active'
-						stale.push m
-
-				$scope.setCardStatus(stale, 'working', now)	
-				$scope.setCardStatus(c, 'pass', now)	
+				stale =_deactivateChallenges(c)
+				$scope.setCardStatus(c, 'pass', now)	if c.moments.length==0 
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
 				# drawer.updateCounts( $scope.challenges )	
@@ -341,7 +335,8 @@ angular.module(
 			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
 
 		$scope.challenge_open = ()->
-			# TODO: check for existing 'active' moment by challenge.moments and set to 'pass'/'working'
+			_deactivateChallenges()
+
 			c = $scope.deck.topCard()
 			stale = [c]
 			now = new Date()
@@ -362,9 +357,26 @@ angular.module(
 			# drawer.updateCounts( $scope.challenges)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
+		_deactivateChallenges = (active)->
+			if active?
+				active = [active] if _.isPlainObject(active)
+				active = _.where active, {type: 'challenge'}
+			else 	
+				active = _.where $scope.deck.allCards, {status:'active'}
+			stale = []
+			_.each active, (c)->
+				stale.push c
+				_.each c.moments, (m)-> 
+					if m.status=='active'
+						stale.push m
+			$scope.setCardStatus(stale, 'working')
+			return stale				
+
+
 		# TODO: change to accept
 		$scope.challenge_new_moment = ()->
-			# TODO: check for existing 'active' and set to 'pass'/'working'
+			_deactivateChallenges()
+
 			c = $scope.deck.topCard()
 			c.stats.accept += 1
 			now = new Date()
