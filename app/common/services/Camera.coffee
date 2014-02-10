@@ -16,12 +16,14 @@ angular.module(
 			_fileInput = null
 			_fileReader = new FileReader()
 			_tempImg = new Image()
+			_icon = null
 
 			_fileReader.onload = (event)->
 				_tempImg.src = event.target.result
 
 			_tempImg.onload = ()->
 				dataURL = _downsize(this)
+				_icon.removeClass('fa-spin') if _icon?
 				_deferred.resolve(dataURL)	# dataURL	
 
 			_downsize = (img, MAX_WIDTH=320)->
@@ -43,18 +45,21 @@ angular.module(
 			#	
 			return NO_cameraService = {
 				# use HTML5 File api in browser
-				getPicture: ()->
+				getPicture: (e)->
 					if _deferred?
 						_deferred.reject(  '(HTML5 getPicture() cancelled'  )
-						_deferred.promise.finally ()-> _deferred = null 
 					_deferred = $q.defer()
+					_deferred.promise.finally ()-> _deferred = null
+					_icon =  angular.element(e.currentTarget.parentNode).find('i')
 
 					if !_fileInput?
 						_fileInput = document.getElementById('html5-get-file')	
 						_fileInput.onchange = (e)->
 								e.preventDefault();
 								file = _fileInput.files[0]
-								_fileReader.readAsDataURL(file);
+								if file 
+									_fileReader.readAsDataURL(file)
+									_icon.addClass('fa-spin') if _icon?
 								return false
 					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 					return _deferred.promise
@@ -109,23 +114,22 @@ angular.module(
 				# navigator.notification.alert 'Cordova says: ' + message, null, 'Capturing the photo failed!'
 				if _deferred?
 					_deferred.reject( message )
-					_deferred.promise.finally ()-> _deferred = null 
+					 
 
 			# File system failure callback
 			fileError : (error)->
 				# navigator.notification.alert "Cordova error code: " + error.code, null, "File system error!"
 				if _deferred?
 					_deferred.reject( "Cordova error code: " + error.code + " File system error!" )
-					_deferred.promise.finally ()-> _deferred = null 
 
 			# Take a photo using the device's camera with given options, callback chain starts
 			# returns a promise
-			getPicture : (options)->
+			getPicture : (options, $event)->
 				navigator.camera.getPicture cameraService.imageUriReceived, cameraService.cameraError, options
 				if _deferred?
 					_deferred.reject(  'Camera getPicture cancelled'  )
-					_deferred.promise.finally ()-> _deferred = null 
 				_deferred = $q.defer()
+				_deferred.promise.finally ()-> _deferred = null
 				# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 				return _deferred.promise
 
@@ -134,7 +138,6 @@ angular.module(
 			imageUriReceived : (imageURI)->
 				# if _deferred?
 				#   _deferred.resolve(imageURI)
-				#   _deferred.promise.finally ()-> _deferred = null  
 				# notify.alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
@@ -165,10 +168,8 @@ angular.module(
 						filepath = "/" + file.name
 						# notify.alert "fileMoved(): BEFORE deferred.resolve() filepath="+filepath
 						_deferred.resolve(filepath)
-						_deferred.promise.finally (filepath)-> 
-							_deferred = null
 							# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
-							return
+						return
 						# notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
 					cameraService.cleanup()	
 

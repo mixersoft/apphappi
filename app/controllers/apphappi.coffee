@@ -37,6 +37,21 @@ angular.module(
 	(drawerService, deckService, syncService, notify, $location)->
 		self = {
 
+			# do housekeeping when changing status of challenge, moment
+			setCardStatus : (card, status, now)->
+				now = new Date() if !now?
+				card = [card] if _.isPlainObject(card) 
+				_.each card, (o)->
+					oldStatus = o.status
+					o.status = status
+					o.stale = o.modified = now.toJSON() 
+					# update drawer counts
+					drawerService.state.counts[oldStatus] -= 1 if drawerService.state.counts[oldStatus]?
+					drawerService.state.counts[status] += 1 if drawerService.state.counts[status]?
+					if o.type=='moment' && oldStatus==null
+						drawerService.state.counts['gethappi'] += 1
+
+
 			persistRating : (ev, i)->
 				$target = angular.element(ev.currentTarget)
 				now = new Date().toJSON()
@@ -248,7 +263,7 @@ angular.module(
 			return $scope.drawerItemClick 'findhappi', options
 
 
-		$scope.challenge_getPhoto = (e)->
+		$scope.challenge_getPhoto = ($event)->
 			saveToMoment = (uri)->
 				# $scope.cameraRollSrc = uri
 				m = $scope.moment || 
@@ -272,28 +287,27 @@ angular.module(
 
 
 			if !navigator.camera
-				promise = cameraService.getPicture()
+				promise = cameraService.getPicture($event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 				return true	# continue to input[type=file] handler
 			else
-				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
+				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 
 		$scope.challenge_pass = ()->
 			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
+				now = new Date()
 				stale = [c]
 				_.each c.moments, (m)-> 
 					if m.status=='active'
-						c.status=m.status='working'
-						c.stale = m.stale = c.modified = m.modified = new Date().toJSON()
 						stale.push m
 
-				c.status='pass' if c.status=='active'		
-
+				$scope.setCardStatus(stale, 'working', now)	
+				$scope.setCardStatus(c, 'pass', now)	
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
-				drawer.updateCounts( $scope.challenges )	
+				# drawer.updateCounts( $scope.challenges )	
 				c.challengePhotos = null;
 				$scope.moment = null
 				return $scope.drawerShowAll()
@@ -302,23 +316,22 @@ angular.module(
 
 		$scope.challenge_done = ()->
 			c = $scope.deck.topCard()
-			now = new Date().toJSON()
+			now = new Date()
 			m = $scope.moment || 
 					_.findWhere c.moments, {status:'active'} 
 			throw "warning: challenge.status != active in $scope.challenge_done()" if c.status != 'active'
 			throw "warning: moment.status != active in $scope.challenge_done()" if m.status != 'active'
 
-			stale = [c]
-			c.status = m.status='complete'
-			c.stale = m.stale = c.modified = m.modified = now
-			stale.push(m)
+			stale = [c, m]
 			m.stats.completedIn += 123						# fix this
 			m.stats.viewed += 1
 			c.stats.completions.push m.stats.completedIn
 			c.challengePhotos = null;
+
+			$scope.setCardStatus(stale, 'complete', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			drawer.updateCounts( $scope.challenges )
+			# drawer.updateCounts( $scope.challenges )
 
 			# clear 'active' challenge photos
 			$scope.moment = null
@@ -331,32 +344,26 @@ angular.module(
 			# TODO: check for existing 'active' moment by challenge.moments and set to 'pass'/'working'
 			c = $scope.deck.topCard()
 			stale = [c]
-			now = new Date().toJSON()
+			now = new Date()
 
-			_.each c.moments, (m)-> 
-				if m.status=='working'
-					c.status = m.status='active'
-					c.stale = m.stale = c.modified = m.modified = now
-					stale.push m
-					moment = m
-
-			if c.status !='active' && c.moments.length
+			m = _.findWhere c.moments, {status:'working'}
+			if !m? && c.moments.length
 					# working moment not found, just activate the first moment
 					m = c.moments[0]
-					c.status = m.status ='active'
-					c.stale = m.stale = c.modified = m.modified = now
-					stale.push m
-					moment = m
-
+			if !m?		
+				throw "WARNING: open challenge without moment"
+			stale.push m
+			moment = m
 			$scope.moment = moment
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
+			$scope.setCardStatus(stale, 'active', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
-			drawer.updateCounts( $scope.challenges)
+			# drawer.updateCounts( $scope.challenges)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		# TODO: change to accept
-		$scope.challenge_new = ()->
+		$scope.challenge_new_moment = ()->
 			# TODO: check for existing 'active' and set to 'pass'/'working'
 			c = $scope.deck.topCard()
 			c.stats.accept += 1
@@ -375,22 +382,22 @@ angular.module(
 					rating:
 						moment: 0
 						challenge: 0
-				status: 'active'
+				status: null
 				created: now
 				modified: now
 				stale: now
 				photos: []
 			}
-			c.status = m.status = 'active'
-			c.stale = m.stale = c.modified = m.modified = now
+
 			stale.push m
 			c.moments.push(m)
 			# $scope.moments[m.id] = m
 			$scope.moment = m
 
+			$scope.setCardStatus(stale, 'active', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
+			# drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
 			c.challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
@@ -490,40 +497,42 @@ angular.module(
 			return $scope.drawerItemClick 'findhappi', options
 
 		$scope.moment_cancel = (id)->
-			m = _.findWhere $scope.cards, {id: id}
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
 			notify.alert "Warning: no undo[photos] NOT found", "warning" if !m.undo['photos']?
 
 			m.photos = m.undo['photos']
-			m.stale = m.modified = new Date().toJSON()
-
 			delete m.undo['photos']
-			m.status = 'complete'
+
+			$scope.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
-			drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, $scope.moments )
 
 			$location.path drawer.state.route 
 
 		$scope.moment_done = (id)->
-			m = _.findWhere $scope.cards, {id: id}
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
 			throw "warning: moment.status != active in $scope.moment_done()" if m.status != 'active'
+
 			m.stats.count = m.photos.length
 			m.stats.completedIn += 123						# fix this
 			m.stats.viewed += 1
-			m.stale = m.modified = new Date().toJSON()
-			m.status = "complete"
 			delete m.undo['photos']
+
+			$scope.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
-			drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, $scope.moments )
 
 			$location.path drawer.state.route 
 
 		$scope.moment_edit = (id)->
-			# m = _.findWhere $scope.cards, {id: id}
 			m = $scope.deck.topCard()
-			m.status = "active"
-			m.stale = new Date().toJSON()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+
+			$scope.setCardStatus(m, 'active')	
 			syncService.set('moment', m)
-			drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, $scope.moments )
 			# nav to new route, then open in editMode
 			$location.path editRroute = drawer.state.route + '/' + id
 
@@ -554,11 +563,11 @@ angular.module(
 				return
 
 			if !navigator.camera
-				promise = cameraService.getPicture()
+				promise = cameraService.getPicture($event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 				return true	# continue to input[type=file] handler
 			else
-				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary)
+				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
 
 

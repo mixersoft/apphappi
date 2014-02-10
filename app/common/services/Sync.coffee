@@ -33,9 +33,16 @@ angular.module(
 			lastModified: {}
 			promises: {}
 
+			# syncService.localData[key] should always be valid
 			get: (key)->	
-				return syncService.localData[key]? if !syncService.localData[key]?.stale
-				return localStorageService.get(key)			
+				if syncService.localData[key]?.stale
+					o = syncService.localData[key]
+					switch o && o.type
+						when 'moment', 'challenge'
+							syncService.set(o.type, o)
+						else	
+							throw "ERROR: localData was not saved to localStorage, key="+key
+				return syncService.localData[key]
 
 			# save to localStorageService, checks for o.type=key and o.stale=true
 			set: (key, collection)->
@@ -74,6 +81,8 @@ angular.module(
 								return saveData
 
 							return null
+						else 
+							console.warn "WARNING: syncService, key="+key
 				catch
 					notify.alert "syncService.set() error"
 
