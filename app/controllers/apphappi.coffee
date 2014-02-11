@@ -128,10 +128,12 @@ angular.module(
 					switch model 
 						when "moment"
 							momentIndex = i
+# fix this							
 							momentPhotos = card.photos
 						when "challenge"	
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id.toString()
-							moment = _.findWhere card.moments, {status:'active'}
+# fix this							
+							moment = _.findWhere _getMoments(card.momentIds), {status:'active'}
 							momentPhotos = moment.photos
 							momentIndex = momentPhotos.length - (i+1)	# reversed array
 							check2 = card.challengePhotos.splice(i, 1)
@@ -219,7 +221,7 @@ angular.module(
 
 		# reset for testing
 		syncService.clearAll() if $scope.$route.current.params.reset
-		syncService.initLocalStorage(['challenge', 'moment', 'drawer']) 
+		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
@@ -257,6 +259,29 @@ angular.module(
 			CFG.$curtain.addClass 'hidden'
 			return
 
+		_getMoments = (c)->
+			return _.map c.momentIds, (id)->
+				return syncService.get('moment', id)
+		_getPhotos = (m)->
+			return _.map m.photoIds, (id)->
+				return syncService.get('photo', id)
+
+		# deactivate any active challenges before activating a new one
+		_deactivateChallenges = (active)->
+			if active?
+				active = [active] if _.isPlainObject(active)
+				active = _.where active, {type: 'challenge'}
+			else 	
+				active = _.where $scope.deck.allCards, {status:'active'}
+			stale = []
+			_.each active, (c)->
+				stale.push c
+				_.each _getMoments( c ), (m)-> 
+					if m.status=='active'
+						stale.push m
+			actionService.setCardStatus(stale, 'working')
+			return stale				
+		
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
@@ -265,20 +290,24 @@ angular.module(
 
 
 		$scope.challenge_getPhoto = ($event)->
-			saveToMoment = (uri)->
-				m = $scope.moment || 
-					_.findWhere $scope.deck.topCard().moments, {status:'active'} 
+			c = $scope.deck.topCard()
+			m = $scope.moment || _.findWhere _getMoments( c ), {status:'active'} 
+
+			# @params p object, p.id, p.src
+			saveToMoment = (p)->
 				now = new Date()
-				if m? && _.isArray m.photos
-					photo = {
-						id: now.getTime()
-						src: uri
+				if m?
+					photo = _.defaults p, {
+						type: 'photo'
+						stale: now.toJSON()
 					}
 					# update moment
-					m.photos.push photo
-					m.stats.count = m.photos.length
+					syncService.set('photo', photo)
+					m.photoIds.push photo.id
+					m.stats.count = m.photoIds.length
 					m.stats.viewed += 1
-					m.stale = m.modified = now.toJSON()
+					m.photos = _getPhotos m
+					$scope.setCardStatus(m, 'active', now)
 
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
@@ -298,7 +327,7 @@ angular.module(
 			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
 				stale =_deactivateChallenges(c)
-				$scope.setCardStatus(c, 'pass', now)	if c.moments.length==0 
+				$scope.setCardStatus(c, 'pass', now)	if c.momentIds.length==0 
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
 				# drawer.updateCounts( $scope.challenges )	
@@ -311,8 +340,7 @@ angular.module(
 		$scope.challenge_done = ()->
 			c = $scope.deck.topCard()
 			now = new Date()
-			m = $scope.moment || 
-					_.findWhere c.moments, {status:'active'} 
+			m = $scope.moment || _.findWhere  _getMoments( c ), {status:'active'} 
 			throw "warning: challenge.status != active in $scope.challenge_done()" if c.status != 'active'
 			throw "warning: moment.status != active in $scope.challenge_done()" if m.status != 'active'
 
@@ -335,19 +363,21 @@ angular.module(
 			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
 
 		$scope.challenge_open = ()->
-			_deactivateChallenges()
+			stale = _deactivateChallenges()
 
 			c = $scope.deck.topCard()
-			stale = [c]
+			stale.push c
 			now = new Date()
 
-			m = _.findWhere c.moments, {status:'working'}
-			if !m? && c.moments.length
+			m = $scope.moment || _.findWhere  _getMoments( c ), {status:'working'} 
+
+			if !m? && c.momentIds.length
 					# working moment not found, just activate the first moment
-					m = c.moments[0]
+					m = _getMoments( c )[0]
 			if !m?		
 				throw "WARNING: open challenge without moment"
 			stale.push m
+			m.photos = _getPhotos m
 			moment = m
 			$scope.moment = moment
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
@@ -357,33 +387,17 @@ angular.module(
 			# drawer.updateCounts( $scope.challenges)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
-		_deactivateChallenges = (active)->
-			if active?
-				active = [active] if _.isPlainObject(active)
-				active = _.where active, {type: 'challenge'}
-			else 	
-				active = _.where $scope.deck.allCards, {status:'active'}
-			stale = []
-			_.each active, (c)->
-				stale.push c
-				_.each c.moments, (m)-> 
-					if m.status=='active'
-						stale.push m
-			$scope.setCardStatus(stale, 'working')
-			return stale				
-
 
 		# TODO: change to accept
 		$scope.challenge_new_moment = ()->
-			_deactivateChallenges()
+			stale = _deactivateChallenges()
 
 			c = $scope.deck.topCard()
 			c.stats.accept += 1
 			now = new Date()
-			stale = [c]
+			stale.push c
 			m = {
-				# id: _.reduce $scope.moments, (last, m)->return if last.id > m.id then last.id else m.id
-				id: now.getTime()
+				id: now.getTime()+'-moment'
 				type: 'moment'
 				userId: CFG.userId
 				challengeId: c.id
@@ -398,19 +412,19 @@ angular.module(
 				created: now
 				modified: now
 				stale: now
+				photoIds: []
 				photos: []
 			}
 
 			stale.push m
-			c.moments.push(m)
-			# $scope.moments[m.id] = m
+			c.momentIds.push(m.id)
 			$scope.moment = m
 
 			$scope.setCardStatus(stale, 'active', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
 			# drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
-			c.challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
+			c.challengePhotos = []  	# for display of challenge only 'active'
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		$scope.challenge_later = ()->
@@ -464,7 +478,7 @@ angular.module(
 		
 		# reset for testing
 		syncService.clearAll() if $scope.$route.current.params.reset
-		syncService.initLocalStorage(['challenge', 'moment', 'drawer']) 
+		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
@@ -557,18 +571,20 @@ angular.module(
 		$scope.moment_getPhoto = (id, $event)->
 			moment = _.findWhere $scope.cards, {id: id}
 
-			saveToMoment = (uri)->
-				# $scope.cameraRollSrc = uri
+			saveToMoment = (p)->
 				now = new Date()
 				if moment? && _.isArray moment.photos
 					photo = {
-						id: now.getTime()
-						src: uri
+						id: p.id
+						src: p.src
+						stale: now.toJSON()
 					}
 					# update moment
-					moment.photos.push photo
+					moment.photos.push photo.id
+					syncService.set('photo', photo)
+
 					moment.stats.count = moment.photos.length
-					moment.stale = moment.modified = now.toJSON()
+					$scope.setCardStatus(moment, 'active', now)
 
 					notify.alert "Saved to moment.photos: count= " + moment.photos.length + ", last=" + moment.photos[moment.photos.length-1].src , 'success', 5000 
 					syncService.set('moment', moment)

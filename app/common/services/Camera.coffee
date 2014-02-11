@@ -7,12 +7,23 @@ angular.module(
 	'notifyService'
 	($q, notify)->
 
+		_deferred = null
+		_getPhotoObj = (uri, dataURL)->
+			# get hash from EXIF to detect duplicate photo
+			now = new Date()
+			id = now.getTime() + "-photo"
+			return {
+				id: id
+				dateTaken: now.toJSON()
+				Exif: {}
+				src: uri || dataURL
+			}
+
 		# for testing in browser, no access to Cordova camera API
 		if !navigator.camera?
 			#
 			# private
 			#
-			_deferred = null
 			_fileReader = new FileReader()
 			_tempImg = new Image()
 			_icon = null
@@ -23,7 +34,8 @@ angular.module(
 			_tempImg.onload = ()->
 				dataURL = _downsize(this)
 				_icon.removeClass('fa-spin') if _icon?
-				_deferred.resolve(dataURL)	# dataURL	
+				photo = _getPhotoObj(null, dataURL)
+				_deferred.resolve(photo)
 
 			_downsize = (img, MAX_WIDTH=320)->
 				tempW = _tempImg.width;
@@ -67,7 +79,6 @@ angular.module(
 			}
 
 		# private
-		_deferred = null
 		_fsRoot = null
 
 		# for devices with access to Cordova camera API
@@ -138,7 +149,11 @@ angular.module(
 			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
 			imageUriReceived : (imageURI)->
 				# if _deferred?
-				#   _deferred.resolve(imageURI)
+				# 	photo = {
+				# 		id: _getPhotoId(imageURI, null)
+				# 		src: imageURI
+				# 	}
+				#   _deferred.resolve(photo)
 				# notify.alert "image received from CameraRoll, imageURI="+imageURI
 				window.resolveLocalFileSystemURI imageURI, cameraService.gotFileObject, cameraService.fileError
 
@@ -168,7 +183,8 @@ angular.module(
 					if _deferred?
 						filepath = "/" + file.name
 						# notify.alert "fileMoved(): BEFORE deferred.resolve() filepath="+filepath
-						_deferred.resolve(filepath)
+						photo = _getPhotoObj(filepath)
+						_deferred.resolve(photo)
 							# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
 						return
 						# notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
