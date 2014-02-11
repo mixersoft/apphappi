@@ -98,15 +98,8 @@ angular.module(
 					switch key
 						when 'moment', 'challenge', 'photo'
 							saveData = syncService.serialize[key](collection)
-							# CHECK if modified
-							# remove circular reference
-							# omitKeys = if key=='moment' then ['challenge','photos','stale'] else ['moments', 'stale']
-							# saveData = _.reduce collection, ((stale, o)->
-							# 	if o.stale && o.type == key 	# confirm type matches key
-							# 		syncService.parseModel[o.type] o if syncService.parseModel[o.type]?	
-							# 		stale[o.id] = _.omit(o, omitKeys ) 
-							# 	return stale 
-							# ), {}
+						when 'drawerState'
+							localStorageService.set('drawerState', drawer.state)
 						else 
 							console.warn "WARNING: syncService, key="+key
 

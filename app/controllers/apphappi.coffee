@@ -51,6 +51,10 @@ angular.module(
 					if o.type=='moment' && oldStatus==null
 						drawerService.state.counts['gethappi'] += 1
 
+				# syncService.set('challenge', card)
+				# syncService.set('moment', card)
+				syncService.set('drawerState')	
+
 
 			persistRating : (ev, i)->
 				$target = angular.element(ev.currentTarget)
@@ -154,7 +158,7 @@ angular.module(
 				else 		
 					length = scope.deck.size()
 					index = scope.deck.index()
-				if true || window.Modernizr.touch
+				if  0 || window.Modernizr.touch
 					style = {
 						width: length * w + 'px'
 						left: -1 * index * w + 'px'
@@ -364,10 +368,10 @@ angular.module(
 			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
 
 		$scope.challenge_open = ()->
-			stale = _deactivateChallenges()
+			deactivated = _deactivateChallenges()
 
 			c = $scope.deck.topCard()
-			stale.push c
+			stale = [c]
 			now = new Date()
 
 			m = $scope.moment || _.findWhere  _getMoments( c ), {status:'working'} 
@@ -383,6 +387,7 @@ angular.module(
 			$scope.moment = moment
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
 			$scope.setCardStatus(stale, 'active', now)
+			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			# drawer.updateCounts( $scope.challenges)
@@ -391,12 +396,12 @@ angular.module(
 
 		# TODO: change to accept
 		$scope.challenge_new_moment = ()->
-			stale = _deactivateChallenges()
+			deactivated = _deactivateChallenges()
 
 			c = $scope.deck.topCard()
 			c.stats.accept += 1
 			now = new Date()
-			stale.push c
+			stale = [c]
 			m = {
 				id: now.getTime()+'-moment'
 				type: 'moment'
@@ -422,6 +427,7 @@ angular.module(
 			$scope.moment = m
 
 			$scope.setCardStatus(stale, 'active', now)
+			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
 			# drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
