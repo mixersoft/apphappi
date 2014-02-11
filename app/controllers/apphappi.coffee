@@ -127,20 +127,21 @@ angular.module(
 					model = card.type 
 					switch model 
 						when "moment"
+							m = card
 							momentIndex = i
-# fix this							
-							momentPhotos = card.photos
+							# momentPhotos = card.photos
 						when "challenge"	
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id.toString()
-# fix this							
-							moment = _.findWhere _getMoments(card.momentIds), {status:'active'}
-							momentPhotos = moment.photos
-							momentIndex = momentPhotos.length - (i+1)	# reversed array
+							m = _.findWhere _getMoments(card.momentIds), {status:'active'}
+							# momentPhotos = moment.photos
+							momentIndex = photoIds.length - (i+1)	# reversed array
 							check2 = card.challengePhotos.splice(i, 1)
 						else throw "invalid card type"
 
-					throw "removePhoto() id mismatch" if id != momentPhotos[momentIndex].id.toString()
-					return check1 = momentPhotos.splice(momentIndex, 1)
+					check1 = m.photoIds.splice(momentIndex, 1)
+					check1b = m.photos? && m.photos.splice(momentIndex, 1)
+					throw "removePhoto() id mismatch" if id != check1 != check1b.id
+					throw "removePhoto() challengePhotos id mismatch" if check2 && id != check2.id
 				catch error
 					notify.alert error, 'warning', 10000
 					return false
