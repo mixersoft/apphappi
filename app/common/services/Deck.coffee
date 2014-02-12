@@ -25,15 +25,17 @@ angular.module(
 			constructor: (cards, options)->
 				this.id = _deckCounter++
 				this.allCards = null
-				this._index = this.deckCards = null
+				this.control = options?.control || {index:0}
+				this.deckCards = null
 				this.options = _.pick(options, ['filter', 'query', 'orderBy'])
 				this.shuffled = this.shuffledCards = null
 				this.cards(cards, options)
 				return this
 
 			index: (i)->
-				this._index = i if typeof i != 'undefined'
-				return	this._index
+				return this.control = i if i?.index?
+				this.control.index = i if !_.isNaN( parseInt i)
+				return	this.control.index
 				
 			cards: (cards, options)->
 				if options?
@@ -49,12 +51,16 @@ angular.module(
 
 				if !_.isEqual(options, this.options) || !this.deckCards
 					# deck has changed, update deckCards
+					this.options = options
 					# filter/orderBy cards
 					step = this.allCards
 					step = $filter('filter') step, options.filter if !_.isEmpty(options.filter)
 					step = $filter('filter') step, options.query if !_.isEmpty(options.query)
 					step = $filter('orderBy') step, options.orderBy if !_.isEmpty(options.orderBy)
 					this.deckCards = step
+					# console.info "deck.deckCards ="+this.deckCards.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
+
+				# console.info "deck.cards()=this.deckCards"	if !this.shuffled?
 				return this.deckCards if !this.shuffled?
 				# shuffled
 				if !this.shuffledCards?
@@ -89,12 +95,14 @@ angular.module(
 				else this.index(i+increment)
 				return this.topCard(options)
 
+			# @params cards array, all cards in the deck
+			# @params options object, deck options.filter/query/orderBy
 			validateDeck: (cards, options)->
 				if options?
 					options = _.pick(options, ['filter', 'query', 'orderBy'])
 				else 
 					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 	
-				return this.deckCards.length == cards.length  &&  _.isEqual(this.options, options)
+				return _.isEqual(this.options, options) && this.allCards.length == cards.length
 
 
 		deckService = {

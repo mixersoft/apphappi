@@ -72,7 +72,10 @@ angular.module(
 
 			# syncService.localData[key] should always be valid
 			get: (key, id)->	
-				return syncService.localData[key] if !id?
+				if !id?
+					# just a wrapper for localStorageService
+					return localStorageService.get('drawerState') if key=='drawerState'
+					return syncService.localData[key] 
 
 				if syncService.localData[key]?[id]?.stale  # this is WRONG
 					o = syncService.localData[key][id]
@@ -99,7 +102,8 @@ angular.module(
 						when 'moment', 'challenge', 'photo'
 							saveData = syncService.serialize[key](collection)
 						when 'drawerState'
-							localStorageService.set('drawerState', drawer.state)
+							# just a wrapper for localStorageService
+							return localStorageService.set('drawerState', drawer.state)
 						else 
 							console.warn "WARNING: syncService, key="+key
 
@@ -113,7 +117,7 @@ angular.module(
 						#TODO: check if we are wasting cycles by saving entire array to localStorageService
 						localStorageService.set(key, localData)
 						syncService.localData[key] = localData
-						msg =  "syncService.set() elapsed="+(new Date().getTime() - now.getTime())+"ms"
+						msg =  "syncService.set("+key+") elapsed="+(new Date().getTime() - now.getTime())+"ms"
 						console.log msg
 						return saveData
 						

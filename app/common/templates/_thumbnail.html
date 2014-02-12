@@ -1,20 +1,18 @@
  <!-- div.thumb thumbnail template  -->
 <div id="{{photo.id}}" 
-  class="thumb fade in {{photo.orientationLabel}}" 
-  hm-double-tap="(card.status =='active') && swipe('thumb-img', $event, $index)"
-  hm-swipe-left="(card.status =='active') && swipe('thumb-img', $event, $index)"
-  hm-swipe-left-opts="{drag_block_horizontal: true}"
-  >
-      <div class="crop-wrap" >
-        <div class="crop">
-          <img class=""  
-            data-w0="{{photo.origW}}"
-            data-h0="{{photo.origH}}"
-            data-root-src="{{photo.rootSrc}}"
-            ng-src="{{photo.src}}"
-          >
-      </div>
+class="thumb fade in {{photo.orientationLabel}}" 
+ng-dblclick="(card.status =='active') && removePhoto(card, $event.currentTarget.id, $index)"
+>
+  <div class="crop-wrap" >
+    <div class="crop">
+      <img class=""  
+        data-w0="{{photo.origW}}"
+        data-h0="{{photo.origH}}"
+        data-root-src="{{photo.rootSrc}}"
+        ng-src="{{photo.src}}"
+      >
     </div>
+  </div>
   <div class="meta">
     <div ng-show="!!photo.caption" class="title truncate">
       {{photo.caption}}

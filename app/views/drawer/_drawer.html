@@ -9,21 +9,22 @@
       <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
     </div>
 
-    <accordion close-others="true">
-      <accordion-group class='drawer-group inverse {{group.name}}'
+    <accordion close-others="false">
+      <accordion-group class='drawer-group inverse' 
+      bindonce bo-class="group.name"
       ng-repeat="group in drawer.json.data" 
-      is-open="group.isOpen" >
+      is-open="true" >
         <accordion-heading>
           <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
-          <span ng-bind="group.count" class="badge badge-default"></span>
+          <span ng-bind="drawer.state.counts[group.name]" class="badge badge-default"></span>
         </accordion-heading>
         <div ng-repeat="options in group.items" 
         class="item"
         ng-class="{active: options.name==drawer.state.item}"
         ng-click="drawerItemClick(group.name, options)">
-          <span ng-bind-html="options.label"></span>
-          <span ng-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
-          <on-off-switch ng-if="!!options.switch" class="pull-right"></on-off-switch>
+          <span bo-html="options.label"></span>
+          <span bo-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
+          <on-off-switch bo-if="options.switch=='CFG.debug'" my-ng-model="CFG.debug" class="pull-right"></on-off-switch>
         </div>
       </accordion-group>
     </accordion>

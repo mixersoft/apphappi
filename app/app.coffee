@@ -6,6 +6,8 @@ angular.module( 'appHappi', [
 	'LocalStorageModule'
 	'restangular'
 	'angular-gestures'
+	'pasvaz.bindonce'
+	'angular-carousel'
 ]
 ).value('appConfig', {
 	userId: null

@@ -5,22 +5,20 @@ angular.module(
 ).directive('onOffSwitch', ()->
   link = (scope, element, attrs)->
     ngModel = scope.$parent?.options?.switch
-    # BUG: how do I get the ng-model to bind to scope.$parent.options.switch????
-    # also initial state is not reflecting CFG.debug==false
     if ngModel?
-      element.attr('mirror', ngModel)
+      element.attr('my-ng-model', ngModel)
       # _.each(element.children().children(), ((o)->o.setAttribute 'ng-model', ngModel) )
     return
 
   return {
     template: '<div class="btn-group">
-    <button type="button" class="btn btn-primary btn-sm" ng-model="CFG.debug" btn-radio="false">Off</button>
-    <button type="button" class="btn btn-primary btn-sm" ng-model="CFG.debug" btn-radio="true">On</button>
+    <button type="button" class="btn btn-primary btn-xs" ng-model="myNgModel" btn-radio="false">Off</button>
+    <button type="button" class="btn btn-primary btn-xs" ng-model="myNgModel" btn-radio="true">On</button>
 </div>'
     restrict: 'AE'
     scope: 
-      mirror: '='     # this is NOT working, scope.mirror is not set
-    link: link 
+      myNgModel: '='     # this is NOT working, scope.mirror is not set
+    # link: link 
   }
 ).factory('drawerService', [
   'appConfig'
