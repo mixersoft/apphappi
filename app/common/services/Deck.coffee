@@ -44,7 +44,7 @@ angular.module(
 					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 
 
 				if cards?
-					this.allCards = cards 
+					this.allCards = cards if _.isArray(cards) 
 					this.deckCards = null
 					this.index(0)
 					this.shuffled = this.shuffledCards = null
@@ -59,7 +59,8 @@ angular.module(
 					step = $filter('orderBy') step, options.orderBy if !_.isEmpty(options.orderBy)
 					this.deckCards = step
 					# console.info "deck.deckCards ="+this.deckCards.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
-
+				
+				this.shuffle() if this.deckCards?.length == this.allCards?.length && !options.orderBy && !this.shuffled?
 				# console.info "deck.cards()=this.deckCards"	if !this.shuffled?
 				return this.deckCards if !this.shuffled?
 				# shuffled
@@ -95,14 +96,13 @@ angular.module(
 				else this.index(i+increment)
 				return this.topCard(options)
 
-			# @params cards array, all cards in the deck
 			# @params options object, deck options.filter/query/orderBy
-			validateDeck: (cards, options)->
+			validateDeck: (options)->
 				if options?
 					options = _.pick(options, ['filter', 'query', 'orderBy'])
 				else 
 					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 	
-				return _.isEqual(this.options, options) && this.allCards.length == cards.length
+				return _.isEqual(this.options, options)
 
 
 		deckService = {

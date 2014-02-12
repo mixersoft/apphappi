@@ -81,13 +81,13 @@ angular.module(
 
         if sameGroup
           drawer.animateClose()
-        else if !drawerItemOptions.route
-          drawer.animateClose()
         else 
-          $location.path(drawerItemOptions.route) 
           drawer.animateClose(500)
-        return cb() if _.isFunction(cb)
-        return  
+
+        return cb(drawerItemOptions.route) if _.isFunction(cb)
+        if !drawerItemOptions.route
+          console.error "itemClick: not sure where to go?"
+        return $location.path(drawerItemOptions.route) 
 
       getDrawerItem: (drawerGroup, itemName) ->
         try 

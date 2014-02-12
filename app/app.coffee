@@ -5,7 +5,7 @@ angular.module( 'appHappi', [
 	'angularMoment'
 	'LocalStorageModule'
 	'restangular'
-	'angular-gestures'
+	# 'angular-gestures'
 	'pasvaz.bindonce'
 	'angular-carousel'
 ]

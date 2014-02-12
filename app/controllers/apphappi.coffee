@@ -38,7 +38,7 @@ angular.module(
 		self = {
 
 			exports: [
-				'setCardStatus'
+				# 'setCardStatus'
 				'persistRating'
 				'drawerItemClick'
 				'removePhoto'
@@ -65,13 +65,16 @@ angular.module(
 					o.status = status
 					o.stale = o.modified = now.toJSON() 
 					# update drawer counts
-					if oldStatus != status
+					isDrawerStale = false
+					if oldStatus != status && o.type == 'challenge'
 						drawerService.state.counts[oldStatus] -= 1 if drawerService.state.counts[oldStatus]?
 						drawerService.state.counts[status] += 1 if drawerService.state.counts[status]?
+						isDrawerStale = true
 					if o.type=='moment' && oldStatus==null
 						drawerService.state.counts['gethappi'] += 1
+						isDrawerStale = true
 					return
-				syncService.set('drawerState')	
+				syncService.set('drawerState') if isDrawerStale?
 
 
 			persistRating : (ev, i)->
@@ -109,12 +112,11 @@ angular.module(
 				options.group = groupName
 				options.item = options.name
 				scope.deck.index(0)
-				return drawerService.itemClick options, ()->
+				return drawerService.itemClick options, (route)->
 					# drawerService.state is updated with new filter/query/search, setupDeck
-					if !scope.deck.validateDeck(scope.cards)
-						scope.deck.cards(scope.cards)
+					scope.deck.cards('refresh') if !scope.deck.validateDeck()
 					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
-					$location.path(options.route) if options.route != $location.path()	
+					$location.path(route) if route? 
 
 			XXXswipe : ( target, ev, index)->
 				# target = ev.currentTarget
@@ -167,8 +169,7 @@ angular.module(
 
 			shuffleDeck : ()->
 				scope = this
-				if !scope.deck.validateDeck(scope.cards)
-						scope.deck.cards(scope.cards)
+				scope.deck.cards('refresh') if !scope.deck.validateDeck()
 				return scope.deck.shuffle().nextCard() 
 		}
 		return self
@@ -193,16 +194,18 @@ angular.module(
 		#
 		CFG.$curtain.find('h3').html('Loading Challenges...')
 
+		_challenges = _moments = _cards = null
+
 		# attributes
-		$scope.$route = $route
-		$scope.$location = $location
-		$scope.cameraService = cameraService
+		# $scope.$route = $route
+		# $scope.$location = $location
+		# $scope.cameraService = cameraService
 		$scope.notify = notify
 		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 
 		_.each actionService.exports, (key)->
-			$scope[key] = actionService[key] if (key[0]!='_')	
+			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
 		$scope.initialDrawerState = {  
@@ -212,7 +215,7 @@ angular.module(
 
 
 		# reset for testing
-		syncService.clearAll() if $scope.$route.current.params.reset
+		syncService.clearAll() if $route.current.params.reset
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
 
 		$q.all( syncService.promises ).then (o)->
@@ -230,12 +233,12 @@ angular.module(
 				if _.isNaN parseInt $route.current.params.id 
 					f = {"name": $route.current.params.id}
 				else f = {"id": $route.current.params.id}
-				$scope.challenges = $filter('filter')(o.challenge, f)
+				_challenges = $filter('filter')(o.challenge, f)
 			else 
-				$scope.challenges = o.challenge 
+				_challenges = o.challenge 
 
-			$scope.cards = _.values $scope.challenges
-			$scope.deck = deckService.setupDeck($scope.cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+			_cards = _.values _challenges
+			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' &&
@@ -288,7 +291,7 @@ angular.module(
 					m.stats.count = m.photoIds.length
 					m.stats.viewed += 1
 					m.photos = actionService._getPhotos m
-					$scope.setCardStatus(m, 'active', now)
+					actionService.setCardStatus(m, 'active', now)
 
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
@@ -308,10 +311,10 @@ angular.module(
 			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
 				stale =_deactivateChallenges(c)
-				$scope.setCardStatus(c, 'pass', now)	if c.momentIds.length==0 
+				actionService.setCardStatus(c, 'pass')	if c.momentIds.length==0 
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
-				# drawer.updateCounts( $scope.challenges )	
+				# drawer.updateCounts( _challenges )	
 				c.challengePhotos = null;
 				$scope.moment = null
 				return $scope.drawerShowAll()
@@ -331,10 +334,10 @@ angular.module(
 			c.stats.completions.push m.stats.completedIn
 			c.challengePhotos = null;
 
-			$scope.setCardStatus(stale, 'complete', now)
+			actionService.setCardStatus(stale, 'complete', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			# drawer.updateCounts( $scope.challenges )
+			# drawer.updateCounts( _challenges )
 
 			# clear 'active' challenge photos
 			$scope.moment = null
@@ -362,11 +365,11 @@ angular.module(
 			moment = m
 			$scope.moment = moment
 			c.challengePhotos = $filter('reverse')(moment.photos)  	# for display of challenge only 'active'
-			$scope.setCardStatus(stale, 'active', now)
+			actionService.setCardStatus(stale, 'active', now)
 			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
-			# drawer.updateCounts( $scope.challenges)
+			# drawer.updateCounts( _challenges)
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 
@@ -401,13 +404,14 @@ angular.module(
 			stale.push m
 			c.momentIds.push(m.id)
 			$scope.moment = m
+			c.challengePhotos = []  	# for display of challenge only 'active'
 
-			$scope.setCardStatus(stale, 'active', now)
+			actionService.setCardStatus(stale, 'active', now)
 			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
-			# drawer.updateCounts( $scope.challenges, syncService.localData['moment'] )
-			c.challengePhotos = []  	# for display of challenge only 'active'
+			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
+			
 			return $scope.drawerItemClick 'findhappi', {name:'current'}
 
 		$scope.challenge_later = ()->
@@ -437,15 +441,17 @@ angular.module(
 		#
 		CFG.$curtain.find('h3').html('Loading Moments...')
 
+		_challenges = _moments = _cards = null
+
 		# attributes
-		$scope.$route = $route
-		$scope.$location = $location
-		$scope.cameraService = cameraService
+		# $scope.$route = $route
+		# $scope.$location = $location
+		# $scope.cameraService = cameraService
 		$scope.notify = notify
 		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->
-			$scope[key] = actionService[key] if (key[0]!='_')
+			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
 		$scope.initialDrawerState = {
@@ -454,7 +460,7 @@ angular.module(
 		}
 		
 		# reset for testing
-		syncService.clearAll() if $scope.$route.current.params.reset
+		syncService.clearAll() if $route.current.params.reset
 		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
 
 		$q.all( syncService.promises ).then (o)->
@@ -468,23 +474,23 @@ angular.module(
 			drawer.init o.challenge, o.moment, state
 
 			# wrap challenges in a Deck
-			$scope.challenges = deckService.setupDeck(o.challenge)
+			_challenges = deckService.setupDeck(o.challenge)
 
 			if $route.current.params.id?
 				# filter moments by id
 				if _.isNaN parseInt $route.current.params.id 
 					f = {"name": $route.current.params.id}
 				else f = {"id": $route.current.params.id}
-				$scope.moments = $filter('filter')(_.values( o.moment ), f)
+				_moments = $filter('filter')(_.values( o.moment ), f)
 			else 
 				o.moment = $filter('filter')(o.moment, {status:"!pass"})
-				$scope.moments = o.moment
+				_moments = o.moment
 
 
 
 			# get nextCard
-			$scope.cards = _.values $scope.moments 
-			$scope.deck = deckService.setupDeck($scope.cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+			_cards = _.values _moments 
+			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
 
 			m = $scope.deck.topCard()
 			if $route.current.params.id? && m?.status=='active'
@@ -507,9 +513,9 @@ angular.module(
 			m.photos = m.undo['photos']
 			delete m.undo['photos']
 
-			$scope.setCardStatus(m, 'complete')	
+			actionService.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
-			# drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, _moments )
 
 			$location.path drawer.state.route 
 
@@ -523,9 +529,9 @@ angular.module(
 			m.stats.viewed += 1
 			delete m.undo['photos']
 
-			$scope.setCardStatus(m, 'complete')	
+			actionService.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
-			# drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, _moments )
 
 			$location.path drawer.state.route 
 
@@ -533,9 +539,9 @@ angular.module(
 			m = $scope.deck.topCard()
 			throw "ERROR: moment.id mismatch" if m.id != id 
 
-			$scope.setCardStatus(m, 'active')	
+			actionService.setCardStatus(m, 'active')	
 			syncService.set('moment', m)
-			# drawer.updateCounts( null, $scope.moments )
+			# drawer.updateCounts( null, _moments )
 			# nav to new route, then open in editMode
 			$location.path editRroute = drawer.state.route + '/' + id
 
@@ -546,7 +552,7 @@ angular.module(
 			m.isCardExpanded = true
 
 		$scope.moment_getPhoto = (id, $event)->
-			m = $scope.deck.topCard() || _.findWhere $scope.cards, {id: id}
+			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
 			throw "moment id mismatch" if m.id != id
 
 			saveToMoment = (p)->
@@ -562,7 +568,7 @@ angular.module(
 					m.stats.count = m.photoIds.length
 					m.stats.viewed += 1
 					m.photos = actionService._getPhotos m
-					$scope.setCardStatus(m, 'active', now)
+					actionService.setCardStatus(m, 'active', now)
 
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 					syncService.set('moment', m)
