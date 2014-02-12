@@ -155,7 +155,7 @@ angular.module(
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id
 							m = _.findWhere self._getMoments(card), {status:'active'}
 							momentIndex = m.photoIds.length - (i+1)	# reversed array
-							check2 = card.challengePhotos.splice(i, 1)
+							check2 = card.challengePhotos.splice(i, 1)[0]
 						else throw "invalid card type"
 
 					check1 = m.photoIds.splice(momentIndex, 1)
