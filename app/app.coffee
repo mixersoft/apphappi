@@ -11,7 +11,10 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: false
+	debug: true
+	camera: 
+		targetWidth : 320
+		quality: 85
 	$curtain: angular.element(document.getElementById('curtain'))
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
 }

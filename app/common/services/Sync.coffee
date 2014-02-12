@@ -189,7 +189,7 @@ angular.module(
 								_.each data, (o)->
 									o.type = model
 									o.stale = true
-
+								# notify.alert "AppHappiRestangular resolved, count="+data.length
 								syncService.set(model, data)	# parseModel in .set()
 								return syncService.get(model)
 							return promise
@@ -256,6 +256,8 @@ angular.module(
 			}
 
 			setForeignKeys: (challenges, moments)->
+				# notify.alert "set foreign keys"
+				now = new Date()
 				challengeStatusPriority = ['new', 'sleep', 'pass', 'complete', 'working', 'active']
 				momentsAsArray = _.values(moments)
 				_.each challenges, (challenge)->
@@ -271,7 +273,7 @@ angular.module(
 				    								challenge.status = moment.status 
 				    							return
 				    		)
-
+				console.log "syncService.setForeignKeys(), elapsed="+ (new Date().getTime() - now.getTime()) + "ms"
 				return
 		}
 

@@ -34,7 +34,10 @@ angular.module(
 
 			index: (i)->
 				return this.control = i if i?.index?
-				this.control.index = i if !_.isNaN( parseInt i)
+				if !_.isNaN( parseInt i)
+					i=0 if (this.deckCards?.length <= i)
+					i=0 if i<0
+					this.control.index = i 
 				return	this.control.index
 				
 			cards: (cards, options)->
@@ -58,11 +61,14 @@ angular.module(
 					step = $filter('filter') step, options.query if !_.isEmpty(options.query)
 					step = $filter('orderBy') step, options.orderBy if !_.isEmpty(options.orderBy)
 					this.deckCards = step
-					# console.info "deck.deckCards ="+this.deckCards.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
+
+					# console.info "deck.deckCards ="+this.deckCards?.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
+					# console.info "carousel.index = "+this.index()
 				
 				this.shuffle() if this.deckCards?.length == this.allCards?.length && !options.orderBy && !this.shuffled?
-				# console.info "deck.cards()=this.deckCards"	if !this.shuffled?
+
 				return this.deckCards if !this.shuffled?
+
 				# shuffled
 				if !this.shuffledCards?
 					this.shuffledCards = _.map this.shuffled, ((el)->
@@ -79,6 +85,9 @@ angular.module(
 				unshuffled.push i for i in [0..this.deckCards.length-1]
 				this.index(0)
 				this.shuffled = _shuffleArray unshuffled
+				this.shuffledCards = _.map this.shuffled, ((el)->
+						return this.deckCards[el])
+					, this
 				return this
 
 			topCard : (options)->

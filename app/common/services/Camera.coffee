@@ -5,7 +5,8 @@ angular.module(
 ).factory('cameraService', [
 	'$q'
 	'notifyService'
-	($q, notify)->
+	'appConfig'
+	($q, notify, CFG)->
 
 		_deferred = null
 		_getPhotoObj = (uri, dataURL)->
@@ -105,21 +106,21 @@ angular.module(
 			# Camera options
 			cameraOptions :
 				fromPhotoLibrary:
-					quality: 100
+					quality: CFG.camera.quality
 					# destinationType: navigator.camera.DestinationType.IMAGE_URI
 					destinationType: navigator.camera.DestinationType.IMAGE_URI
 					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
 					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
-					targetWidth: 600
+					targetWidth: CFG.camera.targetWidth
 					popoverOptions: # iPad camera roll popover position
 						width: 768
 						height: 190
 						arrowDir: Camera.PopoverArrowDirection.ARROW_UP
 				fromCamera:
-					quality: 100
+					quality: CFG.camera.quality
 					destinationType: navigator.camera.DestinationType.IMAGE_URI
 					correctOrientation: true
-					targetWidth: 600
+					targetWidth: CFG.camera.targetWidth
 
 			# Camera failure callback
 			cameraError : (message)->
@@ -187,7 +188,7 @@ angular.module(
 						_deferred.resolve(photo)
 							# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
 						return
-						# notify.alert "fileMoved(): photo copied to App space from CameraRoll, file="+JSON.stringify file
+						notify.alert "fileMoved(): "+JSON.stringify( file, null, 2)
 					cameraService.cleanup()	
 
 			cleanup : ()->

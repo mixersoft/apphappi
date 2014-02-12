@@ -170,7 +170,9 @@ angular.module(
 			shuffleDeck : ()->
 				scope = this
 				scope.deck.cards('refresh') if !scope.deck.validateDeck()
-				return scope.deck.shuffle().nextCard() 
+				scope.deck.shuffle()
+				drawerService.animateClose(500)
+				return 
 		}
 		return self
 ]
