@@ -58,10 +58,9 @@ angular.module(
     self = {
       isDrawerOpen: false
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
-      setActive: ()->
-        angular.element(document.getElementById('drawer.body'))
-      isDrawerItemActive: (e)->
-        return e.currentTarget.id == self.state['activeItemId']
+
+      isDrawerItemActive: (id)->
+        return id == self.state?['activeItemId']
 
       animateClose: (delay=750)->
         $timeout ()->
@@ -100,8 +99,6 @@ angular.module(
 
         # save state to localStorage
         localStorageService.set('drawerState', self.state)
-
-        angular.element(document.getElementById(self.state.activeItemId)).addClass('active')
 
         if sameGroup
           self.animateClose()
