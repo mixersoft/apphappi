@@ -110,16 +110,16 @@ angular.module(
 			drawerItemClick : (e, groupName, options)->
 				# set active
 				scope = this
-				target = e.currentTarget
+				target = e.currentTarget || {id: e}
 
-				[type, group, item] = target.id.split('-')
+				[type, group, item] = target.id?.split('-') || []
 				if type == 'drawer'
 					options = {
 						group: group
 						item: item
 					}
 				else 
-					# deprecate
+					# for drawerShowAll
 					options = {item: options} if _.isString(options)
 					options.item = options.name if options?.name?
 					options.group = groupName
@@ -285,7 +285,7 @@ angular.module(
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			options.shuffle = true
-			return $scope.drawerItemClick 'findhappi', options
+			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
 
 		$scope.challenge_getPhoto = ($event)->
@@ -518,7 +518,7 @@ angular.module(
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
-			return $scope.drawerItemClick 'findhappi', options
+			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
 		$scope.moment_cancel = (id)->
 			m = $scope.deck.topCard()
