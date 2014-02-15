@@ -27,10 +27,10 @@ angular.module(
   '$timeout'
   'localStorageService'
 , (appConfig, $location, $http, $timeout, localStorageService)->
-    drawer = {
+    # private
+    _drawer = {
       url: '/common/data/drawer.json'
-      isDrawerOpen: false
-      json: {}    # drawer config object 
+      json: {}    
       # initial defaultDrawerItemState, override on drawer.init() in controller 
       defaultDrawerItemState: {  
         group: 'findhappi'
@@ -38,13 +38,34 @@ angular.module(
         filter: null    # filter:{key:value}
         query: ''       # filter:[string]
         orderProp: ''   # orderBy propertyName
-      },
+      }
+      getCounts: (challenges, moments)->
+        challengeCounts = _.reduce challenges, (
+          (result, challenge)->
+            result[challenge.status]++
+            return result
+        ), {
+          new: 0
+          pass: 0 
+          complete: 0
+          working: 0
+          active: 0
+        }
+        return {'challenge': challengeCounts}
+      
+    }
+
+    self = {
+      isDrawerOpen: false
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
-      statusCount: null
+      setActive: ()->
+        angular.element(document.getElementById('drawer.body'))
+      isDrawerItemActive: (e)->
+        return e.currentTarget.id == self.state['activeItemId']
 
       animateClose: (delay=750)->
         $timeout ()->
-            drawer.isDrawerOpen = false
+            self.isDrawerOpen = false
           , delay  
 
       # set properties for drawerItem click
@@ -56,33 +77,36 @@ angular.module(
           switch options.item
             when 'reset'
               localStorageService.clearAll()
-              drawer.animateClose(500)
+              self.animateClose(500)
               $timeout (()->window.location.reload()), 1000
               return
             when 'debug'
               appConfig.debug = !appConfig.debug
 
 
-        sameGroup = drawer.state.group == options.group
+        sameGroup = self.state.group == options.group
         # get drawerItemGroup options
-        drawerItemOptions = drawer.getDrawerItem(options.group, options.item)
-        drawerItemOptions.item = drawerItemOptions.name
-        _.extend( drawer.state, {
+        drawerItemOptions = self.getDrawerItem(options.group, options.item)
+        drawerItemOptions.item = drawerItemOptions.name 
+        _.extend( self.state, {
           'group': options.group
           'filter':null
           'query':''
           'orderBy':''
           'countKey':''
+          'activeItemId': ['drawer', options.group, options.item].join('-')
           }, drawerItemOptions)
 
 
         # save state to localStorage
-        localStorageService.set('drawerState', drawer.state)
+        localStorageService.set('drawerState', self.state)
+
+        angular.element(document.getElementById(self.state.activeItemId)).addClass('active')
 
         if sameGroup
-          drawer.animateClose()
+          self.animateClose()
         else 
-          drawer.animateClose(500)
+          self.animateClose(500)
 
         return cb(drawerItemOptions.route) if _.isFunction(cb)
         if !drawerItemOptions.route
@@ -91,7 +115,7 @@ angular.module(
 
       getDrawerItem: (drawerGroup, itemName) ->
         try 
-          drawerGroup = _.findWhere(drawer.json.data, {name: drawerGroup})
+          drawerGroup = _.findWhere(_drawer.json.data, {name: drawerGroup})
           return drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
         catch
           return false
@@ -99,62 +123,56 @@ angular.module(
       forceGroupOpen: (group)->
         # force open accordion-group on ng-click toggle()
         # NOTE: this is different from initial state open/close
-        # drawer.state.group = group.name
+        # self.state.group = group.name
         return group.isOpen = false   # toggle will set isOpen=true
 
       init: (challenges, moments, drawerItemState)->
         # drawer = $rootScope.drawer
-        _.extend(drawer.state, drawerItemState) if drawerItemState?
+        _.extend(self.state, drawerItemState) if drawerItemState?
 
-        drawer.updateCounts(challenges, moments)
+        self.updateCounts(challenges, moments)
 
         # set drawer query, filter property
-        drawerGroup = _.findWhere(drawer.json.data, {name: drawer.state.group})
+        drawerGroup = _.findWhere(_drawer.json.data, {name: self.state.group})
         drawerGroup.isOpen = true;
-        return drawer
+        return self
 
-      _getCounts: (challenges, moments)->
-        return _.reduce challenges, (
-          (result, challenge)->
-            result[challenge.status]++
-            return result
-        ), {
-          new: 0
-          pass: 0 
-          complete: 0
-          working: 0
-          active: 0
-        }
+      
 
       updateCounts: (challenges, moments)->
-        drawer.state.counts = _.extend (drawer.state.counts || {}), (drawer._getCounts challenges)
+        self.state.counts = _.extend (self.state.counts || {}), (_drawer.getCounts challenges)
         # set counts for drawerGroups
         updateList = []
         updateList.push('findhappi') if challenges?
         updateList.push('gethappi') if moments?
         _.each updateList, (groupName)->
-          drawerGroup = _.findWhere drawer.json.data, {name: groupName}
+          drawerGroup = _.findWhere _drawer.json.data, {name: groupName}
           switch groupName
             when 'findhappi' 
               drawerGroup.count = _.values( challenges ).length
             when 'gethappi' # moments
               drawerGroup.count = _.values( _.filter moments, (o)-> o.status!='pass').length
-          drawer.state.counts[groupName] = drawerGroup.count
-        localStorageService.set('drawerState', drawer.state)  
-        return drawer
-
-      ready: (drawer)->   # should be a promise
-        return "Usage: drawer.load(url); drawer.ready.then();"
+          self.state.counts[groupName] = drawerGroup.count
+        localStorageService.set('drawerState', self.state)  
+        return self
 
       load: (url)->
-        url = drawer.url if _.isEmpty(url)
+        url = _drawer.url if _.isEmpty(url)
         console.log "*** drawer.load()"  
-        drawer.ready = $http.get(url).success (data, status, headers, config)->
-          drawer.json = data
+        _drawer.ready = $http.get(url).success (data, status, headers, config)->
+          _drawer.json = data
+          localStorageService.set('drawer', _drawer.json )
           # console.log "*** drawer ready"
-          return 
-        console.log drawer.ready  
-        return drawer.ready  
+          return 'ready'
+        console.log _drawer.ready  
+        return _drawer.ready  
+
+      json: (data)->
+        _drawer.json = data if data?
+        return _drawer.json 
+
+      ready: (drawer)->   # should be a promise
+        return "Usage: self.load(url); self.ready.then();"
     }
-    return drawer
+    return self
 ])

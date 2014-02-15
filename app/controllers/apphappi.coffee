@@ -107,10 +107,23 @@ angular.module(
 						c.stale = true	
 						syncService.set('challenge', this.card.challenge)
 
-			drawerItemClick : (groupName, options)->
+			drawerItemClick : (e, groupName, options)->
+				# set active
 				scope = this
-				options.group = groupName
-				options.item = options.name
+				target = e.currentTarget
+
+				[type, group, item] = target.id.split('-')
+				if type == 'drawer'
+					options = {
+						group: group
+						item: item
+					}
+				else 
+					# deprecate
+					options = {item: options} if _.isString(options)
+					options.item = options.name if options?.name?
+					options.group = groupName
+				
 				scope.deck.index(0)
 				return drawerService.itemClick options, (route)->
 					# drawerService.state is updated with new filter/query/search, setupDeck
@@ -202,7 +215,7 @@ angular.module(
 		# $scope.$route = $route
 		# $scope.$location = $location
 		# $scope.cameraService = cameraService
-		$scope.notify = notify
+		$scope.notify = window.notify = notify
 		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 
@@ -310,7 +323,7 @@ angular.module(
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 
 		$scope.challenge_pass = ($index)->
-			if drawer.state.filter.status=='active' && (c = $scope.deck.topCard())
+			if drawer.state.filter?.status? =='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
 				stale =_deactivateChallenges(c)
 				actionService.setCardStatus(c, 'pass')	if c.momentIds.length==0 
@@ -346,7 +359,7 @@ angular.module(
 
 			# goto moment
 
-			return $scope.drawerItemClick 'gethappi', {name:'mostRecent'}
+			return $scope.drawerItemClick 'gethappi', {item:'mostRecent'}
 
 		$scope.challenge_open = ()->
 			deactivated = _deactivateChallenges()
@@ -372,7 +385,7 @@ angular.module(
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			# drawer.updateCounts( _challenges)
-			return $scope.drawerItemClick 'findhappi', {name:'current'}
+			return $scope.drawerItemClick 'findhappi', {item:'current'}
 
 
 		# TODO: change to accept
@@ -414,7 +427,7 @@ angular.module(
 			syncService.set('moment', stale)
 			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
 			
-			return $scope.drawerItemClick 'findhappi', {name:'current'}
+			return $scope.drawerItemClick 'findhappi', {item:'current'}
 
 		$scope.challenge_later = ()->
 			# set current challenge, then put app to sleep
@@ -449,7 +462,7 @@ angular.module(
 		# $scope.$route = $route
 		# $scope.$location = $location
 		# $scope.cameraService = cameraService
-		$scope.notify = notify
+		$scope.notify = window.notify = notify
 		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->

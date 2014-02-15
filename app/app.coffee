@@ -11,7 +11,7 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: true
+	debug: false
 	camera: 
 		targetWidth : 320
 		quality: 85
