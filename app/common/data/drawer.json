@@ -4,11 +4,11 @@
   {
     "name": "gethappi",
     "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
-    "state": {
+    "xxxstate": {
     },
     "items": [
      {
-      "name": "mostRecent",
+      "name": "mostrecent",
       "label": "Most Recent",
       "orderBy": "-modified",
       "filter": {"status":"!pass"},
@@ -47,7 +47,7 @@
   {
     "name": "findhappi",
     "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
-    "state": {
+    "xxxstate": {
     },
     "items": [
       {
@@ -104,7 +104,7 @@
   {
     "name": "timeline",
     "label": "<i class=\"fa fa-calendar\"></i> Timeline",
-    "state": {
+    "xxxstate": {
     },
     "items": [
       {

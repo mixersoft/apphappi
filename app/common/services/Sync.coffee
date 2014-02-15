@@ -156,16 +156,19 @@ angular.module(
 					when 'drawer' 
 						if !!syncService.lastModified[model] 
 							# load drawer from localData
-							drawer.json = syncService.localData['drawer']
+							drawer.json syncService.localData['drawer']
 							drawer.ready = $q.defer()
-							drawer.ready.resolve(drawer.json)
+							drawer.ready.resolve( "ready" )
 							return drawer.ready.promise
 						else 
 							# load drawer from $http
 							promise = drawer.load( CFG.drawerUrl ).then (resp)->
 								# localStorageService.set(model, resp.data)
-								localStorageService.set(model, drawer.json)
-								return drawer.json
+								check = resp
+								# if (resp=="check")
+								# data = drawer.json()
+								# localStorageService.set(model, data )
+								return resp
 							# save to localStorageService in drawer.init()?
 							return promise
 					when 'challenge'

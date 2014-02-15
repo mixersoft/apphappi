@@ -4,30 +4,132 @@
     <accordion-heading>
       <i class='fa fa-bars fa-lg'></i><i class="fa fa-plane pull-right"></i>
     </accordion-heading>
-    <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
-    <div class='item'>
-      <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
-    </div>
+    <div class="drawer-body">
+      <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>
+      <div class='item'>
+        <button type="button" ng-click="shuffleDeck()"  class="btn btn-xs btn-default">Shuffle</button>
+      </div>
 
-    <accordion close-others="false">
-      <accordion-group class='drawer-group inverse' 
-      bindonce bo-class="group.name"
-      ng-repeat="group in drawer.json.data" 
-      is-open="true" >
-        <accordion-heading>
-          <span ng-bind-html="group.label" ng-click="drawer.forceGroupOpen(group)"></span>
-          <span ng-bind="drawer.state.counts[group.name]" class="badge badge-default"></span>
-        </accordion-heading>
-        <div ng-repeat="options in group.items" 
-        class="item"
-        ng-class="{active: options.name==drawer.state.item}"
-        ng-click="drawerItemClick(group.name, options)">
-          <span bo-html="options.label"></span>
-          <span bo-if="group.name=='findhappi' && options.name!=='create'" class="badge badge-default">{{drawer.state.counts[options.countKey]}}</span>
-          <on-off-switch bo-if="options.switch=='CFG.debug'" my-ng-model="CFG.debug" class="pull-right"></on-off-switch>
+      <div class="drawer-group" name="gethappi">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <i class="fa fa-smile-o"></i> GetHappi Moments
+            <span ng-bind="drawer.state.counts['gethappi']" class="badge badge-default"></span>
+          </h4>
         </div>
-      </accordion-group>
-    </accordion>
+        <div class="panel-body">
+          <div id="drawer-gethappi-mostrecent" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-mostrecent')}"
+          ng-click="drawerItemClick($event)">
+            Most Recent
+          </div>
+          <div id="drawer-gethappi-rating" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-rating')}"
+          ng-click="drawerItemClick($event)">
+            Top Rated
+          </div>
+          <div id="drawer-gethappi-name" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-name')}"
+          ng-click="drawerItemClick($event)">
+            by Name
+          </div>
+          <div id="drawer-gethappi-category" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-category')}"
+          ng-click="drawerItemClick($event)">
+            by Category
+          </div>
+          <div id="drawer-gethappi-shuffle" class="item" ng-click="drawerItemClick($event)">
+            Shuffle
+          </div>
+        </div>
+      </div>
+      <div class="drawer-group" name='findhappi'>
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <i class="fa fa-smile-o"></i> FindHappi Moments
+            <span ng-bind="drawer.state.counts['findhappi']" class="badge badge-default"></span>
+          </h4>
+        </div>
+        <div class="panel-body">
+          <div id="drawer-findhappi-current" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-findhappi-current')}"
+          ng-click="drawerItemClick($event)">
+            Challenge: Current
+            <span ng-bind="drawer.state.counts['challenge']['active']" class="badge badge-default"></span>
+          </div>
+          <div id="drawer-findhappi-working" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-findhappi-working')}"
+          ng-click="drawerItemClick($event)">
+            Challenge: Working
+            <span ng-bind="drawer.state.counts['challenge']['working']" class="badge badge-default"></span>
+          </div>
+          <div id="drawer-findhappi-completed" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-findhappi-completed')}"
+          ng-click="drawerItemClick($event)">
+            Challenge: Completed
+            <span ng-bind="drawer.state.counts['challenge']['complete']" class="badge badge-default"></span>
+          </div>
+          <div id="drawer-findhappi-passed" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-findhappi-passed')}"
+          ng-click="drawerItemClick($event)">
+            Challenge: Passed
+            <span ng-bind="drawer.state.counts['challenge']['pass']" class="badge badge-default"></span>
+          </div>
+          <div id="drawer-findhappi-all" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-findhappi-all')}"
+          ng-click="drawerItemClick($event)">
+            Challenge: All
+            <span ng-bind="drawer.state.counts['findhappi']" class="badge badge-default"></span>
+          </div>
+        </div>
+      </div>
+      <div class="drawer-group" name='timeline'>
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <i class="fa fa-calendar"></i> Timeline</span>
+            <span ng-bind="drawer.state.counts['timeline']" class="badge badge-default"></span>
+          </h4>
+        </div>
+        <div class="panel-body">
+          <div id="drawer-timeline-photos" class="item" 
+          ng-click="drawerItemClick($event)">
+            Happi Photos
+          </div>
+        </div>
+      </div>
+      <div class="drawer-group" name='scoreboard'>
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <i class="fa fa-list"></i> Scoreboard</span>
+            <span ng-bind="drawer.state.counts['timeline']" class="badge badge-default"></span>
+          </h4>
+        </div>
+        <div class="panel-body">
+          <div id="drawer-scoreboard-scoreboard" class="hidden item" ng-click="drawerItemClick($event)">
+            Scoreboard (hidden)
+          </div>
+        </div>
+      </div>
+      <div class="drawer-group" name='settings'>
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <i class="fa fa-cog fa-spin"></i> Settings</span>
+            <span ng-bind="drawer.state.counts['settings']" class="badge badge-default"></span>
+          </h4>
+        </div>
+        <div class="panel-body">
+          <div id="drawer-settings-debug" class="item" 
+          ng-click="drawerItemClick($event)">
+            Developer Mode
+            <on-off-switch my-ng-model="CFG.debug" class="pull-right"></on-off-switch>
+          </div>
+          <div id="drawer-settings-reset" class="item" 
+          ng-click="drawerItemClick($event)">
+            Reset All Data
+          </div>
+        </div>
+      </div>
+    </div>
   </accordion-group> 
 </accordion>
 <!--/ Nav/Sidebar content-->
