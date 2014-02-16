@@ -67,12 +67,15 @@ angular.module(
 					# update drawer counts
 					isDrawerStale = false
 					if oldStatus != status && o.type == 'challenge'
-						drawerService.state.counts[oldStatus] -= 1 if drawerService.state.counts[oldStatus]?
-						drawerService.state.counts[status] += 1 if drawerService.state.counts[status]?
+						drawerService.state.counts[o.type][oldStatus] -= 1 if drawerService.state.counts[o.type][oldStatus]?
+						drawerService.state.counts[o.type][status] += 1 if drawerService.state.counts[o.type][status]?
+						console.log drawerService.state.counts[o.type]
 						isDrawerStale = true
 					if o.type=='moment' && oldStatus==null
 						drawerService.state.counts['gethappi'] += 1
 						isDrawerStale = true
+					if (o.type=='challenge')
+						notify.alert "setCardStatus: "+oldStatus+" -> "+status+', stale='+isDrawerStale, "success", 10000
 					return
 				syncService.set('drawerState') if isDrawerStale?
 
@@ -124,6 +127,7 @@ angular.module(
 					notify.alert JSON.stringify(options)
 				else 
 					# deprecate
+					notify.alert "deprecated in drawerItemClick()", 'warning'
 					options = {item: options} if _.isString(options)
 					options.item = options.name if options?.name?
 					options.group = groupName
@@ -428,10 +432,10 @@ angular.module(
 			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
+
+			# debug
 			check = syncService.get('challenge', c.id)
-
-
-			notify.alert("challenge status="+check.status)
+			notify.alert("challenge status="+check.status, 'success')
 
 
 			# drawer.updateCounts( _challenges, syncService.localData['moment'] )

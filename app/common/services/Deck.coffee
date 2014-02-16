@@ -49,11 +49,11 @@ angular.module(
 				if cards?
 					this.allCards = cards if _.isArray(cards) 
 					this.deckCards = null
-					this.index(0)
 					this.shuffled = this.shuffledCards = null
 
 				if !_.isEqual(options, this.options) || !this.deckCards
 					# deck has changed, update deckCards
+					this.index(0)
 					this.options = options
 					# filter/orderBy cards
 					step = this.allCards
@@ -93,7 +93,7 @@ angular.module(
 			topCard : (options)->
 				return this.cards(null, options)[this.index()] if !this.deckCards?
 				# check array bounds
-				this.index(0) if !this.index()? or this.index() >= this.deckCards.length
+				this.index(0) if !this.index()? || this.index() >= this.deckCards.length
 				this.index(this.deckCards.length-1) if this.index()<0
 
 				return this.cards(null, options)[this.index()]
@@ -111,7 +111,8 @@ angular.module(
 					options = _.pick(options, ['filter', 'query', 'orderBy'])
 				else 
 					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 	
-				return _.isEqual(this.options, options)
+				isValid = _.isEqual(this.options, options)
+				return isValid
 
 
 		deckService = {
