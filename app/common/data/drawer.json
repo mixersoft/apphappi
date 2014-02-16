@@ -134,6 +134,11 @@
         "name": "reset",
         "label": "Reset local data",
         "route": "/challenges"
+      },
+      {
+        "name": "reload",
+        "label": "Reload",
+        "route": "/"
       }
     ]
   }  

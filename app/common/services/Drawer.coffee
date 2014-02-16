@@ -81,6 +81,8 @@ angular.module(
               return
             when 'debug'
               appConfig.debug = !appConfig.debug
+            when 'reload'
+              return window.location.reload();
 
 
         sameGroup = self.state.group == options.group
@@ -99,6 +101,7 @@ angular.module(
 
         # save state to localStorage
         localStorageService.set('drawerState', self.state)
+        # notify.alert "itemClick, filter="+JSON.stringify(self.state.filter)
 
         if sameGroup
           self.animateClose()
