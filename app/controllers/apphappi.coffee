@@ -74,8 +74,8 @@ angular.module(
 					if o.type=='moment' && oldStatus==null
 						drawerService.state.counts['gethappi'] += 1
 						isDrawerStale = true
-					if (o.type=='challenge')
-						notify.alert "setCardStatus: "+oldStatus+" -> "+status+', stale='+isDrawerStale, "success", 10000
+					# if (o.type=='challenge')
+					# 	notify.alert "setCardStatus: "+oldStatus+" -> "+status+', stale='+isDrawerStale, "success"
 					return
 				syncService.set('drawerState') if isDrawerStale?
 
@@ -132,12 +132,27 @@ angular.module(
 					options.item = options.name if options?.name?
 					options.group = groupName
 				
-				scope.deck.index(0)
 				return drawerService.itemClick options, (route)->
 					# drawerService.state is updated with new filter/query/search, setupDeck
-					scope.deck.cards('refresh') if !scope.deck.validateDeck()
+					isValid = scope.deck.validateDeck()
+					if !isValid
+						scope.deck.cards('refresh')
+						msg = "Deck Invalid, get NEW DeckCards"
+						notify.alert msg, "danger", 6000
+						console.warn msg
 					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
-					$location.path(route) if route? 
+
+					# debug
+					# check = scope.deck.topCard()
+					# msg = "topCard after click type="+check.type+", name="+(check.name || check.challenge.name)
+					# notify.alert msg, "success", 6000
+					# console.log msg
+
+					if route? && route != $location.path()
+						$location.path(route)
+					# else
+					# 	notify.alert "NOT setting NEW route"	, "warning"
+						# check = scope.deck.nextCard()
 
 			XXXswipe : ( target, ev, index)->
 				# target = ev.currentTarget
