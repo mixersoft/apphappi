@@ -15,8 +15,9 @@ angular.module(
   '$q'
   '$filter'
   'notifyService'
+  '$http' 
   'AppHappiRestangular'
-, (localStorageService, CFG, drawer, $q, $filter, notify, AppHappiRestangular)->
+, (localStorageService, CFG, drawer, $q, $filter, notify, $http, AppHappiRestangular)->
 			# private methods
 	_asDuration = (secs)->
 		duration = moment.duration(secs*1000) 
@@ -165,9 +166,6 @@ angular.module(
 							promise = drawer.load( CFG.drawerUrl ).then (resp)->
 								# localStorageService.set(model, resp.data)
 								check = resp
-								# if (resp=="check")
-								# data = drawer.json()
-								# localStorageService.set(model, data )
 								return resp
 							# save to localStorageService in drawer.init()?
 							return promise
@@ -180,6 +178,21 @@ angular.module(
 							# ???: should we parseFn(modelData), set() calls parseFn
 							dfd.resolve(modelData)
 							return dfd.promise
+						else if "use $http"
+							# load challenges from $http
+							console.log "*** challenge.load()"  
+							promise = $http.get(CFG.challengeUrl).success (data, status, headers, config)->
+							  console.log "*** challenge ready"
+							promise.then (resp)->
+								# mark all as stale and let syncService.set() format
+								data = resp.data
+								_.each data, (o)->
+									o.type = model
+									o.stale = true
+								# notify.alert "AppHappiRestangular resolved, count="+data.length
+								syncService.set(model, data)	# parseModel in .set()
+								return syncService.get(model)
+							return promise
 						else 	
 							promise = AppHappiRestangular.all(model)
 							.getList({'modified':syncService.lastModified[model]})

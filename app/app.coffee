@@ -17,6 +17,7 @@ angular.module( 'appHappi', [
 		quality: 85
 	$curtain: angular.element(document.getElementById('curtain'))
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
+	challengeUrl: if window.location.protocol=='file:' then 'common/data/challenge.json' else '/common/data/challenge.json'
 }
 ).config( [
 	'$routeProvider'
