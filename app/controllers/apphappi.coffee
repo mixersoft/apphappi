@@ -110,7 +110,10 @@ angular.module(
 			drawerItemClick : (e, groupName, options)->
 				# set active
 				scope = this
-				target = e.currentTarget || {id: e}
+				if _.isString(e)
+					target = {id: e} 
+				else 
+					target = e.currentTarget 
 
 				[type, group, item] = target.id?.split('-') || []
 				if type == 'drawer'
@@ -118,8 +121,9 @@ angular.module(
 						group: group
 						item: item
 					}
+					notify.alert JSON.stringify(options)
 				else 
-					# for drawerShowAll
+					# deprecate
 					options = {item: options} if _.isString(options)
 					options.item = options.name if options?.name?
 					options.group = groupName
@@ -323,7 +327,7 @@ angular.module(
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 
 		$scope.challenge_pass = ($index)->
-			if drawer.state.filter?.status? =='active' && (c = $scope.deck.topCard())
+			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
 				stale =_deactivateChallenges(c)
 				actionService.setCardStatus(c, 'pass')	if c.momentIds.length==0 
@@ -358,8 +362,7 @@ angular.module(
 			$scope.moment = null
 
 			# goto moment
-
-			return $scope.drawerItemClick 'gethappi', {item:'mostRecent'}
+			return $scope.drawerItemClick 'drawer-gethappi-mostrecent', 'gethappi', {item:'mostrecent'}
 
 		$scope.challenge_open = ()->
 			deactivated = _deactivateChallenges()
@@ -385,7 +388,7 @@ angular.module(
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			# drawer.updateCounts( _challenges)
-			return $scope.drawerItemClick 'findhappi', {item:'current'}
+			return $scope.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
 
 
 		# TODO: change to accept
@@ -425,9 +428,14 @@ angular.module(
 			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
+			check = syncService.get('challenge', c.id)
+
+
+			notify.alert("challenge status="+check.status)
+
+
 			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
-			
-			return $scope.drawerItemClick 'findhappi', {item:'current'}
+			return $scope.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
 
 		$scope.challenge_later = ()->
 			# set current challenge, then put app to sleep
@@ -471,7 +479,7 @@ angular.module(
 		$scope.drawer = drawer;
 		$scope.initialDrawerState = {
 			group: 'gethappi'
-			item: 'mostRecent'
+			item: 'mostrecent'
 		}
 		
 		# reset for testing
@@ -484,7 +492,7 @@ angular.module(
 			# reload or init drawer
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='gethappi'
-				drawerItemOptions = drawer.getDrawerItem('gethappi', 'mostRecent')
+				drawerItemOptions = drawer.getDrawerItem('gethappi', 'mostrecent')
 				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
