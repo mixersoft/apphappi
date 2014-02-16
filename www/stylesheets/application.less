@@ -80,26 +80,30 @@ i.fa, .badge, .label {
 	z-index: 100;
 }
 
-.card {
-	border: 2px solid @snappi-darkblue;
-	border-radius: 10px;
-  margin: 10px;
-	padding: 10px 10px 0 10px;
-	position: relative;
-	.page-no {
-		position: absolute;
-		right: 10px;
-	}
-	.header, .body, .footer {
-		padding-bottom: 10px;
-	}
-	.force-dl-horizontal dt {
-		float: left;
-		overflow: hidden;
-		clear: left;
-		text-align: right;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+.card-wrap {
+   box-sizing: border-box;
+   width: @card-width;
+	.card {
+		border: 2px solid @snappi-darkblue;
+		border-radius: 10px;
+	  margin: 10px;
+		padding: 10px 10px 0 10px;
+		position: relative;
+		.page-no {
+			position: absolute;
+			right: 10px;
+		}
+		.header, .body, .footer {
+			padding-bottom: 10px;
+		}
+		.force-dl-horizontal dt {
+			float: left;
+			overflow: hidden;
+			clear: left;
+			text-align: right;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
 	}
 }
 
