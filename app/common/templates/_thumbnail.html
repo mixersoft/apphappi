@@ -1,17 +1,18 @@
  <!-- div.thumb thumbnail template  -->
 <div id="{{photo.id}}" 
-  class="thumb fade in {{photo.orientationLabel}}" 
-  style="{{top}}{{position}}">
-      <div class="crop-wrap">
-        <div class="crop">
-          <img class=""  
-            data-w0="{{photo.origW}}"
-            data-h0="{{photo.origH}}"
-            data-root-src="{{photo.rootSrc}}"
-            ng-src="{{photo.src}}" 
-          >
-      </div>
+class="thumb fade in {{photo.orientationLabel}}" 
+ng-dblclick="(card.status =='active') && removePhoto(card, $event.currentTarget.id, $index)"
+>
+  <div class="crop-wrap" >
+    <div class="crop">
+      <img class=""  
+        data-w0="{{photo.origW}}"
+        data-h0="{{photo.origH}}"
+        data-root-src="{{photo.rootSrc}}"
+        ng-src="{{photo.src}}"
+      >
     </div>
+  </div>
   <div class="meta">
     <div ng-show="!!photo.caption" class="title truncate">
       {{photo.caption}}
@@ -19,7 +20,8 @@
     <div class='bottom-row'> 
       <span class="inline-icons left">
         <i ng-show="!!photo.shotCount" class='btn-icon fa fa-reorder show-hidden-shot' title='click to hide duplicate shots'></i>
-        <rating value="photo.rating" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+        <rating rating-type="photo"
+        ng-click="persistRating($event,$index)" value="photo.rating" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
       </span>
       <span class="inline-icons right">
         <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>

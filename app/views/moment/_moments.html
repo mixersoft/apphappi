@@ -8,89 +8,112 @@
         <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
       </div>
       
-      <div ng-model="card" ng-show='!card'
-      class="challenge card empty-card summary list-unstyled text-center">
-        <div class="header">
-          <figure class="icon">
-            <i class="icon fa fa-meh-o fa-3x"></i>
-            <figcaption class="category">Get Started</figcaption>
-          </figure>  
-        </div>  
-        <div class="body">
-          <h2 class="title">Accept a Challenge and Get Going</h2>
-        </div>
-        <div class="footer">
-          <div class='btn-group'>
-            <button type="button" class="btn btn-primary" 
-            ng-click="drawerShowAll()">Take me there</button>
+      <!-- empty list card -->
+      <div class="card-wrap" ng-show='deck.size()==0'>
+        <div ng-model="card" 
+        class="moment card empty-card summary list-unstyled text-center">
+          <div class="header">
+            <figure class="icon">
+              <i class="icon fa fa-meh-o fa-3x"></i>
+              <figcaption class="category">Get Started</figcaption>
+            </figure>  
+          </div>  
+          <div class="body">
+            <h2 class="title">Accept a Challenge and Get Going</h2>
+          </div>
+          <div class="footer">
+            <div class='btn-group'>
+              <button type="button" class="btn btn-primary" 
+              ng-click="drawerShowAll()">Take me there</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div ng-repeat="card in deckCards| filter:drawer.state.query | orderBy:drawer.state.orderBy | limitTo:5" >
-      <div ng-model="card"
-            class="moment card summary list-unstyled text-center">
-        <ul class='header list-inline list-unstyled'>   
-          <li>
-            <figure class="icon">
-              <i class="icon {{card.challenge.icon}} fa-3x"></i>
-              <figcaption class="category">{{card.challenge.category.join(":")}}</figcaption>
-            </figure>
-          </li>
-          <li ng-click="isCardExpanded = !isCardExpanded" class="title">
-            {{card.challenge.title}} 
-            <i class="toggle fa fa-fw {{isCardExpanded && 'fa-chevron-down' || 'fa-chevron-right'}}"></i>
-          </li>
-        </ul> 
-        <div collapse="!isCardExpanded"> 
-          <div class="body clearfix">
-            <div class="meta well pull-left">
-              <div class="header inverse">Moment</div>
-              <dl class="moment-stats stats-wrap force-dl-horizontal">
-                <dt>Completed</dt><dd title="completed on {{card.humanize.completed}}">{{card.humanize.completedAgo}}</dd>
-                <dt>Duration</dt><dd>{{card.humanize.completedIn}}</dd>
-                <dt>Photos</dt><dd>{{card.stats.count}}</dd>
-                <dt>Viewed</dt><dd ng-pluralize count="card.stats.viewed" when="{'one':'1 time','other':'{} times'}"></dd>
-                <rating value="card.stats.rating.moment" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
-              </dl>
-            </div>
-            <div class="meta well pull-right">
-              <div class="header inverse">Challenge</div>
-              <dl class="challenge-stats stats-wrap force-dl-horizontal">
-                <div><b>{{card.challenge.humanize.completions}} completed</b></div>
-                <dt>Accept</dt><dd>{{card.challenge.humanize.acceptPct | number:1}}%</dd>
-                <dt>Pass</dt><dd>{{card.challenge.humanize.passPct | number:1}}%</dd>
-                <dt>Avg Time</dt><dd>{{card.challenge.humanize.avgDuration}}</dd>
-                <rating value="card.stats.rating.challenge" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
-                <span class="label label-default" title="average rating for this challenge">{{card.challenge.humanize.avgRating}}</span>
-              </dl>
+
+      <div rn-carousel rn-carousel-buffered  rn-carousel-index="carousel.index"
+      ng-if="deck.size()">
+        <div class="card-wrap"
+        bindonce
+        ng-repeat="card in deck.cards()" 
+        >
+          <div class="moment card text-center status-{{card.status}}"
+          ng-class="{ active: $parent.card == deck.cards[$index] }"
+          >
+            <span class="page-no pull-right label label-info"
+            ng-click="deck.nextCard()">{{(carousel.index + 1) + "/"  + deck.size()}}</span>
+            <ul class='header list-inline list-unstyled'
+            ng-click="card.isCardExpanded = !card.isCardExpanded">   
+              <li>
+                <figure class="icon">
+                  <i class="icon fa-3x" bo-class="card.challenge.icon"></i>
+                  <figcaption class="category" bo-text="card.challenge.category.join(':')"></figcaption>
+                </figure>
+              </li>
+              <li class="title">
+                <span bo-text="card.challenge.title"></span>
+                <i class="toggle fa fa-fw fa-chevron-down" ng-show="!card.isCardExpanded"></i>
+              </li>
+            </ul>
+            <div collapse="!card.isCardExpanded"> 
+              <div class="body clearfix">
+                <div class="meta well pull-left">
+                  <div class="header inverse">Moment</div>
+                  <dl class="moment-stats stats-wrap force-dl-horizontal">
+                    <dt>Completed</dt><dd title="completed on {{card.humanize.completed}}" ng-bind="card.humanize.completedAgo"></dd>
+                    <dt>Duration</dt><dd>{{card.humanize.completedIn}}</dd>
+                    <dt>Photos</dt><dd>{{card.stats.count}}</dd>
+                    <dt>Viewed</dt><dd ng-pluralize count="card.stats.viewed" when="{'one':'1 time','other':'{} times'}"></dd>
+                    <rating rating-type="moment" ng-click="persistRating($event,$index)" 
+                    value="card.stats.rating.moment" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+                  </dl>
+                </div>
+                <div class="meta well pull-right">
+                  <div class="header inverse">Challenge</div>
+                  <dl class="challenge-stats stats-wrap force-dl-horizontal">
+                    <div><b>{{card.challenge.humanize.completions}} completed</b></div>
+                    <dt>Accept</dt><dd>{{card.challenge.humanize.acceptPct | number:1}}%</dd>
+                    <dt>Pass</dt><dd>{{card.challenge.humanize.passPct | number:1}}%</dd>
+                    <dt>Avg Time</dt><dd>{{card.challenge.humanize.avgDuration}}</dd>
+                    <rating rating-type="challenge" ng-click="persistRating($event,$index)" 
+                    value="card.stats.rating.challenge" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
+                    <span class="label label-default" title="average rating for this challenge">{{card.challenge.humanize.avgRating}}</span>
+                  </dl>
+                </div>
+              </div>
+              <div class="footer clearfix">
+                <div ng-show="card.status!='active'">
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-default" ng-click="moment_edit(card.id)"><i class="fa fa-pencil-square-o"></i></button>
+                  </div>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-default" ng-click="moment_trash(card.id)"><i class="fa fa-trash-o"></i></button>
+                  </div>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, -1)"><i class="fa fa-thumbs-down"></i></button>
+                    <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, 1)"><i class="fa fa-thumbs-up"></i></button>
+                  </div>
+                </div>
+                <div class="btn-group" ng-show="card.status=='active'">
+                  <button type="button" class="btn btn-default" ng-click="moment_cancel(card.id)"><i class="fa fa-times-circle"></i></button>
+                  <span class='no-camera-hack'>
+                    <button type="button" class="btn btn-primary" ng-click="moment_getPhoto(card.id, $event)">
+                      <i class="fa fa-picture-o"></i> Camera Roll
+                    </button>
+                    <input id="html5-get-file" class="transparent-overlay"  type="file" accept="image/jpeg"
+                     ng-click="moment_getPhoto(card.id, $event)"
+                     bo-if="!window.navigator.camera"/>  
+                  </span>
+                  <button type="button" class="btn btn-default" ng-click="moment_done(card.id)"><i class="fa fa-save"></i> Done</button>
+                </div>
+              </div>
+            </div> 
+          </div>
+          <div class="gallery clearfix">
+            <div ng-repeat="photo in card.photos" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>
-          <div class="footer clearfix">
-            <div ng-show="card.status!='active'">
-              <div class="btn-group">
-                <button type="button" class="btn btn-default" ng-click="moment_edit(card.id)"><i class="fa fa-pencil-square-o"></i></button>
-              </div>
-              <div class="btn-group">
-                <button type="button" class="btn btn-default" ng-click="moment_trash(card.id)"><i class="fa fa-trash-o"></i></button>
-              </div>
-              <div class="btn-group">
-                <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, -1)"><i class="fa fa-thumbs-down"></i></button>
-                <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, 1)"><i class="fa fa-thumbs-up"></i></button>
-              </div>
-            </div>
-            <div class="btn-group" ng-show="card.status=='active'">
-              <button type="button" class="btn btn-default" ng-click="moment_cancel(card.id)"><i class="fa fa-times-circle"></i></button>
-              <button type="button" class="btn btn-info" ng-click="moment_getPhoto(card.id)"><i class="fa fa-camera"></i> Camera Roll</button>
-              <button type="button" class="btn btn-default" ng-click="moment_done(card.id)"><i class="fa fa-save"></i> Done</button>
-            </div>
-          </div>
-        </div> 
-      </div>
-      <div class="gallery clearfix">
-        <div ng-repeat="photo in card.photos" ng-include="'/common/templates/_thumbnail.html'">
         </div>
-      </div>
       </div>
     </div>
   </div>

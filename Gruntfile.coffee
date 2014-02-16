@@ -108,7 +108,7 @@ module.exports = (grunt)->
         files:      [
           expand:   true
           cwd:      '<%= APP_DIR %>'
-          src:      '**/templates/<%= HTML_FILES %>'
+          src:      ['**/templates/<%= HTML_FILES %>', '**/_*.html']
           dest:     '<%= BUILD_DIR %>'
         ,
           expand:   true

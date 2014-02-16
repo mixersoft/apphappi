@@ -4,11 +4,11 @@
   {
     "name": "gethappi",
     "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
-    "state": {
+    "xxxstate": {
     },
     "items": [
      {
-      "name": "mostRecent",
+      "name": "mostrecent",
       "label": "Most Recent",
       "orderBy": "-modified",
       "filter": {"status":"!pass"},
@@ -32,7 +32,7 @@
       "name": "category",
       "label": "by Category",
       "filter": {"status":"!pass"},
-      "orderBy": "challenge.category",
+      "orderBy": "challenge.humanize.category",
       "route": "/moments"
      },
      {
@@ -47,7 +47,7 @@
   {
     "name": "findhappi",
     "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
-    "state": {
+    "xxxstate": {
     },
     "items": [
       {
@@ -102,21 +102,43 @@
     ]
   },
   {
+    "name": "timeline",
+    "label": "<i class=\"fa fa-calendar\"></i> Timeline",
+    "xxxstate": {
+    },
+    "items": [
+      {
+        "name": "photos",
+        "label": "Happi Photos"
+      }
+    ]
+  },
+  {
     "name": "scoreboard",
     "label": "<i class=\"fa fa-list\"></i> Scoreboard",
     "state": {
     }
-   },
-   {
+  },  
+  {
     "name": "settings",
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "state": {
     },
     "items": [
       {
+        "name": "debug",
+        "label": "Developer Mode",
+        "switch": "CFG.debug"
+      },
+      {
         "name": "reset",
         "label": "Reset local data",
         "route": "/challenges"
+      },
+      {
+        "name": "reload",
+        "label": "Reload",
+        "route": "/"
       }
     ]
   }  

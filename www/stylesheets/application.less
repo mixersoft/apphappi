@@ -1,0 +1,152 @@
+// Core variables and mixins
+@import "variables.less";
+@import "mixins.less";
+
+// snaphappi variables
+@snappi-red:            #D01F40;
+@snappi-darkred:        #711124;
+@snappi-orange:         #F16122;
+@snappi-yellow:         #FDF9D0;
+@snappi-darkblue:       #152437;   
+@snappi-peach:          #E9C1C1;
+
+@font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
+
+@card-width: 320px;
+
+
+* {
+  -webkit-user-select: none;  /* Disable selection/copy of elements when tapping for a long time */
+  -webkit-touch-callout: none; /* Disable touch callouts */
+}
+
+input, textarea, [contenteditable] * {
+  -webkit-user-select: auto;  /* Allow selection for input elements and those with contenteditable attribute */
+}
+
+.content-padded {
+  padding: 10px;
+}
+
+body {
+	font-family: "Roboto";
+}
+
+#curtain {
+	height: 100%;
+	margin-top: 50%;
+	position: absolute;
+	width: 100%;  
+}
+
+.container {
+	max-width: @card-width;
+}
+
+.device {
+	.center-block();
+	&.device-border {
+		position: fixed;	
+		border: 1px solid green;
+		z-index: -1;
+	}
+	&.device-wrap {
+		position: relative;	
+		background-color: @gray-light;
+	}
+	
+	box-sizing: border-box;
+	&.iphone4 {
+		width: 320px;
+		height: 480px;
+		
+	}
+	&.iphone5 {
+		width: 320px;
+		height: 568px;	
+	}
+}
+
+i.fa, .badge, .label {
+  cursor: default;
+}
+
+.notify {
+	position: fixed;
+	top: 40px;
+	background: transparent;
+	left: 10%;
+	right: 10%;
+	z-index: 100;
+}
+
+.card-wrap {
+   box-sizing: border-box;
+   width: @card-width;
+	.card {
+		border: 2px solid @snappi-darkblue;
+		border-radius: 10px;
+	  margin: 10px;
+		padding: 10px 10px 0 10px;
+		position: relative;
+		.page-no {
+			position: absolute;
+			right: 10px;
+		}
+		.header, .body, .footer {
+			padding-bottom: 10px;
+		}
+		.force-dl-horizontal dt {
+			float: left;
+			overflow: hidden;
+			clear: left;
+			text-align: right;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+	}
+}
+
+.card.moment {
+	background-color: @snappi-yellow;
+}
+
+.card.challenge {
+}
+
+
+.filmstrip {
+  width: @card-width;
+  overflow-x: hidden;
+  .hscroll {
+    top: 0;
+    position: relative;
+    overflow-y: hidden;
+    .transition(all .6s ease-in-out);
+    .card-wrap {
+      box-sizing: border-box;
+      &.inline {
+        display: inline-block;
+        vertical-align: top;
+      }
+      width: @card-width;
+      overflow-x: hidden;
+    }  
+  }
+}
+
+.no-camera-hack {
+	position: relative;
+	float: left;
+	.transparent-overlay {
+		opacity: 0;
+		position:absolute;
+		top:0;
+		left:0;
+		bottom:0;
+		overflow: hidden;
+		z-index: 20;
+		width: 100%;
+		padding: 4px 10px;
+	}
+}

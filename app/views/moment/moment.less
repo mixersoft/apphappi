@@ -12,45 +12,10 @@
 
 @font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
 
+@card-width: 320px;
 
-.device {
-	&.device-border {
-		position: fixed;	
-		border: 1px solid green;
-	}
-	&.device-wrap {
-		position: relative;	
-		background-color: @gray-light;
-	}
-	
-	box-sizing: border-box;
-	&.iphone4 {
-		width: 320px;
-		height: 480px;
-		
-	}
-	&.iphone5 {
-		width: 320px;
-		height: 568px;	
-	}
-}
 
-i.fa {
-  cursor: default;
-}
 
-.force-dl-horizontal dt {
-	float: left;
-	overflow: hidden;
-	clear: left;
-	text-align: right;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-ul.moments {
-	padding-left: 0;
-}
 .moment {
 	figure {
 		.icon {
@@ -141,29 +106,31 @@ ul.moments {
 	}
 
 	&.card {
-		border: 2px solid black;
-		border-radius: 10px;
-    margin: 10px;
-		padding: 10px 10px 0 10px;
 	}
 }
 
 .gallery {
-  width: 50%;
   min-width: 320px;
-  position: relative;
+  padding: 0 5px;
   .crop img {
     width: 100%;
   }
 }
 
 .thumb {
+  position: relative;
   &, &.crop-wrap {
     width:100%;
     height:auto;  
   }
-  float: left;
   margin: 4px auto;
+  .focus {
+    box-shadow: 0 0 20px 10px red;
+    outline: 1em solid rgba(255, 127, 0, 0.7);
+    z-index: 100;
+  }
+
+
   .flickrd & {    // for flickr style absolute positioning
     float: none;
     position: absolute;
@@ -183,17 +150,19 @@ ul.moments {
   }
   
   .meta {
-    padding: 5px 0 0;
-    position: absolute;
+    background: transparent;
     bottom: 0;
     left: 0;
     right: 0;
     font-size: @font-size-mini;
     line-height: 1.3;
     margin-top: 5px;
-    text-align: left;
     overflow: hidden;
-    transition: all .15s ease-in-out;
+    padding: 5px 0 0;
+    position: absolute;
+    text-align: left;
+    text-shadow: 1px 1px 0 black;
+    .transition( all .15s ease-in-out);
     > * {
       margin-left: 8px;
     }
@@ -211,6 +180,7 @@ ul.moments {
       display: inline;
       margin-top: 2px;
       overflow: visible;
+      opacity: 0.6;
       z-index: 50;
       > .btn-icon {
         margin-left: 1em;
@@ -236,7 +206,6 @@ ul.moments {
     }
     
     &:hover {   /* .meta:hover */
-      transition: all .15s ease-in-out;
       .btn-icon:hover {
       }
       .bottom-row {
@@ -257,47 +226,27 @@ ul.moments {
 .thumb-meta-hover {
   background: fade(@snappi-darkblue,60%);
     opacity: 1;
-    transition: all .15s ease-in-out;
     .btn-icon:hover {
       color: #FFF;
     }
 }
 
-.thumb {
-  .focus {
-    box-shadow: 0 0 20px 10px red;
-    outline: 1em solid rgba(255, 127, 0, 0.7);
-    z-index: 100;
-  }
-  .meta {
-    background: rgba(0,0,0,0);
-    color: #fff;
-    text-shadow: 1px 1px 0 black;
-    .inline-icons {
-      opacity: 0.6;
-      .show-hidden-shot.best {
-        color: @snappi-yellow;
-      }
-      .score, .icon-star {
-        color: @snappi-yellow;
-      }
-    }
-    
-    &:hover {   /* .meta:hover */
-      background: fade(@snappi-darkblue,60%);
-      opacity: 1;
-      .btn-icon:hover {
-        color: #FFF;
-      }
-    }
-  }
-}
-
-
-
-.shot-wrap:hover .thumb .meta {
+.gallery.touch .thumb .meta,
+.shot-wrap:hover .thumb .meta,
+.thumb .meta:hover {
   .thumb-meta-hover;
 }
+
+
+/* additional app overrides */
+.thumb {
+  .meta {
+    color: #fff;
+    .inline-icons {
+    }
+  }
+}
+
 
 
 
@@ -305,7 +254,7 @@ ul.moments {
  * css transitions from isotope
  */
 @transitionDuration: 0.8s;
-.gallery {
+.xxxgallery {
   &, & .thumb {
     -webkit-transition-duration: @transitionDuration;
     -moz-transition-duration: @transitionDuration;
@@ -323,7 +272,7 @@ ul.moments {
   /*
    * isotope pattern is to use 'transform: translate3d([top]px, [left]px, 0px)'
    */
-  .thumb{
+  .xxxthumb{
     -webkit-transition-property: -webkit-transform, opacity, top, left;
     -moz-transition-property: -moz-transform, opacity, top, left;
     -ms-transition-property: -ms-transform, opacity, top, left;
@@ -332,7 +281,7 @@ ul.moments {
   }
 }
 
-.fade {
+.xxxfade {
   transition: all 300ms linear 100ms;
   transform: translate3d(0,0,0);
   opacity: 1;
