@@ -314,6 +314,7 @@ angular.module(
 		$scope.challenge_getPhoto = ($event)->
 			c = $scope.deck.topCard()
 			m = $scope.moment || _.findWhere actionService._getMoments( c ), {status:'active'} 
+			angular.element($event.currentTarget.parentNode).find('i').addClass('fa-spin')
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
@@ -569,7 +570,8 @@ angular.module(
 			m.stats.count = m.photos.length
 			m.stats.completedIn += 123						# fix this
 			m.stats.viewed += 1
-			delete m.undo['photos']
+			delete m.undo['photos'] if m.undo?
+			notify.alert( "warning: undo['photos'] not found", "warning" ) if !m.undo?
 
 			actionService.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
@@ -596,6 +598,7 @@ angular.module(
 		$scope.moment_getPhoto = (id, $event)->
 			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
 			throw "moment id mismatch" if m.id != id
+			angular.element($event.currentTarget.parentNode).find('i').addClass('fa-spin')
 
 			saveToMoment = (p)->
 				now = new Date()
