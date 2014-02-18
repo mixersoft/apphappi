@@ -2,6 +2,8 @@
 <div id="{{photo.id}}" 
 class="thumb fade in {{photo.orientationLabel}}" 
 ng-dblclick="(card.status =='active') && removePhoto(card, $event.currentTarget.id, $index)"
+ng-swipe-left="markPhotoForRemoval(card, $event.currentTarget, $index)"
+ng-swipe-right="markPhotoForRemoval(card, $event.currentTarget, $index, 'undo')"
 >
   <div class="crop-wrap" >
     <div class="crop">

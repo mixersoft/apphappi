@@ -41,6 +41,7 @@ angular.module(
 				# 'setCardStatus'
 				'persistRating'
 				'drawerItemClick'
+				'markPhotoForRemoval'
 				'removePhoto'
 				'shuffleDeck'
 				# 'swipe'
@@ -179,6 +180,28 @@ angular.module(
 						card.isCardExpanded = false
 						ev.gesture.preventDefault()
 
+			markPhotoForRemoval : (card, el, i, action='remove')->
+				notify.alert ".thumb swipe left/right detected, action="+action, 'success'
+				return if card.status!='active'
+
+				card.markPhotoForRemoval = [] if !card.markPhotoForRemoval?
+				switch action
+					when 'undo'
+						angular.element(el).removeClass('remove')	
+						card.markPhotoForRemoval = _.filter( card.markPhotoForRemoval, (o)->
+								return !(o.id == el.id && o.index==i)
+						)
+					when 'remove'
+						angular.element(el).addClass('remove')
+						card.markPhotoForRemoval.push({id: el.id, index:i})
+				return
+
+			removeMarkedPhotos : (card)->
+				return if !card.markPhotoForRemoval?
+				_.each(card.markPhotoForRemoval, (o)->
+						self.removePhoto(card, o.id, o.index)
+					)
+
 			removePhoto : (card, id, i)->
 				try
 					throw "removePhoto() where card.status != active" if card.status!='active'
@@ -191,10 +214,12 @@ angular.module(
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id
 							m = _.findWhere self._getMoments(card), {status:'active'}
 							momentIndex = m.photoIds.length - (i+1)	# reversed array
-							check2 = card.challengePhotos.splice(i, 1)[0]
+							challengeIndex = i
 						else throw "invalid card type"
 
-					check1 = m.photoIds.splice(momentIndex, 1)
+					# remove from array
+					check1 = m.photoIds.splice(momentIndex, 1) if momentIndex?
+					check2 = card.challengePhotos.splice(challengeIndex, 1)[0] if challengeIndex?
 					if m.photos?
 						check1b = m.photos && m.photos.splice(momentIndex, 1)
 						throw "removePhoto() id mismatch" if id != check1 != check1b.id
@@ -373,6 +398,7 @@ angular.module(
 			c.stats.completions.push m.stats.completedIn
 			c.challengePhotos = null;
 
+			actionService.removeMarkedPhotos(c)
 			actionService.setCardStatus(stale, 'complete', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
@@ -573,6 +599,7 @@ angular.module(
 			delete m.undo['photos'] if m.undo?
 			notify.alert( "warning: undo['photos'] not found", "warning" ) if !m.undo?
 
+			actionService.removeMarkedPhotos(m)
 			actionService.setCardStatus(m, 'complete')	
 			syncService.set('moment', m)
 			# drawer.updateCounts( null, _moments )

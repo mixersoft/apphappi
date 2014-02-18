@@ -119,11 +119,16 @@
 
 .thumb {
   position: relative;
+  margin: 4px auto;
   &, &.crop-wrap {
     width:100%;
     height:auto;  
   }
-  margin: 4px auto;
+  &.remove {
+    opacity: 0.6;
+    background-color: white;
+    border:2px solid @snappi-darkred;
+  }
   .focus {
     box-shadow: 0 0 20px 10px red;
     outline: 1em solid rgba(255, 127, 0, 0.7);
