@@ -41,6 +41,7 @@ angular.module(
 				# 'setCardStatus'
 				'persistRating'
 				'drawerItemClick'
+				'goToMoment'
 				'markPhotoForRemoval'
 				'removePhoto'
 				'shuffleDeck'
@@ -56,6 +57,15 @@ angular.module(
 				return [] if m.type != 'moment'
 				return _.map m.photoIds, (id)->
 					return syncService.get('photo', id)
+
+			_getMomentHasManyPhotos: (p)->
+				moments = syncService.get('moment')
+				found = _.reduce moments, ((result, m)->
+							result.push(m) if m.photoIds.indexOf(p.id)>-1
+							return result
+						)
+						, []
+				return _.unique(found)
 
 			# do housekeeping when changing status of challenge, moment
 			setCardStatus : (card, status, now)->
@@ -84,9 +94,11 @@ angular.module(
 			persistRating : (ev, i)->
 				$target = angular.element(ev.currentTarget)
 				now = new Date().toJSON()
+				ev.preventDefault()
+				ev.stopImmediatePropagation()
 				switch $target.attr('rating-type')
 					when "photo"
-						switch this.card.type
+						switch this.card && this.card.type || 'timeline'
 							when "moment"
 								p = this.card.photos[i]
 								this.card.stale = this.card.modified = now
@@ -95,6 +107,8 @@ angular.module(
 								p = this.moment.photos[i]
 								this.moment.stale = this.card.modified = now
 								syncService.set('moment', this.moment)
+							when "timeline"
+								p = this.photo
 						p.stale = now
 						syncService.set('photo', p)
 
@@ -138,9 +152,6 @@ angular.module(
 					isValid = scope.deck.validateDeck()
 					if !isValid
 						scope.deck.cards('refresh')
-						msg = "Deck Invalid, get NEW DeckCards"
-						notify.alert msg, "danger", 6000
-						console.warn msg
 					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
 
 					# debug
@@ -154,6 +165,32 @@ angular.module(
 					# else
 					# 	notify.alert "NOT setting NEW route"	, "warning"
 						# check = scope.deck.nextCard()
+
+			goToMoment : (ev, i)->
+				return if !/\/timeline/.test($location.path()) 
+				ev.preventDefault()
+				ev.stopImmediatePropagation()
+				scope = this
+				mids = self._getMomentHasManyPhotos(this.photo)
+				# TODO: let user choose which moment
+				if !mids.length
+					throw "ERROR: matching moment not found for photo, id="+this.photo.id
+				if mids.length > 1
+					notify.alert "WARNING: found more than 1 moments, just using the first", "warning"
+
+				options = {
+					group: 'gethappi'
+					item: 'mostrecent'
+					filter: 
+						id: mids[0].id
+				}
+				return drawerService.itemClick options, (route)->
+					# drawerService.state is updated with new filter/query/search, setupDeck
+					# isValid = scope.deck.validateDeck()
+					# if !isValid
+					# 	scope.deck.cards('refresh')
+					if route? && route != $location.path()
+						$location.path(route)
 
 			XXXswipe : ( target, ev, index)->
 				# target = ev.currentTarget

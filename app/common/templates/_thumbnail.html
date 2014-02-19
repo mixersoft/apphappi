@@ -17,7 +17,7 @@ ng-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
   </div>
   <div class="meta">
     <div ng-show="!!photo.caption" class="title truncate">
-      {{photo.caption}}
+      {{photo.caption}} 
     </div>
     <div class='bottom-row edit'> 
       <span class="inline-icons right">
@@ -34,7 +34,10 @@ ng-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
       <span class="inline-icons right">
         <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>
         <i class='btn-icon fa fa-info-circle'  title='show info'></i>
-        <i class='btn-icon zoom-in fa fa-arrow-right' title='show full screen (planned)'></i>
+        <i class='btn-icon zoom-in fa fa-arrow-right' title='go to Moment'
+        ng-click="goToMoment($event, $index, $scope)"
+        ></i>
+
       </span>
     </div>
   </div>

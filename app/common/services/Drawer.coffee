@@ -89,14 +89,15 @@ angular.module(
         # get drawerItemGroup options
         drawerItemOptions = self.getDrawerItem(options.group, options.item)
         drawerItemOptions.item = drawerItemOptions.name 
+        deckOptions = _.pick(options, ['filter', 'query', 'orderBy'])
         _.extend( self.state, {
           'group': options.group
-          'filter':null
+          'filter': null
           'query':''
           'orderBy':''
           'countKey':''
           'activeItemId': ['drawer', options.group, options.item].join('-')
-          }, drawerItemOptions)
+          }, drawerItemOptions, deckOptions)
 
 
         # save state to localStorage
