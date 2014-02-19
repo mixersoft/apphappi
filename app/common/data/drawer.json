@@ -109,7 +109,9 @@
     "items": [
       {
         "name": "photos",
-        "label": "Happi Photos"
+        "label": "Happi Photos",
+        "orderBy": "-dateTaken",
+        "route": "/timeline"
       }
     ]
   },

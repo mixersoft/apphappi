@@ -48,6 +48,10 @@ angular.module( 'appHappi', [
 			templateUrl: 'views/moment/_moments.html'
 			controller: 'MomentCtrl'
 			})
+		.when('/timeline', {
+			templateUrl: 'views/timeline/_timeline.html'
+			controller: 'TimelineCtrl'
+			})
 		.otherwise {
 			redirectTo: '/challenges'
 		}

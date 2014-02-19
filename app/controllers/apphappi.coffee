@@ -673,5 +673,75 @@ angular.module(
 
 		return;
 	]
+).controller( 'TimelineCtrl', [
+	'$scope'
+	'$filter'
+	'$q'
+	'$route'
+	'$location'
+	'drawerService'
+	'syncService'
+	'deckService'
+	'notifyService'
+	'actionService'
+	'appConfig'
+	($scope, $filter, $q, $route, $location, drawer, syncService, deckService, notify, actionService, CFG)->
+		#
+		# Controller: MomentCtrl
+		#
+		CFG.$curtain.find('h3').html('Loading Timeline...')
 
+		_challenges = _moments = _cards = null
+
+		# attributes
+		# $scope.$route = $route
+		# $scope.$location = $location
+		# $scope.cameraService = cameraService
+		$scope.notify = window.notify = notify
+		$scope.CFG = CFG
+		$scope.carousel = {index:0}
+		_.each actionService.exports, (key)->
+			$scope[key] = actionService[key] 
+
+		$scope.drawer = drawer;
+		$scope.initialDrawerState = {
+			group: 'timeline'
+			item: 'photos'
+		}
+		
+		# reset for testing
+		syncService.clearAll() if $route.current.params.reset
+		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
+
+		$q.all( syncService.promises ).then (o)->
+			# rebuild FKs
+			syncService.setForeignKeys(o.challenge, o.moment)
+			# reload or init drawer
+			state = syncService.get('drawerState')
+			if _.isEmpty(state) || state.group !='timeline'
+				drawerItemOptions = drawer.getDrawerItem('timeline', 'photos')
+				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
+			drawer.init o.challenge, o.moment, state
+
+			if $route.current.params.id?
+				# filter moments by id
+				f = {"id": $route.current.params.id}
+				_photos = $filter('filter')(_.values( o.photo ), f)
+			else 
+				_photos = o.photo
+
+			# get nextCard
+			_cards = _.values _photos 
+			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+
+			# hide loading
+			CFG.$curtain.addClass 'hidden'
+			return      
+
+		$scope.drawerShowAll = ()->
+			options = drawer.getDrawerItem('findhappi', 'all')
+			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+
+		return;
+	]
 )
