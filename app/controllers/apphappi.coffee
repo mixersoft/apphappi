@@ -180,31 +180,44 @@ angular.module(
 						card.isCardExpanded = false
 						ev.gesture.preventDefault()
 
-			markPhotoForRemoval : (card, el, i, action='remove')->
+			markPhotoForRemoval : (card, e, i, action)->
 				notify.alert ".thumb swipe left/right detected, action="+action, 'success'
 				return if card.status!='active'
 
-				card.markPhotoForRemoval = [] if !card.markPhotoForRemoval?
+				el = e.currentTarget;
+
+				card.markPhotoForRemoval = {} if !card.markPhotoForRemoval?
+				$card = angular.element(el)
+				while $card.length && !$card.hasClass('thumb')
+					$card = $card.parent()
+
+				if $card.length	
+					e.preventDefault() 
+					e.stopImmediatePropagation()
+
+				if !action?
+					action = if $card.hasClass('remove') then 'undo' else 'remove'
 				switch action
 					when 'undo'
-						angular.element(el).removeClass('remove')	
-						card.markPhotoForRemoval = _.filter( card.markPhotoForRemoval, (o)->
-								return !(o.id == el.id && o.index==i)
-						)
+						$card.removeClass('remove')	
+						if card.markPhotoForRemoval[i]==el.id
+							delete card.markPhotoForRemoval[i] 
+						else throw "markPhotoForRemoval 'undo' index, id mismatch"
 					when 'remove'
-						angular.element(el).addClass('remove')
-						card.markPhotoForRemoval.push({id: el.id, index:i})
+						$card.addClass('remove')
+						card.markPhotoForRemoval[i] = el.id
 				return
 
 			removeMarkedPhotos : (card)->
 				return if !card.markPhotoForRemoval?
-				_.each(card.markPhotoForRemoval, (o)->
-						self.removePhoto(card, o.id, o.index)
+				_.each(card.markPhotoForRemoval, (id, index)->
+						self.removePhoto(card, index, id)
 					)
 
-			removePhoto : (card, id, i)->
+			removePhoto : (card, el, i)->
 				try
 					throw "removePhoto() where card.status != active" if card.status!='active'
+					id = if _.isString(el) then el else el && el.id
 					model = card.type 
 					switch model 
 						when "moment"
@@ -348,6 +361,7 @@ angular.module(
 					photo = _.defaults p, {
 						type: 'photo'
 						stale: now.toJSON()
+						modified: now.toJSON()
 					}
 					# update moment
 					syncService.set('photo', photo)
@@ -497,6 +511,7 @@ angular.module(
 	'$q'
 	'$route'
 	'$location'
+	'$timeout'
 	'drawerService'
 	'syncService'
 	'deckService'
@@ -504,7 +519,7 @@ angular.module(
 	'notifyService'
 	'actionService'
 	'appConfig'
-	($scope, $filter, $q, $route, $location, drawer, syncService, deckService, cameraService, notify, actionService, CFG)->
+	($scope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraService, notify, actionService, CFG)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -633,6 +648,7 @@ angular.module(
 					photo = _.defaults p, {
 						type: 'photo'
 						stale: now.toJSON()
+						modified: now.toJSON()
 					}
 					# update moment
 					syncService.set('photo', photo)
@@ -657,6 +673,5 @@ angular.module(
 
 		return;
 	]
+
 )
-
-

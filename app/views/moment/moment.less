@@ -124,11 +124,6 @@
     width:100%;
     height:auto;  
   }
-  &.remove {
-    opacity: 0.6;
-    background-color: white;
-    border:2px solid @snappi-darkred;
-  }
   .focus {
     box-shadow: 0 0 20px 10px red;
     outline: 1em solid rgba(255, 127, 0, 0.7);
@@ -175,11 +170,17 @@
     }
     .owner {
     }
+
     .bottom-row {
       margin: 0 8px;
       position: relative;
       bottom: 0;
       height: 20px;
+      opacity: 1;
+    }
+    .bottom-row.edit {
+      height: 0;
+      opacity: 0;
     }
     .inline-icons {
       display: inline;
@@ -209,7 +210,7 @@
         }
       }
     }
-    
+
     &:hover {   /* .meta:hover */
       .btn-icon:hover {
       }
@@ -220,6 +221,30 @@
     }
   }
 }
+
+.thumb.remove, .thumb.edit {
+  .crop-wrap {
+    opacity: 0.6;
+    opacity: 0.6;
+    background-color: white;
+  }
+  .meta {
+    opacity: 1;
+    background: fade(@snappi-darkblue,60%);
+    .bottom-row {
+      opacity: 0;
+      height: 0;
+    }
+    .bottom-row.edit {
+      opacity: 1;
+      height: 20px;
+      .fa-times-circle {
+        color: red;
+      }
+    }
+  } 
+}
+
 
 
 /*
