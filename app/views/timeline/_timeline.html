@@ -1,0 +1,54 @@
+<div class="container">
+  <div class="row">
+    <div class="span2" ng-include="'/views/drawer/_drawer.html'">
+    </div>
+    <div class="span10">
+      <!--Body content-->
+      <div class="notify">
+        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
+      </div>
+      
+      <!-- empty list card -->
+      <div class="card-wrap" ng-show='deck.size()==0'>
+        <div ng-model="card" 
+        class="timeline card empty-card summary list-unstyled text-center">
+          <div class="header">
+            <figure class="icon">
+              <i class="icon fa fa-meh-o fa-3x"></i>
+              <figcaption class="category">Get Started</figcaption>
+            </figure>  
+          </div>  
+          <div class="body">
+            <h2 class="title">Accept a Challenge and Get Going</h2>
+          </div>
+          <div class="footer">
+            <div class='btn-group'>
+              <button type="button" class="btn btn-primary" 
+              ng-click="drawerShowAll()">Take me there</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div ng-if="deck.size()">
+        <div class="card-wrap"
+        bindonce
+        >
+          <div class="timeline card empty-card summary list-unstyled ">
+            <div class="header">
+              <figure class="icon">
+                <i class="icon fa fa-picture-o fa-3x"></i>
+                <figcaption class="category">My Happi Photos</figcaption>
+              </figure>  
+            </div>
+          </div>
+          <div class="gallery clearfix">
+            <div ng-repeat="photo in deck.cards()" ng-include="'/common/templates/_thumbnail.html'">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
