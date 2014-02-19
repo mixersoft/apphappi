@@ -1,9 +1,10 @@
  <!-- div.thumb thumbnail template  -->
 <div id="{{photo.id}}" 
 class="thumb fade in {{photo.orientationLabel}}" 
+ng-class="{remove: isMarkedForRemoval($index, photo.id)}"
 ng-click="markPhotoForRemoval(card, $event, $index, 'remove')"
-ng-swipe-left="markPhotoForRemoval(card, $event, $index, 'remove')"
-ng-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
+xx-swipe-left="markPhotoForRemoval(card, $event, $index, 'remove')"
+xx-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
 >
   <div class="crop-wrap" >
     <div class="crop">
@@ -20,13 +21,14 @@ ng-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
       {{photo.caption}} 
     </div>
     <div class='bottom-row edit'> 
+      <span class="inline-icons"></span>
       <span class="inline-icons right">
         <i ng-click="markPhotoForRemoval(card, $event, $index, 'undo')"
-        class='btn-icon fa fa-times-circle fa-2x'  title='remove'></i>
+        class='btn-icon fa fa-times-circle fa-lg'  title='remove'></i>
       </span>
     </div>
     <div class='bottom-row'> 
-      <span class="inline-icons left">
+      <span class="inline-icons">
         <i ng-show="!!photo.shotCount" class='btn-icon fa fa-reorder show-hidden-shot' title='click to hide duplicate shots'></i>
         <rating rating-type="photo"
         ng-click="persistRating($event,$index)" value="photo.rating" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>

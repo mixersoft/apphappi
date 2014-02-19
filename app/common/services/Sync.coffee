@@ -113,8 +113,12 @@ angular.module(
 						_.each saveData, (o)->
 							# pk = key+":"+o.id
 							# console.info "saving "+pk+" to localStorage..."
-							o.type = key
-							localData[o.id] = o
+							if o.remove
+								delete localData[o.id] 
+							else 
+								o.type = key
+								localData[o.id] = o
+								
 						#TODO: check if we are wasting cycles by saving entire array to localStorageService
 						localStorageService.set(key, localData)
 						syncService.localData[key] = localData

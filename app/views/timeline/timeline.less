@@ -79,7 +79,7 @@
     line-height: 1.3;
     margin-top: 5px;
     overflow: hidden;
-    padding: 5px 0 0;
+    padding: 4px 0;
     position: absolute;
     text-align: left;
     text-shadow: 1px 1px 0 black;
@@ -96,10 +96,16 @@
       position: relative;
       bottom: 0;
       height: 20px;
+      overflow: hidden;
+    }
+    .bottom-row.edit {
+      height: 0;
+      opacity: 0;
     }
     .inline-icons {
-      display: inline;
-      margin-top: 2px;
+      display: inline-block;
+      font-size: @font-size-base;
+      margin: 2px 0;
       overflow: visible;
       opacity: 0.6;
       z-index: 50;
@@ -135,6 +141,30 @@
       }
     }
   }
+}
+
+
+.thumb.remove, .thumb.edit {
+  .crop-wrap {
+    opacity: 0.6;
+    opacity: 0.6;
+    background-color: white;
+  }
+  .meta {
+    opacity: 1;
+    background: fade(@snappi-darkblue,60%);
+    .bottom-row {
+      opacity: 0;
+      height: 0;
+    }
+    .bottom-row.edit {
+      opacity: 1;
+      height: 20px;
+      .fa-times-circle {
+        color: red;
+      }
+    }
+  } 
 }
 
 

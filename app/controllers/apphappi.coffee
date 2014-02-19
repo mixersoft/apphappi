@@ -43,7 +43,7 @@ angular.module(
 				'drawerItemClick'
 				'goToMoment'
 				'markPhotoForRemoval'
-				'removePhoto'
+				'isMarkedForRemoval'
 				'shuffleDeck'
 				# 'swipe'
 			]
@@ -192,69 +192,61 @@ angular.module(
 					if route? && route != $location.path()
 						$location.path(route)
 
-			XXXswipe : ( target, ev, index)->
-				# target = ev.currentTarget
-				dir = ev.gesture.direction
-				action = [target, dir].join('-')
-				scope = this
-				card = scope.card
-
-				notify.alert [ev.type, target, dir].join('-'), null, 1000
-				switch target
-					when 'thumb-img'
-						# ?? use status='edit'
-						throw "Error: removePhoto(), $index was NOT passed to swipe" if !index?
-						sliced = self.removePhoto.call(scope, card, ev.currentTarget.id, index)
-						ev.gesture.preventDefault()
-						ev.stopImmediatePropagation()
-						return sliced	
-
-				switch action
-					when 'card-down'
-						card.isCardExpanded = true	
-						ev.gesture.preventDefault()
-					when 'card-up'
-						card.isCardExpanded = false
-						ev.gesture.preventDefault()
-
 			markPhotoForRemoval : (card, e, i, action)->
-				notify.alert ".thumb swipe left/right detected, action="+action, 'success'
-				return if card.status!='active'
+				return if !(card && card.status=='active')
+				# return if window.Modernizr?.touch && e.type == 'click'  # ng-swipe -> touchend
+				notify.alert ".thumb action detected, type="+e.type+", action="+action, 'success'
 
 				el = e.currentTarget;
 
 				card.markPhotoForRemoval = {} if !card.markPhotoForRemoval?
 				$card = angular.element(el)
+
 				while $card.length && !$card.hasClass('thumb')
 					$card = $card.parent()
+				return if !$card.length
 
-				if $card.length	
-					e.preventDefault() 
-					e.stopImmediatePropagation()
+				# notify.alert "card, id="+$card.attr('id')
 
+				eventHandled = false
 				if !action?
 					action = if $card.hasClass('remove') then 'undo' else 'remove'
 				switch action
 					when 'undo'
-						$card.removeClass('remove')	
-						if card.markPhotoForRemoval[i]==el.id
-							delete card.markPhotoForRemoval[i] 
-						else throw "markPhotoForRemoval 'undo' index, id mismatch"
+						if $card.hasClass('remove')
+							eventHandled = true
+							if card.markPhotoForRemoval[i]==$card.attr('id')
+								delete card.markPhotoForRemoval[i] 
+							else throw "markPhotoForRemoval 'undo' index, id mismatch"
 					when 'remove'
-						$card.addClass('remove')
-						card.markPhotoForRemoval[i] = el.id
+						if !$card.hasClass('remove')
+							notify.alert "marked for removal, id="+$card.attr('id')
+							eventHandled = true
+							card.markPhotoForRemoval[i] = $card.attr('id')
+
+				if true || eventHandled
+					e.preventDefault() 
+					e.stopImmediatePropagation()
 				return
+
+			isMarkedForRemoval : (i, id)->
+				return false if this.card?.status != 'active'
+				marked = this.card?.markPhotoForRemoval?[i]==id
+				return marked;
 
 			removeMarkedPhotos : (card)->
 				return if !card.markPhotoForRemoval?
+				now = new Date().toJSON()
 				_.each(card.markPhotoForRemoval, (id, index)->
-						self.removePhoto(card, index, id)
+						retval = self._removePhoto(card, index, id)
+						card.stale = now
 					)
+				delete card.markPhotoForRemoval
+				return
 
-			removePhoto : (card, el, i)->
+			_removePhoto : (card, i, id)->
 				try
 					throw "removePhoto() where card.status != active" if card.status!='active'
-					id = if _.isString(el) then el else el && el.id
 					model = card.type 
 					switch model 
 						when "moment"
@@ -272,8 +264,21 @@ angular.module(
 					check2 = card.challengePhotos.splice(challengeIndex, 1)[0] if challengeIndex?
 					if m.photos?
 						check1b = m.photos && m.photos.splice(momentIndex, 1)
-						throw "removePhoto() id mismatch" if id != check1 != check1b.id
-					throw "removePhoto() challengePhotos id mismatch" if check2 && id != check2.id
+						throw "removePhoto() id mismatch" if id != check1[0] != check1b[0].id
+					throw "removePhoto() challengePhotos id mismatch" if check2 && id != check2[0].id
+
+					# check for orphaned photo
+					moments = syncService.get('moment')
+					found = _.find( moments, (o)->
+							return false if o.id == m.id
+							return o.photoIds.indexOf(id) > -1
+						)
+					if !found 
+						photo = syncService.get('photo', id)
+						photo.remove = photo.stale = true
+						syncService.set('photo', photo)
+
+
 				catch error
 					notify.alert error, 'warning', 10000
 					return false
@@ -389,7 +394,8 @@ angular.module(
 		$scope.challenge_getPhoto = ($event)->
 			c = $scope.deck.topCard()
 			m = $scope.moment || _.findWhere actionService._getMoments( c ), {status:'active'} 
-			angular.element($event.currentTarget.parentNode).find('i').addClass('fa-spin')
+			icon = angular.element($event.currentTarget.parentNode).find('i')
+			icon.addClass('fa-spin')
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
@@ -411,6 +417,7 @@ angular.module(
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 					syncService.set('moment', m)
+					icon.removeClass('fa-spin')
 				return
 
 
@@ -677,7 +684,8 @@ angular.module(
 		$scope.moment_getPhoto = (id, $event)->
 			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
 			throw "moment id mismatch" if m.id != id
-			angular.element($event.currentTarget.parentNode).find('i').addClass('fa-spin')
+			icon = angular.element($event.currentTarget.parentNode).find('i')
+			icon.addClass('fa-spin')
 
 			saveToMoment = (p)->
 				now = new Date()
@@ -697,6 +705,7 @@ angular.module(
 
 					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 					syncService.set('moment', m)
+					icon.removeClass('fa-spin')
 				return
 
 			if !navigator.camera
