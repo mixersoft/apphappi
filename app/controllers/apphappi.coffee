@@ -361,7 +361,7 @@ angular.module(
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' &&
 							drawer.state.item=='current' &&
-							drawer.state.counts['active'] == 0)
+							drawer.state.counts['challenge']['active'] == 0)
 				$scope.drawerShowAll()
 
 			# hide loading
@@ -541,10 +541,10 @@ angular.module(
 			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
 			return $scope.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
 
-		$scope.challenge_later = ()->
+		$scope.challenge_sleep = ()->
 			# set current challenge, then put app to sleep
 			# on wake, should open to current challenge
-			notify.alert "Later clicked at "+new Date().toJSON(), "success", 5000
+			notify.alert "Sleep Challenge clicked at "+new Date().toJSON(), "success", 5000
 			return $scope.challege	
 
 		return;
