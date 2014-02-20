@@ -8,7 +8,54 @@ angular.module(
 	'appConfig'
 	($q, notify, CFG)->
 
+		class Downsizer
+			constructor: (options)->
+				defaults = {
+					deferred: _deferred
+					targetWidth: CFG.camera.targetWidth
+				}
+				self = this
+
+				this.cfg = _.defaults(options, defaults)
+				this._canvasElement = document.createElement('canvas')
+				this._imageElement = new Image()
+				
+				this._imageElement.onload = ()->
+					dataURL = self._downsize(this)		# this == self.imageElement
+					photo = _getPhotoObj(null, dataURL)
+					self.cfg.deferred.resolve(photo)
+
+				return this
+
+			_downsize: (img, targetWidth)=>
+				targetWidth = targetWidth || this.cfg.targetWidth
+				img = img || this._imageElement
+				tempW = img.width;
+				tempH = img.height;
+				if (tempW > targetWidth) 
+					 tempH *= targetWidth / tempW;
+					 tempW = targetWidth;
+
+				# canvas = document.createElement('canvas');
+				this._canvasElement.width = tempW;
+				this._canvasElement.height = tempH;
+				ctx = this._canvasElement.getContext("2d");
+				ctx.drawImage(img, 0, 0, tempW, tempH)
+				return dataURL = this._canvasElement.toDataURL("image/jpeg")	
+
+			downsizeImage : (src, dfd, targetWidth)=>
+				this.cfg.deferred = dfd if dfd?
+				this.cfg.targetWidth = targetWidth if targetWidth?	
+				this._imageElement.src = src
+				return this.cfg.deferred.promise
+
+		# private object for downsizing via canvas
 		_deferred = null
+		_downsizer = new Downsizer({
+			deferred: _deferred
+			targetWidth: CFG.camera.targetWidth
+		})	
+		
 		_getPhotoObj = (uri, dataURL)->
 			# get hash from EXIF to detect duplicate photo
 			now = new Date()
@@ -20,40 +67,25 @@ angular.module(
 				src: uri || dataURL
 			}
 
-		# for testing in browser, no access to Cordova camera API
+
+		#  ### BROWSER TESTING ###
+		#  for testing in browser, no access to Cordova camera API
+		#
 		if !navigator.camera?
 			#
 			# private
 			#
 			_fileReader = new FileReader()
-			_tempImg = new Image()
 			_icon = null
 
 			_fileReader.onload = (event)->
-				_tempImg.src = event.target.result
-
-			_tempImg.onload = ()->
-				dataURL = _downsize(this)
-				_icon.removeClass('fa-spin') if _icon?
-				photo = _getPhotoObj(null, dataURL)
-				_deferred.resolve(photo)
-
-			_downsize = (img, MAX_WIDTH=320)->
-				tempW = _tempImg.width;
-				tempH = _tempImg.height;
-				if (tempW > MAX_WIDTH) 
-					 tempH *= MAX_WIDTH / tempW;
-					 tempW = MAX_WIDTH;
-
-				canvas = document.createElement('canvas');
-				canvas.width = tempW;
-				canvas.height = tempH;
-				ctx = canvas.getContext("2d");
-				ctx.drawImage(img, 0, 0, tempW, tempH)
-				return dataURL = canvas.toDataURL("image/jpeg")
+				# _imageElement.src = event.target.result
+				_downsizer.downsizeImage(event.target.result, _deferred).then( ()->
+						_icon.removeClass('fa-spin')
+					)
 
 			#
-			# this is the actual service
+			# this is the actual service for BROWSER
 			#	
 			return NO_cameraService = {
 				# use HTML5 File api in browser
@@ -77,13 +109,16 @@ angular.module(
 								return false
 					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 					return _deferred.promise
-			}
+			} # end NO_cameraService
+
+		#
+		# ### for DEVICE ###
+		#
 
 		# private
 		_fsRoot = null
-
+		_requestFsPERSISTENT = ()->
 		# for devices with access to Cordova camera API
-		if false && "request LocalFileSystem.PERSISTENT"
 			notify.alert "1. window.deviceReady. navigator.camera"+JSON.stringify(navigator.camera), null, 10000
 			_fsDeferred = $q.defer()
 			window.requestFileSystem(
@@ -98,7 +133,7 @@ angular.module(
 					_fsDeferred.reject(ev)
 			)
 			_fsDeferred.promise.finally ()-> 
-				notify.alert "4. window.requestFileSystem(), Deferred.promise.finally(), args"+JSON.stringify arguments, 'danger', 10000
+				notify.alert "4. window.requestFileSystem(), Deferred.promise.finally(), args"+JSON.stringify arguments, 'success', 10000
 			notify.alert "5. continue with cameraService init"	
 
 
@@ -177,6 +212,8 @@ angular.module(
 						cameraService.fileError
 					)
 
+					# _requestFsPERSISTENT()
+
 				# Store the moved file's URL into $scope.imageSrc
 				# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
 				fileMoved = (file)->
@@ -184,11 +221,17 @@ angular.module(
 					if _deferred?
 						filepath = "/" + file.name
 						# notify.alert "fileMoved(): BEFORE deferred.resolve() filepath="+filepath
-						photo = _getPhotoObj(filepath)
-						_deferred.resolve(photo)
+						if CFG.saveDownsizedJPG
+							targetWidth = CFG.camera.targetWidth
+							_downsizer.downsizeImage(filepath,_deferred).then( ()->
+								notify.alert "saving JPG as dataURL, w="+targetWidth+"px", "success"
+							)
+						else
+							photo = _getPhotoObj(filepath)
+							_deferred.resolve(photo)
 							# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
 						return
-						notify.alert "fileMoved(): "+JSON.stringify( file, null, 2)
+						# notify.alert "fileMoved(): "+JSON.stringify( file, null, 2)
 					cameraService.cleanup()	
 
 			cleanup : ()->
