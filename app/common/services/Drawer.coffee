@@ -20,6 +20,28 @@ angular.module(
       myNgModel: '='     # this is NOT working, scope.mirror is not set
     # link: link 
   }
+).directive('responsiveDrawerWrap', ($window)->
+
+    return {
+      restrict: 'A'
+      link: (scope, element, attrs)->
+        setResponsive = _.debounce (()->
+                  # either $window.innerWidth or $window.outerWidth
+                  isStacked = $window.innerWidth < scope.CFG.drawerOpenBreakpoint
+                  if (isStacked) 
+                    element.removeClass('force-open')
+                  else 
+                    element.addClass('force-open')
+                  if scope.drawer?
+                    scope.drawer.setDrawerOpen() 
+          ), 200
+
+        angular.element($window).bind 'resize', ->
+          setResponsive()
+
+        setResponsive()
+    }
+
 ).factory('drawerService', [
   'appConfig'
   '$location'
@@ -33,6 +55,8 @@ angular.module(
     _drawer = {
       url: '/common/data/drawer.json'
       json: {}    
+      drawerWrap : null     #  #drawer element
+
       # initial defaultDrawerItemState, override on drawer.init() in controller
 
       defaultDrawerItemState: {  
@@ -59,35 +83,30 @@ angular.module(
       # set drawer state based on bootstrap grid breakpoint
       forceDrawerOpen : null
 
-      initDrawer: _.debounce (()->
-              # either $window.innerWidth or $window.outerWidth
-              wasOpen = _drawer.forceDrawerOpen
-              _drawer.forceDrawerOpen = $window.innerWidth >= CFG.drawerOpenBreakpoint
-              if _drawer.forceDrawerOpen
-                console.log "force drawer open"
-                # angular.element(document.getElementById('drawer')).addClass('force-open')
-                self.isDrawerOpen = true
-                return 
-              else 
-                console.log "drawer toggle"
-                if wasOpen
-                  self.isDrawerOpen = false 
-                  console.log "close drawer"
-                # angular.element(document.getElementById('drawer')).removeClass('force-open')
-
-            ), 200
     }
 
     self = {
       isDrawerOpen: false
 
-      forceDrawerOpen: (e)->
-        # intercept and discard ng-click='isOpen=!isOpen'
-        if (e && _drawer.forceDrawerOpen)
+      setDrawerOpen: ()->
+        # directive responsiveDrawerWrap will add/remove .force-open class to drawerWrap
+        if !(_drawer.drawerWrap?.length)
+          _drawer.drawerWrap = angular.element(document.getElementById('drawer'))  
+        self.isDrawerOpen =  _drawer.drawerWrap.hasClass('force-open') 
+        # TODO: cancel animation for this transition
+        _drawer.drawerWrap.scope()?.$apply()
+
+      # discard open click as necessary using .fa-bars
+      handleDrawerOpen: (e)->
+        if !_drawer.drawerWrap
+          _drawer.drawerWrap = angular.element(document.getElementById('drawer'))
+        if _drawer.drawerWrap.hasClass('force-open')
+          # prevent close on ng-click
+          self.isDrawerOpen = true
           e.preventDefault()
           e.stopImmediatePropagation()
-        console.log "_drawer.forceDrawerOpen="+_drawer.forceDrawerOpen+", ng-class="+!e
-        return _drawer.forceDrawerOpen
+          return false
+        return true # let accordion.ng-click do its work
 
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
 
@@ -95,7 +114,7 @@ angular.module(
         return id == self.state?['activeItemId']
 
       animateClose: (delay=750)->
-        return if self.forceDrawerOpen()
+        return if _drawer.drawerWrap.hasClass('force-open')
         $timeout ()->
             self.isDrawerOpen = false
           , delay  
@@ -154,7 +173,8 @@ angular.module(
         catch
           return false
          
-      forceGroupOpen: (group)->
+      XXXforceGroupOpen: (group)->
+        # deprecate,  drawerGroup is always open
         # force open accordion-group on ng-click toggle()
         # NOTE: this is different from initial state open/close
         # self.state.group = group.name
@@ -167,8 +187,8 @@ angular.module(
         self.updateCounts(challenges, moments)
 
         # set drawer query, filter property
-        drawerGroup = _.findWhere(_drawer.json.data, {name: self.state.group})
-        drawerGroup.isOpen = true;
+        # drawerGroup = _.findWhere(_drawer.json.data, {name: self.state.group})
+        # drawerGroup.isOpen = true;
         return self
 
       
@@ -208,14 +228,6 @@ angular.module(
       ready: (drawer)->   # should be a promise
         return "Usage: self.load(url); self.ready.then();"
     }
-
-
-
-    # init
-    _drawer.initDrawer()
-    angular.element($window).bind('resize', ()->
-      _drawer.initDrawer()
-    )
 
     return self
 ])
