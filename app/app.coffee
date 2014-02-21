@@ -11,7 +11,8 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: true
+	debug: false
+	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true
 	camera: 
 		targetWidth : 320
@@ -66,15 +67,35 @@ angular.module( 'appHappi', [
 
 
 
+
+
+
 # bootstrap 
 window.deviceReady = false
 if window.Modernizr.touch
 	document.addEventListener "deviceready", ()->
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
 		location.reload() if !navigator.camera?
-		window.deviceReady = navigator.camera
-		
+		window.deviceReady = !!navigator.camera
 
-else 
-	angular.element(document).ready ()->
+
+angular.element(document).ready ()->
+	if !window.Modernizr.touch
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
+	# continue document ready()
+
+
+
+
+  # init = ()-> 
+  #   setPageDimensions();
+
+  #   $(window).on("load resize orientationchange", function() {
+  #       setPageDimensions();
+  #   })
+
+
+  # # set the pane dimensions and scale the container
+  # setPageDimensions = ()->
+  # 	width = window.innerWidth
+    

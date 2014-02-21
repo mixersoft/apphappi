@@ -2,7 +2,9 @@
 <accordion>
   <accordion-group class='drawer inverse' is-open="drawer.isDrawerOpen">
     <accordion-heading>
-      <i class='fa fa-bars fa-lg'></i><i class="fa fa-plane pull-right"></i>
+      <i class='fa fa-bars fa-lg'
+      ng-click='drawer.forceDrawerOpen($event)'
+      ></i><i class="fa fa-plane pull-right"></i>
     </accordion-heading>
     <div class="drawer-body">
       <div class='item'><input ng-model="drawer.query" placeholder="Search"></div>

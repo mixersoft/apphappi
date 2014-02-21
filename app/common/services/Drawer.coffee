@@ -25,13 +25,16 @@ angular.module(
   '$location'
   '$http'
   '$timeout'
+  '$window'
   'localStorageService'
-, (appConfig, $location, $http, $timeout, localStorageService)->
+, (CFG, $location, $http, $timeout, $window, localStorageService)->
+
     # private
     _drawer = {
       url: '/common/data/drawer.json'
       json: {}    
-      # initial defaultDrawerItemState, override on drawer.init() in controller 
+      # initial defaultDrawerItemState, override on drawer.init() in controller
+
       defaultDrawerItemState: {  
         group: 'findhappi'
         item: 'current'
@@ -52,17 +55,47 @@ angular.module(
           active: 0
         }
         return {'challenge': challengeCounts}
-      
+
+      # set drawer state based on bootstrap grid breakpoint
+      forceDrawerOpen : null
+
+      initDrawer: _.debounce (()->
+              # either $window.innerWidth or $window.outerWidth
+              wasOpen = _drawer.forceDrawerOpen
+              _drawer.forceDrawerOpen = $window.innerWidth >= CFG.drawerOpenBreakpoint
+              if _drawer.forceDrawerOpen
+                console.log "force drawer open"
+                # angular.element(document.getElementById('drawer')).addClass('force-open')
+                self.isDrawerOpen = true
+                return 
+              else 
+                console.log "drawer toggle"
+                if wasOpen
+                  self.isDrawerOpen = false 
+                  console.log "close drawer"
+                # angular.element(document.getElementById('drawer')).removeClass('force-open')
+
+            ), 200
     }
 
     self = {
       isDrawerOpen: false
+
+      forceDrawerOpen: (e)->
+        # intercept and discard ng-click='isOpen=!isOpen'
+        if (e && _drawer.forceDrawerOpen)
+          e.preventDefault()
+          e.stopImmediatePropagation()
+        console.log "_drawer.forceDrawerOpen="+_drawer.forceDrawerOpen+", ng-class="+!e
+        return _drawer.forceDrawerOpen
+
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
 
       isDrawerItemActive: (id)->
         return id == self.state?['activeItemId']
 
       animateClose: (delay=750)->
+        return if self.forceDrawerOpen()
         $timeout ()->
             self.isDrawerOpen = false
           , delay  
@@ -80,7 +113,7 @@ angular.module(
               $timeout (()->window.location.reload()), 1000
               return
             when 'debug'
-              appConfig.debug = !appConfig.debug
+              CFG.debug = !CFG.debug
             when 'reload'
               return window.location.reload();
 
@@ -175,5 +208,14 @@ angular.module(
       ready: (drawer)->   # should be a promise
         return "Usage: self.load(url); self.ready.then();"
     }
+
+
+
+    # init
+    _drawer.initDrawer()
+    angular.element($window).bind('resize', ()->
+      _drawer.initDrawer()
+    )
+
     return self
 ])

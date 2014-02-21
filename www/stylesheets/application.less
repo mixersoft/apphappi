@@ -40,31 +40,37 @@ body {
 }
 
 .container {
-	max-width: @card-width;
+	/*max-width: @card-width;*/
 }
 
 .device {
-	.center-block();
-	&.device-border {
-		position: fixed;	
+	position: fixed;
+	width: 100%;
+	box-sizing: border-box;
+	.device-border {
+		position: fixed;
 		border: 1px solid green;
 		z-index: -1;
 	}
-	&.device-wrap {
+	.device-wrap {
+		.center-block();
 		position: relative;	
 		background-color: @gray-light;
 	}
-	
-	box-sizing: border-box;
-	&.iphone4 {
+	.iphone4 {
 		width: 320px;
 		height: 480px;
 		
 	}
-	&.iphone5 {
+	.iphone5 {
 		width: 320px;
 		height: 568px;	
 	}
+}
+
+#drawer.force-open {
+	margin: 0 15px 0 -15px;
+	padding: 0;
 }
 
 i.fa, .badge, .label {
@@ -82,7 +88,7 @@ i.fa, .badge, .label {
 
 .card-wrap {
    box-sizing: border-box;
-   width: @card-width;
+   /*width: @card-width;*/
 	.card {
 		border: 2px solid @snappi-darkblue;
 		border-radius: 10px;
@@ -115,7 +121,7 @@ i.fa, .badge, .label {
 }
 
 
-.filmstrip {
+.XXXfilmstrip {
   width: @card-width;
   overflow-x: hidden;
   .hscroll {

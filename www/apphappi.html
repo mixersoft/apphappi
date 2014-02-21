@@ -9,7 +9,7 @@
     <title>AppHappi</title>
 
     <meta http-equiv="X-UA-Compatible"  content="IE=edge,chrome=1">
-    <meta name="viewport"               content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"               content="width=device-width, initial-scale=1">
     <meta name="description"            content="AppHappi by Snaphappi">
     <meta name="author"                 content="michael@snaphappi.com">
 
@@ -46,21 +46,27 @@
         Please enable Javascript to experience this site :)
     </noscript>
 
-
-    <div class="device device-wrap iphone4">
-        <div class="device device-border iphone4"></div>
-        <div class="device device-border iphone5"></div>
-        <div id="curtain" class="center">
-            <h3>Loading...</h3>
-            <i class="fa fa-spinner fa-spin fa-2x"></i>
+    <div class="container device">
+        <div class="row">
+            <div class="col-sm-offset-4 col-sm-8">
+                <div class="device-wrap iphone4">
+                    <div class="device-border iphone4"></div>
+                    <div class="device-border iphone5"></div>
+                </div>
+            </div>
+            <div id="curtain" class="center">
+                <h3>Loading...</h3>
+                <i class="fa fa-spinner fa-spin fa-2x"></i>
+            </div>
         </div>
-        <div id="ng-app">
-            <!-- sample bootstrap copy  -->
-            <div class="view-container">
-              <div ng-view class="view-frame"></div>
-            </div> 
-        </div>  
     </div>
+
+    <div id="ng-app">
+        <!-- sample bootstrap copy  -->
+        <div class="view-container">
+          <div ng-view class="view-frame"></div>
+        </div> 
+    </div>  
 
     <!-- build:js javascripts/vendor-BODY.min.js -->
     <script src="components/modernizr/modernizr.js"></script>
