@@ -34,9 +34,10 @@ body {
 
 #curtain {
 	height: 100%;
-	margin-top: 50%;
+	margin-top: 30%;
 	position: absolute;
-	width: 100%;  
+	width: 100%; 
+	z-index: 100; 
 }
 
 .container {
@@ -47,6 +48,7 @@ body {
 	position: fixed;
 	width: 100%;
 	box-sizing: border-box;
+
 	.device-border {
 		position: fixed;
 		border: 1px solid green;
@@ -54,13 +56,12 @@ body {
 	}
 	.device-wrap {
 		.center-block();
-		position: relative;	
+		position: fixed;	
 		background-color: @gray-light;
 	}
 	.iphone4 {
 		width: 320px;
 		height: 480px;
-		
 	}
 	.iphone5 {
 		width: 320px;
@@ -69,8 +70,21 @@ body {
 }
 
 #drawer.force-open {
-	margin: 0 15px 0 -15px;
-	padding: 0;
+	/*margin: 0 15px 0 -15px;*/
+	/*padding: 0;*/
+	/*position:fixed;*/
+	> accordion {
+		height: 100%;
+		position: fixed;
+		.translate3d(0,0,0);
+		> .panel-group {
+			height: 100%;
+			> .panel {
+				height: 100%;
+				background-color: @snappi-darkblue;
+			}
+		}
+	}
 }
 
 i.fa, .badge, .label {
@@ -88,6 +102,7 @@ i.fa, .badge, .label {
 
 .card-wrap {
    box-sizing: border-box;
+   .translate3d(0,0,0);
    /*width: @card-width;*/
 	.card {
 		border: 2px solid @snappi-darkblue;

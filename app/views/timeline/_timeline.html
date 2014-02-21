@@ -1,8 +1,11 @@
 <div class="container">
   <div class="row">
-    <div class="span2" ng-include="'/views/drawer/_drawer.html'">
+    <div class="col-sm-4">
+      <div id="drawer" responsive-drawer-wrap
+      ng-include="'/views/drawer/_drawer.html'">
+      </div>
     </div>
-    <div class="span10">
+    <div id="body" class="col-sm-offset-4 col-sm-8 center-block">
       <!--Body content-->
       <div class="notify">
         <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
