@@ -113,7 +113,7 @@
             </div> 
           </div>
           <div class="gallery clearfix"
-          ng-if="$index==carousel.index" >
+          ng-if="-2 < ($index-carousel.index) && ($index-carousel.index) < 2" >
             <div ng-repeat="photo in card.photos" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>
