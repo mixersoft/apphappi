@@ -203,7 +203,7 @@ angular.module(
 				steroids.on "ready", ->
 					# notify.alert "steroids.on('ready'): file="+file.name
 					# targetDirURI = _fsRoot.fullpath		
-					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath
+					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath + "/../photos"
 					fileName = new Date().getTime()+'.jpg'
 
 					window.resolveLocalFileSystemURI(

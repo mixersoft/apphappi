@@ -13,7 +13,7 @@ angular.module( 'appHappi', [
 	userId: null
 	debug: false
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
-	saveDownsizedJPG: true
+	saveDownsizedJPG: false
 	camera: 
 		targetWidth : 320
 		quality: 85
