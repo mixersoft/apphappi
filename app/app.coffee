@@ -63,7 +63,8 @@ angular.module( 'appHappi', [
 ).filter('reverse', ()->
   return (items)-> 
     return items.slice().reverse()
-);
+
+)
 
 
 

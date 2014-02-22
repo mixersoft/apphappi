@@ -40,8 +40,7 @@ angular.module(
           setResponsive()
 
         setResponsive()
-    }
-
+    }  
 ).factory('drawerService', [
   'appConfig'
   '$location'
@@ -94,7 +93,9 @@ angular.module(
           _drawer.drawerWrap = angular.element(document.getElementById('drawer'))  
         self.isDrawerOpen =  _drawer.drawerWrap.hasClass('force-open') 
         # TODO: cancel animation for this transition
-        _drawer.drawerWrap.scope()?.$apply()
+        _drawer.drawerWrap?.scope()?.$apply()
+        console.log "setDrawerOpen, isDrawerOpen="+self.isDrawerOpen
+        return
 
       # discard open click as necessary using .fa-bars
       handleDrawerOpen: (e)->
@@ -114,7 +115,8 @@ angular.module(
         return id == self.state?['activeItemId']
 
       animateClose: (delay=750)->
-        return if _drawer.drawerWrap.hasClass('force-open')
+        return if !_drawer.drawerWrap?
+        return if _drawer.drawerWrap?.hasClass('force-open')
         $timeout ()->
             self.isDrawerOpen = false
           , delay  
