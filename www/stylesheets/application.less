@@ -69,9 +69,13 @@ body {
 	}
 }
 
+/* CSS for col-sm horizontal */
+#drawer > accordion > .panel-group > .panel {
+	min-width: 250px;
+}
 #drawer.force-open {
-	/*margin: 0 15px 0 -15px;*/
-	/*padding: 0;*/
+	margin: 0 15px 0 -15px;
+	padding: 0;
 	/*position:fixed;*/
 	> accordion {
 		height: 100%;
@@ -82,10 +86,17 @@ body {
 			> .panel {
 				height: 100%;
 				background-color: @snappi-darkblue;
+				xwidth: 105%;
 			}
 		}
 	}
 }
+#body > * {
+	.center-block();
+	max-width: 500px;
+}
+
+
 
 i.fa, .badge, .label {
   cursor: default;
@@ -100,15 +111,12 @@ i.fa, .badge, .label {
 	z-index: 100;
 }
 
-.rn-carousel-container {
-	.center-block();
-}
 
 .card-wrap {
    box-sizing: border-box;
    .translate3d(0,0,0);
    /*width: @card-width;*/
-   max-width: 500px;
+   /*max-width: 500px;*/
 	.card {
 		border: 2px solid @snappi-darkblue;
 		border-radius: 10px;
