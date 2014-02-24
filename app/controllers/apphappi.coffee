@@ -33,8 +33,11 @@ angular.module(
 	'deckService'
 	'syncService'
 	'notifyService'
+	'$q'
 	'$location'
-	(drawerService, deckService, syncService, notify, $location)->
+	'$timeout'
+	(drawerService, deckService, syncService, notify, $q, $location, $timeout)->
+
 		self = {
 
 			exports: [
@@ -66,6 +69,29 @@ angular.module(
 						)
 						, []
 				return _.unique(found)
+
+			_backgroundDeferred: null
+
+			# set up deferred BEFORE causing app to pause
+			prepareToResumeApp : (e)->
+				return if !window.deviceReady
+				if e?
+					if !self._backgroundDeferred?
+						notify.alert "App was NOT prepared to resume after being sent to background" 
+				else
+					notify.alert "App was prepared to resume, then sent to background" 
+					self._backgroundDeferred = $q.defer()
+					self._backgroundDeferred.finally ()-> self._backgroundDeferred = null
+					return self._backgroundDeferred.promise
+			
+			resumeApp	 : (e)->
+				return if !window.deviceReady
+				$timeout (()=>
+					notify.alert "App was resumed from background"
+					self._backgroundDeferred?.resolve(e)
+				), 0
+				
+				
 
 			# do housekeeping when changing status of challenge, moment
 			setCardStatus : (card, status, now)->
@@ -290,6 +316,13 @@ angular.module(
 				drawerService.animateClose(500)
 				return 
 		}
+
+		# send App to background
+		document.addEventListener("pause", self.prepareToResumeApp, false);
+
+		# resume from pause (background)
+		document.addEventListener("resume", self.resumeApp, false);
+
 		return self
 ]
 ).controller( 'ChallengeCtrl', [
@@ -359,10 +392,17 @@ angular.module(
 			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
 
 			# redirect to all if no active challenge
-			if (drawer.state.group=='findhappi' &&
-							drawer.state.item=='current' &&
-							drawer.state.counts['challenge']['active'] == 0)
-				$scope.drawerShowAll()
+			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
+				if drawer.state.counts['challenge']['active'] == 0
+					$scope.drawerShowAll()
+				else # load moment, challengePhotos
+					c = $scope.deck.topCard()
+					m = _.findWhere actionService._getMoments(c), {status:'active'}
+					return if !m
+					m.photos = actionService._getPhotos m if !m.photos?
+					return if !m.photos
+					c.challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
+
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -423,11 +463,11 @@ angular.module(
 
 			if !navigator.camera
 				promise = cameraService.getPicture($event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 10000 )
 				return true	# continue to input[type=file] handler
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 15000 )
 
 		$scope.challenge_pass = ($index)->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
