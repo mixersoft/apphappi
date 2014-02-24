@@ -62,11 +62,21 @@
         </div>
     </div>
 
-    <div id="ng-app">
-        <!-- sample bootstrap copy  -->
-        <div class="view-container">
-          <div ng-view class="view-frame"></div>
-        </div> 
+    <div id="ng-app" ng-cloak>
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-4">
+                  <div id="drawer" class="force-open" responsive-drawer-wrap
+                  ng-include="'/views/drawer/_drawer.html'">
+                  </div>
+                </div>
+                <div id="body" class="col-sm-offset-4 col-sm-8">
+                    <div class="view-container">
+                      <div ng-view class="view-frame"></div>
+                    </div>
+                </div>
+            </div>
+        </div>  
     </div>  
 
     <!-- build:js javascripts/vendor-BODY.min.js -->
