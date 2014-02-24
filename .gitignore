@@ -33,3 +33,6 @@ obj/
 _ReSharper*/
 [Tt]est[Rr]esult*
 .tmp/
+AppHappi.2.sublime-project
+AppHappi.2.sublime-workspace
+desktop.ini
