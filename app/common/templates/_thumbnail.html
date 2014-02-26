@@ -36,7 +36,10 @@ xx-swipe-right="markPhotoForRemoval(card, $event, $index, 'undo')"
       <span class="inline-icons right">
         <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>
         <i class='btn-icon fa fa-info-circle'  title='show info'></i>
-        <i class='btn-icon zoom-in fa fa-arrow-right' title='go to Moment'
+        <i class='btn-icon fa fa-arrow-up' title='share'
+        ng-click="socialShare($event, $index, $scope)"
+        ></i>
+        <i class='btn-icon fa fa-arrow-right' title='go to Moment'
         ng-click="goToMoment($event, $index, $scope)"
         ></i>
 

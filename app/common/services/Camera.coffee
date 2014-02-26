@@ -13,10 +13,12 @@ angular.module(
 				defaults = {
 					deferred: _deferred
 					targetWidth: CFG.camera.targetWidth
+					quality: CFG.camera.quality
 				}
 				self = this
 
 				this.cfg = _.defaults(options, defaults)
+
 				this._canvasElement = document.createElement('canvas')
 				this._imageElement = new Image()
 				
@@ -117,26 +119,23 @@ angular.module(
 		#
 
 		# private
-		_fsRoot = null
+		_fsRoot = null	# cordova.file.DirectoryEntry
 		_requestFsPERSISTENT = ()->
 		# for devices with access to Cordova camera API
-			notify.alert "window.requestFileSystem OK, "+window.requestFileSystem, "success" 
-			notify.alert "1. window.deviceReady. navigator.camera"+JSON.stringify(navigator.camera), null, 10000
+			# notify.alert "1. window.deviceReady. navigator.camera"+JSON.stringify(navigator.camera), null, 10000
 			_fsDeferred = $q.defer()
 			window.requestFileSystem(
-				LocalFileSystem.PERSISTENT, 
-				50000*1024, 
-				(fs)-> 
-					notify.alert "2. window.requestFileSystem, FS= "+JSON.stringify(fs), null, 10000
+				LocalFileSystem.PERSISTENT
+				, 50000*1024
+				, (fs)-> 
 					_fsRoot = fs.root
 					_fsDeferred.resolve(_fsRoot)
-				(ev)->
+					# notify.alert "2. window.requestFileSystem, _fsRoot.toURL()= "+_fsRoot.toURL(), 'success', 60000
+				, (ev)->
 					notify.alert "3. Error: requestFileSystem failed. "+ev.target.error.code, 'danger', 10000
 					_fsDeferred.reject(ev)
 			)
-			_fsDeferred.promise.finally ()-> 
-				notify.alert "4. window.requestFileSystem(), Deferred.promise.finally(), args"+JSON.stringify arguments, 'success', 10000
-			notify.alert "5. continue with cameraService init"	
+			return _fsDeferred.promise
 
 		_fileErrorComment = ""
 
@@ -176,22 +175,22 @@ angular.module(
 
 			# Take a photo using the device's camera with given options, callback chain starts
 			# returns a promise
-			getPicture : _.debounce ((options, $event)->
-							navigator.camera.getPicture self.imageUriReceived, self.cameraError, options
-							if _deferred?
-								_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
-							_deferred = $q.defer()
-							_deferred.id = _deferredCounter++
-							_deferred.promise.finally ()-> 
-								notify.alert "*** finally, set clear _deferred, id="+_deferred.id, "danger"
-								_deferred = null
-							notify.alert "getPicture(): NEW _deferred, id="+_deferred.id, "success"
-							return _deferred.promise
-				), 500, true
+			getPicture : (options, $event)->
+				# notify.alert "_fsRoot BEFORE getPicture = "+_fsRoot?.toURL(), null, 30000
+				navigator.camera.getPicture self.imageUriReceived, self.cameraError, options
+				if _deferred?
+					_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
+				_deferred = $q.defer()
+				_deferred.id = _deferredCounter++
+				_deferred.promise.finally ()-> 
+					# notify.alert "*** finally, set clear _deferred, id="+_deferred.id, "danger"
+					_deferred = null
+				# notify.alert "getPicture(): NEW _deferred, id="+_deferred.id, "success"
+				return _deferred.promise
 
 			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
 			imageUriReceived : (imageURI)->
-				notify.alert "image received from CameraRoll, imageURI="+imageURI
+				notify.alert "imageUriReceived() from CameraRoll, imageURI="+imageURI
 
 				if true && "moveTo steroids.app.absoluteUserFilesPath" && _deferred?
 					notify.alert "saving file to steroids.app.absoluteUserFilesPath...", "warning"
@@ -199,7 +198,7 @@ angular.module(
 					window.resolveLocalFileSystemURI imageURI, self.gotFileObject, self.fileError
 					return
 				else if false && CFG.saveDownsizedJPG && imageURI && _deferred?
-					notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
+					# notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
 					_downsizer.downsizeImage(imageURI, _deferred).then( ()->
 						notify.alert "DONE! saving downsized JPG as dataURL", "success"
 					)
@@ -209,7 +208,7 @@ angular.module(
 					_deferred.resolve(photo)
 					return
 				else
-					notify.alert "shouldn't be here, _deferred="+JSON.stringify( _deferred), "danger", 10000 
+					notify.alert "Error: shouldn't be here, _deferred="+JSON.stringify( _deferred), "danger", 10000 
 				return
 
 			gotFileObject : (file)->
@@ -217,16 +216,23 @@ angular.module(
 				# steroids.app variables require the Steroids ready event to be fired, so ensure that
 				return notify.alert "Error: gotFileObject() deferred is null", "warning" if !_deferred?
 
-				notify.alert "gotFileObject(), file="+JSON.stringify( file), "warning"
-
+				# notify.alert "gotFileObject(), file="+JSON.stringify( file), "warning", 20000
+				# notify.alert "_fsRoot BEFORE on.ready = "+_fsRoot?.toURL(), null, 30000
 				steroids.on "ready", ->
-					notify.alert "steroids.on('ready'): file="+file.name
-					# targetDirURI = _fsRoot.fullpath		
-					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
+					notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 30000	if _fsRoot
+					notify.alert "_fsRoot NOT AVAILABLE", 'danger', 30000 if !_fsRoot?
+					
+
+					targetDirURI = _fsRoot?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
 					# targetDirURI += "/.."
+
+					# NOTE
+					# targetDirURI = file:///var/mobile...
+					# _fsRoot.toURL = file://localhost/var/mobile/...
+					
 					fileName = new Date().getTime()+'.jpg'
 
-					notify.alert "targetDirURI="+targetDirURI
+					notify.alert "targetDirURI="+targetDirURI, 'info', 60000
 					_fileErrorComment = "gotFileObject"
 
 					window.resolveLocalFileSystemURI(
@@ -241,37 +247,104 @@ angular.module(
 
 			# Store the moved file's URL into $scope.imageSrc
 			# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
+			# @param file cordova.file.FileEntry
 			fileMoved : (file)->
 				# notify.alert "fileMoved(): BEFORE deferred.resolve() _dfd="+JSON.stringify _deferred
 				if _deferred?
 					filepath = "/" + file.name
 					notify.alert "fileMoved(): success filepath="+filepath, "success"
+					notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 30000
+					notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "success", 30000
+
+					checkMeta = ()->
+						dfd = $q.defer()
+						file.getMetadata(
+							(meta)->
+								notify.alert "file.getMetadata()="+JSON.stringify(meta), 'success', 20000
+								# keys = [modification_time]
+								dfd.resolve(meta)
+							, ()->
+								msg = 
+								notify.alert "file.getMetadata() FAILED, path="+file.fullpath, "warning", 20000	
+								dfd.reject(msg)
+						)		# meta==undefined
+						return dfd.promise
+						
+
+					checkSteroidsResize = ()->
+						try
+							sourceImage = new steroids.File({
+										path: file.name
+										relativeTo: steroids.app.userFilesPath
+									})
+							notify.alert "sourceImage=" + JSON.stringify( sourceImage), "info"
+							# steroids.File.resizeImage()
+							# fails here
+							resize = sourceImage.resizeImage || sourceImage.resize
+							resize({
+									format: 
+										type: "jpg"
+										compression: _downsizer.cfg.quality
+									constraint: 
+										dimension: "width"
+										length: _downsizer.cfg.targetWidth
+								}, {
+									onSuccess: (sourceImage)->
+										notify.alert "resize SUCCESS", 'success'
+										_filepath = sourceImage.relativeTo + '/' + sourceImage.path
+										notify.alert "resize SUCCESS, path="+_filepath, 'success'
+										photo = _getPhotoObj(filepath)
+										_deferred.resolve(photo)
+
+									onFailure: ()->notify.alert "resize FAILED", 'danger'
+								}
+							)
+							notify.alert "resizing..."
+						catch error
+
+					if false # these 2 methods do not work
+						# getMetaPromise = checkMeta()
+						# checkSteroidsResize()
+						return
+
+
 					if CFG.saveDownsizedJPG
 						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
+						# # update photo.dateTaken when available
+						# # WARNING: only meta.modification_time is available
+						# $q.all({
+						# 	photo: _deferred
+						# 	getMetadata: checkMeta()
+						# 	}).then (o)->
+						# 		o.photo.dateTaken = o.getMetadata.dateTaken
 						_downsizer.downsizeImage(filepath, _deferred).then( ()->
 							notify.alert "DONE! saving downsized JPG as dataURL", "success"
 						)
 					else
-						notify.alert "DONE! saving file to steroids.app.absoluteUserFilesPath, file="+filepath, "success"
-						photo = _getPhotoObj(filepath)
+						src = filepath
+						# src = file.toURL()  # NOTE: cannot serve IMG.src from file.toURL()
+						notify.alert "DONE! saving file to "+src, "success", 30000
+						photo = _getPhotoObj(src)
 						_deferred.resolve(photo)
-						# notify.alert "fileMoved(): in deferred.finally(), file="+filepath+", _deferred="+_deferred
 					return
 					# notify.alert "fileMoved(): "+JSON.stringify( file, null, 2)
 
 				self.cleanup()	
 
 			cleanup : ()->
+				# doesn't seem to work
 				navigator.camera.cleanup (()->notify.alert "Camera.cleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message, "warning" )
 
 		}
 
-		# if _.isFunction(window.requestFileSystem)
-		# 	notify.alert "window.requestFileSystem OK, "+window.requestFileSystem, "success" 
-		# 	_requestFsPERSISTENT()
-		# else 
-		# 	notify.alert "window.requestFileSystem UNDEFINED, "+window.requestFileSystem, "danger" 
-		# 	location.reload() 
+		if _.isFunction(window.requestFileSystem)
+			# notify.alert "window.requestFileSystem OK, "+window.requestFileSystem, "success" 
+			_requestFsPERSISTENT().then (directoryEntry)->
+				_fsRoot = directoryEntry
+				notify.alert "local.PERSISTENT _fsRoot="+_fsRoot.toURL(), 'success', 60000
+		else 
+			notify.alert "window.requestFileSystem UNDEFINED, "+window.requestFileSystem, "danger" 
+			location.reload() 
 
 		return self
 ]   

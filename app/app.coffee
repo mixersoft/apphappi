@@ -12,8 +12,10 @@ angular.module( 'appHappi', [
 ).value('appConfig', {
 	userId: null
 	debug: false
+	notifyTimeout: 5000
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
-	saveDownsizedJPG: false
+	saveDownsizedJPG: true
+	# NOTE: only dataURLs are persisting between re-scans
 	camera: 
 		targetWidth : 320
 		quality: 85
@@ -68,7 +70,13 @@ angular.module( 'appHappi', [
 
 
 
-
+# HACK: prevent #drawer.force-open flash
+# TODO: move #drawer outside of ng-include
+if window.innerWidth >= 768
+	try 
+		drawer = document.getElementById('drawer')
+		drawer.className += 'force-open' if drawer?
+	catch error
 
 
 # bootstrap 
@@ -78,6 +86,7 @@ if window.Modernizr.touch
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
 		location.reload() if !navigator.camera?
 		window.deviceReady = !!navigator.camera
+		# location.reload() if window.requestFileSystem == undefined
 
 
 angular.element(document).ready ()->

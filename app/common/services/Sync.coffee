@@ -189,6 +189,8 @@ angular.module(
 							$http.get(CFG.challengeUrl)
 							.success (data, status, headers, config)->
 							  	console.log "*** challenge ready"
+
+							 # return dfd.promise 	
 							.then (resp)->
 								data = resp.data
 								_.each data, (o)->
@@ -197,6 +199,7 @@ angular.module(
 								syncService.set(model, data)	# parseModel in .set()
 								dfd.resolve syncService.get('challenge') 
 							return dfd.promise
+
 						else if "use Restangular"	
 							dfd = $q.defer()
 							promise = AppHappiRestangular.all(model)
