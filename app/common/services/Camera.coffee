@@ -322,7 +322,7 @@ angular.module(
 						)
 					else
 						src = filepath
-						# src = file.toURL()  # NOTE: cannot serve IMG.src from file.toURL()
+						# src = file.toURL()  # WARNING: cannot serve IMG.src from file.toURL()
 						notify.alert "DONE! saving file to "+src, "success", 30000
 						photo = _getPhotoObj(src)
 						_deferred.resolve(photo)

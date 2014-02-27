@@ -67,7 +67,26 @@ angular.module( 'appHappi', [
     return items.slice().reverse()
 
 )
+.directive('onTouch', ()->
+	return {
+		restrict: "A"
+		link : (scope, element, attrs)->
+			handleOnTouch = scope.$eval( attrs.onTouch)
 
+			element.bind 'touchstart',(e)->
+				 scope.$apply ()->
+				 	handleOnTouch.call(scope, e)
+
+			element.bind 'touchend',(e)->
+				 scope.$apply ()->
+				 	handleOnTouch.call(scope, e)
+
+			# element.bind 'click',(e)->
+			# 	 scope.$apply ()->
+			# 	 	handleOnTouch.call(scope, e) 
+			return
+	}
+)
 
 
 # HACK: prevent #drawer.force-open flash

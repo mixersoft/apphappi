@@ -44,6 +44,7 @@ angular.module(
 			exports: [
 				# 'setCardStatus'
 				'persistRating'
+				'galleryGlow'
 				'drawerItemClick'
 				'goToMoment'
 				'socialShare'
@@ -127,6 +128,17 @@ angular.module(
 					# 	notify.alert "setCardStatus: "+oldStatus+" -> "+status+', stale='+isDrawerStale, "success"
 					return
 				syncService.set('drawerState') if isDrawerStale?
+
+			# on-touch="galleryGlow"
+			galleryGlow : (e)->	
+				$el = angular.element(e.currentTarget)
+				switch e.type
+					when "touchstart"
+						$el.addClass 'touch'
+					when "touchend"
+						setTimeout( ()->$el.removeClass 'touch'
+								, 5000)
+				return
 
 
 			persistRating : (ev, i)->
@@ -872,7 +884,7 @@ angular.module(
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
-			return      
+			return  
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
