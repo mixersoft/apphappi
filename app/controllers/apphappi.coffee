@@ -328,7 +328,11 @@ angular.module(
 			removeMarkedPhotos : (card)->
 				return if !card.markPhotoForRemoval?
 				now = new Date().toJSON()
-				_.each(card.markPhotoForRemoval, (id, index)->
+				# sort by key/index DESC
+				removalIndexes = _.keys card.markPhotoForRemoval
+				removalIndexes = removalIndexes.sort().reverse()
+				_.each(removalIndexes, (index)->
+						id = card.markPhotoForRemoval[index]
 						retval = self._removePhoto(card, index, id)
 						card.stale = now
 					)
