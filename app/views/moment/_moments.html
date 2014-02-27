@@ -93,8 +93,12 @@
                     <button type="button" class="btn btn-default" ng-click="moment_trash(card.id)"><i class="fa fa-trash-o"></i></button>
                   </div>
                   <div class="btn-group">
-                    <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, -1)"><i class="fa fa-thumbs-down"></i></button>
-                    <button type="button" class="btn btn-default" ng-click="moment_rating(card.id, 1)"><i class="fa fa-thumbs-up"></i></button>
+                    <button type="button" class="btn btn-default"
+                    rating-type="moment" 
+                    ng-click="moment_rating($event, -1)"><i class="fa fa-thumbs-down fa-flip-horizontal"></i></button>
+                    <button type="button" class="btn btn-default" 
+                    rating-type="moment" 
+                    ng-click="moment_rating($event, 1)"><i class="fa fa-thumbs-up"></i></button>
                   </div>
                 </div>
                 <div class="btn-group" ng-show="card.status=='active'">

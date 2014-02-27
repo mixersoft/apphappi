@@ -735,6 +735,15 @@ angular.module(
 			options = drawer.getDrawerItem('findhappi', 'all')
 			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
+		$scope.moment_rating = (ev, value)->
+			ev.preventDefault()
+			ev.stopImmediatePropagation()
+			card = $scope.deck.topCard()
+			card.stats.rating.moment += value
+			card.stats.rating.moment = 0 if card.stats.rating.moment<0
+			card.stats.rating.moment = 5 if card.stats.rating.moment>5
+			actionService.persistRating.call {card:card}, ev
+
 		$scope.moment_cancel = (id)->
 			m = $scope.deck.topCard()
 			throw "ERROR: moment.id mismatch" if m.id != id 
