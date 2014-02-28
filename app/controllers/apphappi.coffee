@@ -13,6 +13,7 @@ angular.module(
 			if msg? 
 				timeout = timeout || appConfig.notifyTimeout
 				now = new Date().getTime()
+				now++ if this.alerts[now]?
 				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
 				this.timeouts.push({key: now, value: timeout})
 			else 
@@ -206,7 +207,7 @@ angular.module(
 
 					# check topCard
 					c = scope.deck.topCard()
-					self._getChallengePhotos(c) if c.type=="challenge" && c.status="active"
+					self._getChallengePhotos(c) if c?.type=="challenge" && c?.status="active"
 
 					if route? && route != $location.path()
 						$location.path(route)
@@ -512,18 +513,22 @@ angular.module(
 						modified: now.toJSON()
 					}
 					# update moment
-					syncService.set('photo', photo)
-					m.photoIds.push photo.id
-					m.stats.count = m.photoIds.length
-					m.stats.viewed += 1
-					m.photos = actionService._getPhotos m
-					actionService.setCardStatus(m, 'active', now)
+					if m.photoIds.indexOf(photo.id) == -1
+						syncService.set('photo', photo)
+						m.photoIds.push photo.id
+						m.stats.count = m.photoIds.length
+						m.stats.viewed += 1
+						m.photos = actionService._getPhotos m
+						actionService.setCardStatus(m, 'active', now)
 
-					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
-					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
-					syncService.set('moment', m)
+						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
+						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
+						syncService.set('moment', m)
+						
+						notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
+					else 
+						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
-					notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
 				return
 
 
@@ -811,15 +816,18 @@ angular.module(
 						modified: now.toJSON()
 					}
 					# update moment
-					syncService.set('photo', photo)
-					m.photoIds.push photo.id
-					m.stats.count = m.photoIds.length
-					m.stats.viewed += 1
-					m.photos = actionService._getPhotos m
-					actionService.setCardStatus(m, 'active', now)
+					if m.photoIds.indexOf(photo.id) == -1
+						syncService.set('photo', photo)
+						m.photoIds.push photo.id 
+						m.stats.count = m.photoIds.length
+						m.stats.viewed += 1
+						m.photos = actionService._getPhotos m
+						actionService.setCardStatus(m, 'active', now)
 
-					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
-					syncService.set('moment', m)
+						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
+						syncService.set('moment', m)
+					else 
+						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
 				return
 

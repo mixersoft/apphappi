@@ -11,7 +11,8 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: false
+	debug: true
+	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true

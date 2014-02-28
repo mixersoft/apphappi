@@ -11,7 +11,8 @@ angular.module(
 		class Downsizer
 			constructor: (options)->
 				defaults = {
-					deferred: _deferred
+					deferred: null
+					# deferredImgReady: null	# resolve with Img onload
 					targetWidth: CFG.camera.targetWidth
 					quality: CFG.camera.quality
 				}
@@ -21,35 +22,118 @@ angular.module(
 
 				this._canvasElement = document.createElement('canvas')
 				this._imageElement = new Image()
-				
 				this._imageElement.onload = ()->
-					dataURL = self._downsize(this)		# this == self.imageElement
-					photo = _getPhotoObj(null, dataURL)
-					self.cfg.deferred.resolve(photo)
+					self._handleImgOnLoad(self, this)
+				
+			# NOTE: extracting Exif here to wait for img.onload	
+			_exif: (img, dfd)->
+				_.defer ()->
+					exif = {} # = EXIF.getAllTags img
+					try 
+						isDataURL = /^data\:image\/jpeg/.test(img.src)
+						if isDataURL
+							data = atob(img.src.replace(/^.*?,/,''))
+						else
+							throw "JpegMeta.JpegFile not implemented for img.src=filepath"
+						start = new Date().getTime()
+						meta = new JpegMeta.JpegFile(data, 'data:image/jpeg');
+						# groups: metaGroups, general, jfif, tiff, exif, gps
+						_.defaults meta.exif, meta.tiff
+						exif = _.reduce( meta.exif
+														,(result,v,k)->
+															result[v.fieldName] = v.value
+															return result
+														,{}	)
+						elapsed = new Date().getTime() - start
+						notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed, "success", 30000
+						delete exif['MakerNote']
+						clearTimeout(timeout)	
+						# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
+						# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
+						dfd.resolve(exif)
+						
+					catch error
+						notify.alert "Exception new JpegMeta.JpegFile(), err="+JSON.stringify(error), "danger", 20000
+						dfd.resolve(exif)
+				timeout = _.delay (dfd)->
+					dfd.reject("timeout")
+				, 10000, dfd	
+				return dfd.promise
+			# NOTE: extracting Exif here to wait for img.onload	
 
-				return this
+			# exif.js, not working for chrome, ipad
+			_exifJS: (img, dfd)->
+				_.defer ()->
+					exif = {} # = EXIF.getAllTags img
+					try 
+						start = new Date().getTime()
+						EXIF.getData img, ()->
+							elapsed = new Date().getTime() - start
+							notify.alert "exif.js parse, elapsed MS="+elapsed, "success", 30000
+							exif = img.exifdata || {}
+							delete exif['MakerNote']
+							clearTimeout(timeout)	
+							# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
+							# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
+							dfd.resolve(exif)
+					catch error
+						notify.alert "Exception EXIF.getData", "danger", 20000
+						dfd.resolve(exif)
+				timeout = _.delay (dfd)->
+					dfd.reject("timeout")
+				, 10000, dfd	
+				return dfd.promise
 
-			_downsize: (img, targetWidth)=>
-				targetWidth = targetWidth || this.cfg.targetWidth
-				img = img || this._imageElement
-				tempW = img.width;
-				tempH = img.height;
-				if (tempW > targetWidth) 
-					 tempH *= targetWidth / tempW;
-					 tempW = targetWidth;
+			_downsize: (img, dfd, targetWidth)=>
+				_.defer (self)->
+					targetWidth = targetWidth || self.cfg.targetWidth
+					img = img || self._imageElement
+					tempW = img.width;
+					tempH = img.height;
+					if (tempW > targetWidth) 
+						 tempH *= targetWidth / tempW;
+						 tempW = targetWidth;
 
-				# canvas = document.createElement('canvas');
-				this._canvasElement.width = tempW;
-				this._canvasElement.height = tempH;
-				ctx = this._canvasElement.getContext("2d");
-				ctx.drawImage(img, 0, 0, tempW, tempH)
-				return dataURL = this._canvasElement.toDataURL("image/jpeg")	
+					# canvas = document.createElement('canvas');
+					self._canvasElement.width = tempW;
+					self._canvasElement.height = tempH;
+					ctx = self._canvasElement.getContext("2d");
+					ctx.drawImage(img, 0, 0, tempW, tempH)
+					dataURL = self._canvasElement.toDataURL("image/jpeg")
+					clearTimeout(timeout)	
+					dfd.resolve(dataURL)
+				, this
+				timeout = _.delay (dfd)->
+					dfd.reject("timeout")
+				, CFG.jsTimeout, dfd
+				return dfd.promise
+
+			_handleImgOnLoad : (self, img)->
+				dfdDownsize = $q.defer()
+				dfdExif = $q.defer()
+				promises = {
+					exif: self._exif(img, dfdExif)
+					# exifJS: self._exifXXX(img, dfdExif)
+					downsize: self._downsize(img, dfdDownsize)		# this == self.imageElement
+				}
+				$q.all(promises).then (o)->
+					check = _.filter o, (v)->return v=='timeout'
+					if check?.length
+						notify.alert "jsTimeout for " + JSON.stringify check
+
+					photo = _getPhotoObj(null, o.downsize, o.exif)
+
+					# notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 3000
+					
+					self.cfg.deferred.resolve(photo) # goes to getPicture(photo)
+				return 
 
 			downsizeImage : (src, dfd, targetWidth)=>
 				this.cfg.deferred = dfd if dfd?
 				this.cfg.targetWidth = targetWidth if targetWidth?	
 				this._imageElement.src = src
 				return this.cfg.deferred.promise
+
 
 		# private object for downsizing via canvas
 		_deferred = null
@@ -59,16 +143,49 @@ angular.module(
 			targetWidth: CFG.camera.targetWidth
 		})	
 		
-		_getPhotoObj = (uri, dataURL)->
+		# hash photo data to detect duplicates
+		_getPhotoHash = (exif, dataURL)->
+			hash = []
+			exifKeys = _.keys(exif)
+			# notify.alert "EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "info", 30000
+			compact = exif['DateTimeOriginal']?.replace(/[\:]/g,'').replace(' ','-')
+			hash.push(compact)
+			# notify.alert "photoHash 1="+hash.join('-'), "danger", 30000
+			if dataURL?
+				hash.push dataURL.slice(-20)
+				# notify.alert "photoHash 2="+hash.join('-'), "danger", 30000
+			else 
+				hash.push exif['Model']
+				hash.push exif['Make']
+				hash.push exif['ExposureTime']
+				hash.push exif['FNumber']
+				hash.push exif['ISOSpeedRatings']
+			return hash.join('-')
+
+		_getPhotoObj = (uri, dataURL, exif)->
 			# get hash from EXIF to detect duplicate photo
 			now = new Date()
-			id = now.getTime() + "-photo"
+			dateTaken = now.toJSON()
+
+			if exif?
+				id = _getPhotoHash exif, dataURL
+				if exif["DateTimeOriginal"]?
+					isoDate = exif["DateTimeOriginal"]
+					isoDate = isoDate.replace(':','-').replace(':','-').replace(' ','T')
+					dateTaken = new Date(isoDate).toJSON()
+			else
+				id = now.getTime() + "-photo"
+
+			notify.alert "photo.id=="+id, "success", 30000
 			return {
 				id: id
-				dateTaken: now.toJSON()
-				Exif: {}
+				dateTaken: dateTaken
+				Exif: exif || {}
 				src: uri || dataURL
 			}
+
+		_processImageSrc = (src, dfd)->
+			_downsizer.downsizeImage(src, dfd)
 
 
 		#  ### BROWSER TESTING ###
@@ -83,7 +200,8 @@ angular.module(
 
 			_fileReader.onload = (event)->
 				# _imageElement.src = event.target.result
-				_downsizer.downsizeImage(event.target.result, _deferred).then( ()->
+				# _downsizer.downsizeImage(event.target.result, _deferred)
+				_processImageSrc(event.target.result, _deferred).finally( ()->
 						_icon.removeClass('fa-spin')
 					)
 
@@ -199,7 +317,10 @@ angular.module(
 					return
 				else if false && CFG.saveDownsizedJPG && imageURI && _deferred?
 					# notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
-					_downsizer.downsizeImage(imageURI, _deferred).then( ()->
+					# _downsizer.downsizeImage(imageURI, _deferred).then( ()->
+					# 	notify.alert "DONE! saving downsized JPG as dataURL", "success"
+					# )
+					_processImageSrc(imageURI, _deferred).then( ()->
 						notify.alert "DONE! saving downsized JPG as dataURL", "success"
 					)
 					return
@@ -232,7 +353,7 @@ angular.module(
 					
 					fileName = new Date().getTime()+'.jpg'
 
-					notify.alert "targetDirURI="+targetDirURI, 'info', 60000
+					notify.alert "targetDirURI="+targetDirURI, 'info', 10000
 					_fileErrorComment = "gotFileObject"
 
 					window.resolveLocalFileSystemURI(
@@ -254,7 +375,7 @@ angular.module(
 					filepath = "/" + file.name
 					notify.alert "fileMoved(): success filepath="+filepath, "success"
 					notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 30000
-					notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "success", 30000
+					notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 30000
 
 					checkMeta = ()->
 						dfd = $q.defer()
@@ -312,12 +433,10 @@ angular.module(
 						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
 						# # update photo.dateTaken when available
 						# # WARNING: only meta.modification_time is available
-						# $q.all({
-						# 	photo: _deferred
-						# 	getMetadata: checkMeta()
-						# 	}).then (o)->
-						# 		o.photo.dateTaken = o.getMetadata.dateTaken
-						_downsizer.downsizeImage(filepath, _deferred).then( ()->
+						# _downsizer.downsizeImage(filepath, _deferred).then( ()->
+						# 	notify.alert "DONE! saving downsized JPG as dataURL", "success"
+						# )
+						_processImageSrc(filepath, _deferred).then( ()->
 							notify.alert "DONE! saving downsized JPG as dataURL", "success"
 						)
 					else
@@ -341,7 +460,7 @@ angular.module(
 			# notify.alert "window.requestFileSystem OK, "+window.requestFileSystem, "success" 
 			_requestFsPERSISTENT().then (directoryEntry)->
 				_fsRoot = directoryEntry
-				notify.alert "local.PERSISTENT _fsRoot="+_fsRoot.toURL(), 'success', 60000
+				notify.alert "local.PERSISTENT _fsRoot="+_fsRoot.toURL(), 'success', 10000
 		else 
 			notify.alert "window.requestFileSystem UNDEFINED, "+window.requestFileSystem, "danger" 
 			location.reload() 
