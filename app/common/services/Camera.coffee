@@ -7,7 +7,6 @@ angular.module(
 	'notifyService'
 	'appConfig'
 	($q, notify, CFG)->
-
 		class Downsizer
 			constructor: (options)->
 				defaults = {
@@ -23,67 +22,10 @@ angular.module(
 				this._canvasElement = document.createElement('canvas')
 				this._imageElement = new Image()
 				this._imageElement.onload = ()->
-					self._handleImgOnLoad(self, this)
+					img = this
+					self._downsize(img, self.cfg.deferred)
+					# self._handleImgOnLoad(self, this)
 				
-			# NOTE: extracting Exif here to wait for img.onload	
-			_exif: (img, dfd)->
-				_.defer ()->
-					exif = {} # = EXIF.getAllTags img
-					try 
-						isDataURL = /^data\:image\/jpeg/.test(img.src)
-						if isDataURL
-							data = atob(img.src.replace(/^.*?,/,''))
-						else
-							throw "JpegMeta.JpegFile not implemented for img.src=filepath"
-						start = new Date().getTime()
-						meta = new JpegMeta.JpegFile(data, 'data:image/jpeg');
-						# groups: metaGroups, general, jfif, tiff, exif, gps
-						_.defaults meta.exif, meta.tiff
-						exif = _.reduce( meta.exif
-														,(result,v,k)->
-															result[v.fieldName] = v.value
-															return result
-														,{}	)
-						elapsed = new Date().getTime() - start
-						notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed, "success", 30000
-						delete exif['MakerNote']
-						clearTimeout(timeout)	
-						# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
-						# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
-						dfd.resolve(exif)
-						
-					catch error
-						notify.alert "Exception new JpegMeta.JpegFile(), err="+JSON.stringify(error), "danger", 20000
-						dfd.resolve(exif)
-				timeout = _.delay (dfd)->
-					dfd.reject("timeout")
-				, 10000, dfd	
-				return dfd.promise
-			# NOTE: extracting Exif here to wait for img.onload	
-
-			# exif.js, not working for chrome, ipad
-			_exifJS: (img, dfd)->
-				_.defer ()->
-					exif = {} # = EXIF.getAllTags img
-					try 
-						start = new Date().getTime()
-						EXIF.getData img, ()->
-							elapsed = new Date().getTime() - start
-							notify.alert "exif.js parse, elapsed MS="+elapsed, "success", 30000
-							exif = img.exifdata || {}
-							delete exif['MakerNote']
-							clearTimeout(timeout)	
-							# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
-							# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
-							dfd.resolve(exif)
-					catch error
-						notify.alert "Exception EXIF.getData", "danger", 20000
-						dfd.resolve(exif)
-				timeout = _.delay (dfd)->
-					dfd.reject("timeout")
-				, 10000, dfd	
-				return dfd.promise
-
 			_downsize: (img, dfd, targetWidth)=>
 				_.defer (self)->
 					targetWidth = targetWidth || self.cfg.targetWidth
@@ -98,7 +40,9 @@ angular.module(
 					self._canvasElement.width = tempW;
 					self._canvasElement.height = tempH;
 					ctx = self._canvasElement.getContext("2d");
+					notify.alert "downsize canvas drawImage, src="+img.src[0..20], "danger", 40000
 					ctx.drawImage(img, 0, 0, tempW, tempH)
+					# get downsized img as dataURL
 					dataURL = self._canvasElement.toDataURL("image/jpeg")
 					clearTimeout(timeout)	
 					dfd.resolve(dataURL)
@@ -109,23 +53,7 @@ angular.module(
 				return dfd.promise
 
 			_handleImgOnLoad : (self, img)->
-				dfdDownsize = $q.defer()
-				dfdExif = $q.defer()
-				promises = {
-					exif: self._exif(img, dfdExif)
-					# exifJS: self._exifXXX(img, dfdExif)
-					downsize: self._downsize(img, dfdDownsize)		# this == self.imageElement
-				}
-				$q.all(promises).then (o)->
-					check = _.filter o, (v)->return v=='timeout'
-					if check?.length
-						notify.alert "jsTimeout for " + JSON.stringify check
-
-					photo = _getPhotoObj(null, o.downsize, o.exif)
-
-					# notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 3000
-					
-					self.cfg.deferred.resolve(photo) # goes to getPicture(photo)
+				self._downsize(img, self.cfg.deferred)
 				return 
 
 			downsizeImage : (src, dfd, targetWidth)=>
@@ -143,40 +71,43 @@ angular.module(
 			targetWidth: CFG.camera.targetWidth
 		})	
 		
-		# hash photo data to detect duplicates
-		_getPhotoHash = (exif, dataURL)->
-			hash = []
-			exifKeys = _.keys(exif)
-			# notify.alert "EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "info", 30000
-			compact = exif['DateTimeOriginal']?.replace(/[\:]/g,'').replace(' ','-')
-			hash.push(compact)
-			# notify.alert "photoHash 1="+hash.join('-'), "danger", 30000
-			if dataURL?
-				hash.push dataURL.slice(-20)
-				# notify.alert "photoHash 2="+hash.join('-'), "danger", 30000
-			else 
-				hash.push exif['Model']
-				hash.push exif['Make']
-				hash.push exif['ExposureTime']
-				hash.push exif['FNumber']
-				hash.push exif['ISOSpeedRatings']
-			return hash.join('-')
-
+		# get formatted photo = {} for resolve		
 		_getPhotoObj = (uri, dataURL, exif)->
 			# get hash from EXIF to detect duplicate photo
+			# hash photo data to detect duplicates
+			__getPhotoHash = (exif, dataURL)->
+				if !(exif?['DateTimeOriginal'])
+					notify.alert "WARNING: EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "danger", 30000	
+					return false 
+				hash = []
+				exifKeys = _.keys(exif)
+				# notify.alert "EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "info", 30000
+				compact = exif['DateTimeOriginal']?.replace(/[\:]/g,'').replace(' ','-')
+				hash.push(compact)
+				# notify.alert "photoHash 1="+hash.join('-'), "danger", 30000
+				if dataURL?
+					hash.push dataURL.slice(-20)
+					# notify.alert "photoHash 2="+hash.join('-'), "danger", 30000
+				else 
+					hash.push exif['Model']
+					hash.push exif['Make']
+					hash.push exif['ExposureTime']
+					hash.push exif['FNumber']
+					hash.push exif['ISOSpeedRatings']
+				return hash.join('-')
+
 			now = new Date()
 			dateTaken = now.toJSON()
 
-			if exif?
-				id = _getPhotoHash exif, dataURL
-				if exif["DateTimeOriginal"]?
-					isoDate = exif["DateTimeOriginal"]
-					isoDate = isoDate.replace(':','-').replace(':','-').replace(' ','T')
-					dateTaken = new Date(isoDate).toJSON()
+			id = __getPhotoHash( exif, dataURL)
+			if id
+				isoDate = exif["DateTimeOriginal"]
+				isoDate = isoDate.replace(':','-').replace(':','-').replace(' ','T')
+				dateTaken = new Date(isoDate).toJSON()
 			else
 				id = now.getTime() + "-photo"
 
-			notify.alert "photo.id=="+id, "success", 30000
+			notify.alert "_getPhotoObj() photo.id=="+id, "success", 20000
 			return {
 				id: id
 				dateTaken: dateTaken
@@ -186,7 +117,74 @@ angular.module(
 
 		_processImageSrc = (src, dfd)->
 			_downsizer.downsizeImage(src, dfd)
+			rerturn dfd.promise
 
+		_filepathTEST = null
+
+		_processImageFileEntry = (fileEntry, dfd)->
+			fileEntry.file(
+				(file)->
+					_processImageFile(file, dfd)
+				, (error)->
+					notify.alert "fileMoved() error, CODE="+error.code, "danger", 60000
+			)
+			return dfd.promise
+
+		_processImageFile = (file, dfd)->
+			reader = new FileReader()
+			reader.onloadend = (ev)-> 
+				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 30000
+				src = ev.target.result
+				_processImageDataURL(src, dfd)
+			# starts here	...
+			reader.readAsDataURL(file);
+			# setTimeout( ()->dfd.reject("timeout"), 5000)
+			return dfd.promise
+
+		_processImageDataURL = (dataURL, dfdFINAL)->
+			dfdExif = $q.defer()
+			dfdDownsize = $q.defer()
+			promises = {
+				exif: _parseExif dataURL , dfdExif
+				downsized: _downsizer.downsizeImage(dataURL, dfdDownsize)
+			}
+			$q.all(promises).then (o)->
+				check = _.filter o, (v)->return v=='timeout'
+				if check?.length
+					notify.alert "jsTimeout for " + JSON.stringify check
+				photo = _getPhotoObj(null, o.downsized, o.exif)
+
+				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 3000
+				
+				dfdFINAL.resolve(photo) # goes to getPicture(photo)
+			return dfdFINAL.promise
+
+		
+		_parseExif = (dataURL, dfd)->
+			_.defer ()->
+				start = new Date().getTime()
+				dataURL = atob(dataURL.replace(/^.*?,/,''))
+				notify.alert "*** _parseExif with JpegMeta ***, atob(dataURL)="+dataURL[0..60], "info", 30000
+				meta = new JpegMeta.JpegFile(dataURL, 'data:image/jpeg');
+				# groups: metaGroups, general, jfif, tiff, exif, gps
+				_.defaults meta.exif, meta.tiff
+				exif = _.reduce( meta.exif
+												,(result,v,k)->
+													result[v.fieldName] = v.toString() if v.fieldName?
+													return result
+												,{}	)
+				elapsed = new Date().getTime() - start
+				notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed, "success", 30000
+				delete exif['MakerNote']
+				# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
+				# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
+				dfd.resolve(exif)
+				clearTimeout(timeout)
+
+			timeout = _.delay (dfd)->
+				dfd.reject("timeout")
+			, 10000, dfd	
+			return dfd.promise	
 
 		#  ### BROWSER TESTING ###
 		#  for testing in browser, no access to Cordova camera API
@@ -225,7 +223,8 @@ angular.module(
 								e.preventDefault();
 								file = e.currentTarget.files[0]
 								if file 
-									_fileReader.readAsDataURL(file)
+									_processImageFile(file, _deferred)
+									# _fileReader.readAsDataURL(file)
 									_icon.addClass('fa-spin') if _icon?
 								return false
 					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
@@ -340,11 +339,11 @@ angular.module(
 				# notify.alert "gotFileObject(), file="+JSON.stringify( file), "warning", 20000
 				# notify.alert "_fsRoot BEFORE on.ready = "+_fsRoot?.toURL(), null, 30000
 				steroids.on "ready", ->
-					notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 30000	if _fsRoot
-					notify.alert "_fsRoot NOT AVAILABLE", 'danger', 30000 if !_fsRoot?
+					# notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 30000	if _fsRoot
+					# notify.alert "_fsRoot NOT AVAILABLE", 'danger', 30000 if !_fsRoot?
 					
-
-					targetDirURI = _fsRoot?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
+					# targetDirURI = _fsRoot?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
+					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
 					# targetDirURI += "/.."
 
 					# NOTE
@@ -373,71 +372,17 @@ angular.module(
 				# notify.alert "fileMoved(): BEFORE deferred.resolve() _dfd="+JSON.stringify _deferred
 				if _deferred?
 					filepath = "/" + file.name
-					notify.alert "fileMoved(): success filepath="+filepath, "success"
+					# notify.alert "fileMoved(): success filepath="+filepath, "success"
 					notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 30000
-					notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 30000
+					# notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 30000
 
-					checkMeta = ()->
-						dfd = $q.defer()
-						file.getMetadata(
-							(meta)->
-								notify.alert "file.getMetadata()="+JSON.stringify(meta), 'success', 20000
-								# keys = [modification_time]
-								dfd.resolve(meta)
-							, ()->
-								msg = 
-								notify.alert "file.getMetadata() FAILED, path="+file.fullpath, "warning", 20000	
-								dfd.reject(msg)
-						)		# meta==undefined
-						return dfd.promise
-						
-
-					checkSteroidsResize = ()->
-						try
-							sourceImage = new steroids.File({
-										path: file.name
-										relativeTo: steroids.app.userFilesPath
-									})
-							notify.alert "sourceImage=" + JSON.stringify( sourceImage), "info"
-							# steroids.File.resizeImage()
-							# fails here
-							resize = sourceImage.resizeImage || sourceImage.resize
-							resize({
-									format: 
-										type: "jpg"
-										compression: _downsizer.cfg.quality
-									constraint: 
-										dimension: "width"
-										length: _downsizer.cfg.targetWidth
-								}, {
-									onSuccess: (sourceImage)->
-										notify.alert "resize SUCCESS", 'success'
-										_filepath = sourceImage.relativeTo + '/' + sourceImage.path
-										notify.alert "resize SUCCESS, path="+_filepath, 'success'
-										photo = _getPhotoObj(filepath)
-										_deferred.resolve(photo)
-
-									onFailure: ()->notify.alert "resize FAILED", 'danger'
-								}
-							)
-							notify.alert "resizing..."
-						catch error
-
-					if false # these 2 methods do not work
-						# getMetaPromise = checkMeta()
-						# checkSteroidsResize()
-						return
+					_filepathTEST = filepath
 
 
 					if CFG.saveDownsizedJPG
-						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
-						# # update photo.dateTaken when available
-						# # WARNING: only meta.modification_time is available
-						# _downsizer.downsizeImage(filepath, _deferred).then( ()->
-						# 	notify.alert "DONE! saving downsized JPG as dataURL", "success"
-						# )
-						_processImageSrc(filepath, _deferred).then( ()->
-							notify.alert "DONE! saving downsized JPG as dataURL", "success"
+						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning", 30000
+						_processImageFileEntry(file, _deferred).then( ()->
+							notify.alert "DONE! saving downsized JPG as dataURL", "success", 30000
 						)
 					else
 						src = filepath
