@@ -55,6 +55,7 @@ angular.module(
 					# deck has changed, update deckCards
 					this.index(0)
 					this.options = options
+					this.shuffled = null
 					# filter/orderBy cards
 					step = this.allCards
 					step = $filter('filter') step, options.filter if !_.isEmpty(options.filter)
