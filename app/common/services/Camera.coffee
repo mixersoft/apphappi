@@ -77,6 +77,7 @@ angular.module(
 			# hash photo data to detect duplicates
 			__getPhotoHash = (exif, dataURL)->
 				if !(exif?['DateTimeOriginal'])
+					exifKeys = _.keys(exif)
 					notify.alert "WARNING: EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "danger", 30000	
 					return false 
 				hash = []
