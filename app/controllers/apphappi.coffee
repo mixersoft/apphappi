@@ -13,7 +13,9 @@ angular.module(
 			if msg? 
 				timeout = timeout || appConfig.notifyTimeout
 				now = new Date().getTime()
-				now++ if this.alerts[now]?
+				`while (this.alerts[now]) {
+					now += 0.1;
+				}`
 				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
 				this.timeouts.push({key: now, value: timeout})
 			else 

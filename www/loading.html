@@ -12,22 +12,42 @@ Currently, loading.html is supported by iOS only.
   <title>Loading...</title>
 
   <!-- build:css stylesheets/vendor.min.css -->
-    <link rel="stylesheet" href="stylesheets/bootstrap.css" />
     <link rel="stylesheet" href="stylesheets/font-awesome.css" />
+    <link rel="stylesheet" href="fonts/snappi-fonts.css" />
   <!-- endbuild -->
 
   <style>
 
   html,body {
     height:100%;
+    font-family: "Roboto";
+    background: none repeat scroll 0 0 #DFE2E2;
+    margin: 0; 
+    padding: 0;
   }
-
-  .centered {
-    height:100%;
-    display: -webkit-box;
-    -webkit-box-orient:vertical;
-    -webkit-box-pack: center;
-    -webkit-box-align: center;
+  *,
+  *:before,
+  *:after {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+  }
+  .curtain {
+    margin-top: 30%;
+    position: absolute;
+    width: 100%;
+    z-index: 100;
+    text-align: center;
+    color: #000000;
+    font: 200 16px "Roboto","Source Sans", helvetica,arial,sans-serif;
+    text-rendering: optimizelegibility;
+  }
+  h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    margin-top: 20px;
+    font-weight: 500;
+    line-height: 1.1;
   }
 
   </style>
@@ -35,8 +55,8 @@ Currently, loading.html is supported by iOS only.
 </head>
 
 <body>
-  <div class="centered center">
-    <h1>Loading...</h1>
+  <div class="curtain">
+    <h3>Loading...</h3>
     <i class="fa fa-spinner fa-spin fa-2x"></i>
   </div>
 </body>
