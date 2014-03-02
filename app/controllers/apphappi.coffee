@@ -45,17 +45,21 @@ angular.module(
 		self = {
 
 			exports: [
-				# 'setCardStatus'
 				'persistRating'
 				'galleryGlow'
+				'glowOnClick'
 				'drawerItemClick'
 				'goToMoment'
 				'socialShare'
 				'markPhotoForRemoval'
 				'isMarkedForRemoval'
 				'shuffleDeck'
-				# 'swipe'
 			]
+
+			_preventDefault : (e)->
+				#export to window._preventDefault()
+				e.preventDefault()
+				e.stopImmediatePropagation()
 
 			_getMoments : (c)->
 				return [] if c.type != 'challenge'
@@ -78,12 +82,12 @@ angular.module(
 
 			_getChallengePhotos : (c)->
 				c = c || deckService.topCard()
-				return false if c.type=="challenge" && c.status="active"
-				m = _.findWhere actionService._getMoments(c), {status:'active'}
+				return false if c.type=="challenge" && c.status!="active"
+				m = _.findWhere self._getMoments(c), {status:'active'}
 				return false if !m
-				m.photos = actionService._getPhotos m if !m.photos?
+				m.photos = self._getPhotos m if !m.photos?
 				return false if !m.photos
-				c.challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'	
+				c.challengePhotos = m.photos.reverse()  	# for display of challenge only 'active'	
 				return c.challengePhotos				
 
 			_backgroundDeferred: null
@@ -107,8 +111,7 @@ angular.module(
 					self._backgroundDeferred?.resolve(e)
 				), 0
 				
-				
-
+			
 			# do housekeeping when changing status of challenge, moment
 			setCardStatus : (card, status, now)->
 				now = new Date() if !now?
@@ -132,23 +135,33 @@ angular.module(
 					return
 				syncService.set('drawerState') if isDrawerStale?
 
-			# on-touch="galleryGlow"
+			# on-touch="galleryGlow", imitates :bottom-row:hover
 			galleryGlow : (e)->	
 				$el = angular.element(e.currentTarget)
 				switch e.type
 					when "touchstart"
 						$el.addClass 'touch'
 					when "touchend"
-						setTimeout( ()->$el.removeClass 'touch'
+						setTimeout( (()->$el.removeClass 'touch')
 								, 5000)
 				return
 
+			# glow i.fa element on click
+			glowOnClick : (e)->
+				if e.target?.tagName
+					$target = angular.element( e.target )
+					$target.addClass('glow')
+					e.preventDefault()
+					e.stopImmediatePropagation()
+					setTimeout( (()->$target.removeClass 'glow')
+							, 2000)
+				return true
 
 			persistRating : (ev, i)->
 				$target = angular.element(ev.currentTarget)
 				now = new Date().toJSON()
 				ev.preventDefault()
-				ev.stopImmediatePropagation()
+				# ev.stopImmediatePropagation() # bubble to glowOnClick
 				switch $target.attr('rating-type')
 					when "photo"
 						switch this.card && this.card.type || 'timeline'
@@ -157,9 +170,9 @@ angular.module(
 								this.card.stale = this.card.modified = now
 								syncService.set('moment', this.card)
 							when "challenge"
-								p = this.moment.photos[i]
-								this.moment.stale = this.card.modified = now
-								syncService.set('moment', this.moment)
+								p = this.card.challengePhotos[i]
+								this.card.modified = now
+								syncService.set('challenge', this.card)
 							when "timeline"
 								p = this.photo
 						p.stale = now
@@ -245,7 +258,7 @@ angular.module(
 
 			socialShare : (ev, i)->
 				ev.preventDefault()
-				ev.stopImmediatePropagation()
+				# ev.stopImmediatePropagation()  # pass to glowOnClick
 				photo = this.photo
 				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
 				# notify.alert _.keys window.plugins, "info", 5000
@@ -287,7 +300,10 @@ angular.module(
 
 
 			markPhotoForRemoval : (card, e, i, action)->
+				# e.type = {dblclick:remove, click:undo} for desktop, 'touchend' for touch
+				notify.alert "markPhotoForRemoval, e.target="+e.target.tagName, 'info', 4000
 				return if !(card && card.status=='active')
+				return false if e.type=='click' && action=="remove" # discard
 				# return if window.Modernizr?.touch && e.type == 'click'  # ng-swipe -> touchend
 				notify.alert ".thumb action detected, type="+e.type+", action="+action, 'success'
 
@@ -395,6 +411,9 @@ angular.module(
 
 		# resume from pause (background)
 		document.addEventListener("resume", self.resumeApp, false);
+
+		# for element.ondragstart handler outside angular
+		window._preventDefault = self._preventDefault
 
 		return self
 ]
