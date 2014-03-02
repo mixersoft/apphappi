@@ -8,10 +8,14 @@ angular.module(
 	($timeout, appConfig)->
 		this.alerts = {}
 		this.timeouts = []
-		this.alert = (msg=null, type='info', timeout=3000)->
+		this.alert = (msg=null, type='info', timeout)->
 			return if !appConfig.debug || appConfig.debug=='off'
 			if msg? 
+				timeout = timeout || appConfig.notifyTimeout
 				now = new Date().getTime()
+				`while (this.alerts[now]) {
+					now += 0.1;
+				}`
 				this.alerts[now] = {msg: msg, type:type, key:now} if msg?
 				this.timeouts.push({key: now, value: timeout})
 			else 
@@ -33,20 +37,29 @@ angular.module(
 	'deckService'
 	'syncService'
 	'notifyService'
+	'$q'
 	'$location'
-	(drawerService, deckService, syncService, notify, $location)->
+	'$timeout'
+	(drawerService, deckService, syncService, notify, $q, $location, $timeout)->
+
 		self = {
 
 			exports: [
-				# 'setCardStatus'
 				'persistRating'
+				'galleryGlow'
+				'glowOnClick'
 				'drawerItemClick'
 				'goToMoment'
+				'socialShare'
 				'markPhotoForRemoval'
 				'isMarkedForRemoval'
 				'shuffleDeck'
-				# 'swipe'
 			]
+
+			_preventDefault : (e)->
+				#export to window._preventDefault()
+				e.preventDefault()
+				e.stopImmediatePropagation()
 
 			_getMoments : (c)->
 				return [] if c.type != 'challenge'
@@ -67,6 +80,38 @@ angular.module(
 						, []
 				return _.unique(found)
 
+			_getChallengePhotos : (c)->
+				c = c || deckService.topCard()
+				return false if c.type=="challenge" && c.status!="active"
+				m = _.findWhere self._getMoments(c), {status:'active'}
+				return false if !m
+				m.photos = self._getPhotos m if !m.photos?
+				return false if !m.photos
+				c.challengePhotos = m.photos.reverse()  	# for display of challenge only 'active'	
+				return c.challengePhotos				
+
+			_backgroundDeferred: null
+
+			# set up deferred BEFORE causing app to pause
+			prepareToResumeApp : (e)->
+				return if !window.deviceReady
+				if e?
+					if !self._backgroundDeferred?
+						notify.alert "App was NOT prepared to resume after being sent to background" 
+				else
+					notify.alert "App was prepared to resume, then sent to background" 
+					self._backgroundDeferred = $q.defer()
+					self._backgroundDeferred.finally ()-> self._backgroundDeferred = null
+					return self._backgroundDeferred.promise
+			
+			resumeApp	 : (e)->
+				return if !window.deviceReady
+				$timeout (()=>
+					notify.alert "App was resumed from background"
+					self._backgroundDeferred?.resolve(e)
+				), 0
+				
+			
 			# do housekeeping when changing status of challenge, moment
 			setCardStatus : (card, status, now)->
 				now = new Date() if !now?
@@ -90,12 +135,33 @@ angular.module(
 					return
 				syncService.set('drawerState') if isDrawerStale?
 
+			# on-touch="galleryGlow", imitates :bottom-row:hover
+			galleryGlow : (e)->	
+				$el = angular.element(e.currentTarget)
+				switch e.type
+					when "touchstart"
+						$el.addClass 'touch'
+					when "touchend"
+						setTimeout( (()->$el.removeClass 'touch')
+								, 5000)
+				return
+
+			# glow i.fa element on click
+			glowOnClick : (e)->
+				if e.target?.tagName
+					$target = angular.element( e.target )
+					$target.addClass('glow')
+					e.preventDefault()
+					e.stopImmediatePropagation()
+					setTimeout( (()->$target.removeClass 'glow')
+							, 2000)
+				return true
 
 			persistRating : (ev, i)->
 				$target = angular.element(ev.currentTarget)
 				now = new Date().toJSON()
 				ev.preventDefault()
-				ev.stopImmediatePropagation()
+				# ev.stopImmediatePropagation() # bubble to glowOnClick
 				switch $target.attr('rating-type')
 					when "photo"
 						switch this.card && this.card.type || 'timeline'
@@ -104,9 +170,9 @@ angular.module(
 								this.card.stale = this.card.modified = now
 								syncService.set('moment', this.card)
 							when "challenge"
-								p = this.moment.photos[i]
-								this.moment.stale = this.card.modified = now
-								syncService.set('moment', this.moment)
+								p = this.card.challengePhotos[i]
+								this.card.modified = now
+								syncService.set('challenge', this.card)
 							when "timeline"
 								p = this.photo
 						p.stale = now
@@ -139,7 +205,7 @@ angular.module(
 						group: group
 						item: item
 					}
-					notify.alert JSON.stringify(options)
+					# notify.alert "nav to: "+_.values(options).join("-")
 				else 
 					# deprecate
 					notify.alert "deprecated in drawerItemClick()", 'warning'
@@ -154,11 +220,9 @@ angular.module(
 						scope.deck.cards('refresh')
 					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
 
-					# debug
-					# check = scope.deck.topCard()
-					# msg = "topCard after click type="+check.type+", name="+(check.name || check.challenge.name)
-					# notify.alert msg, "success", 6000
-					# console.log msg
+					# check topCard
+					c = scope.deck.topCard()
+					self._getChallengePhotos(c) if c?.type=="challenge" && c?.status="active"
 
 					if route? && route != $location.path()
 						$location.path(route)
@@ -192,8 +256,54 @@ angular.module(
 					if route? && route != $location.path()
 						$location.path(route)
 
+			socialShare : (ev, i)->
+				ev.preventDefault()
+				# ev.stopImmediatePropagation()  # pass to glowOnClick
+				photo = this.photo
+				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
+				# notify.alert _.keys window.plugins, "info", 5000
+				shareViaFB = ()->
+					$timeout( window.plugins.socialsharing.shareVia( 
+						'com.apple.social.facebook',
+						'shared from AppHappi', 
+						null, # subject
+						photo.src, 
+						null, # link
+						null, # success cb
+						(errormsg)->
+							if (errormsg=='not available')
+								notify.alert "ShareViaFacebook NOT AVAILABLE, trying shareViaAny()", "warning", 10000
+								shareViaAny()
+							else 
+								notify.alert "ShareViaFacebook NOT AVAILABLE, msg="+errormsg, "danger", 10000
+					), 0)
+				shareViaAny = ()->
+					$timeout( window.plugins.socialsharing.share(
+													'shared from AppHappi',  
+													null, 
+													photo.src, 
+													null,
+													null, # success cb
+													(()->notify.alert "socialsharing FAILED", "warning")
+												), 0)
+				window.plugins?.socialsharing?.available( 
+					(isAvailable)->
+						if (!isAvailable)
+							console.info "socialsharing plugin is NOT available."
+							return
+						# shareViaFB()
+						shareViaAny()
+						return
+				)
+						
+
+
+
 			markPhotoForRemoval : (card, e, i, action)->
+				# e.type = {dblclick:remove, click:undo} for desktop, 'touchend' for touch
+				notify.alert "markPhotoForRemoval, e.target="+e.target.tagName, 'info', 4000
 				return if !(card && card.status=='active')
+				return false if e.type=='click' && action=="remove" # discard
 				# return if window.Modernizr?.touch && e.type == 'click'  # ng-swipe -> touchend
 				notify.alert ".thumb action detected, type="+e.type+", action="+action, 'success'
 
@@ -237,7 +347,11 @@ angular.module(
 			removeMarkedPhotos : (card)->
 				return if !card.markPhotoForRemoval?
 				now = new Date().toJSON()
-				_.each(card.markPhotoForRemoval, (id, index)->
+				# sort by key/index DESC
+				removalIndexes = _.keys card.markPhotoForRemoval
+				removalIndexes = removalIndexes.sort().reverse()
+				_.each(removalIndexes, (index)->
+						id = card.markPhotoForRemoval[index]
 						retval = self._removePhoto(card, index, id)
 						card.stale = now
 					)
@@ -252,7 +366,8 @@ angular.module(
 						when "moment"
 							m = card
 							momentIndex = i
-						when "challenge"	
+						when "challenge"
+							throw "challengePhotos is ALREADY null" if !card.challengePhotos
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id
 							m = _.findWhere self._getMoments(card), {status:'active'}
 							momentIndex = m.photoIds.length - (i+1)	# reversed array
@@ -265,7 +380,7 @@ angular.module(
 					if m.photos?
 						check1b = m.photos && m.photos.splice(momentIndex, 1)
 						throw "removePhoto() id mismatch" if id != check1[0] != check1b[0].id
-					throw "removePhoto() challengePhotos id mismatch" if check2 && id != check2[0].id
+					throw "removePhoto() challengePhotos id mismatch" if check2 && id != (check2.id || check2[0].id)
 
 					# check for orphaned photo
 					moments = syncService.get('moment')
@@ -290,6 +405,16 @@ angular.module(
 				drawerService.animateClose(500)
 				return 
 		}
+
+		# send App to background
+		document.addEventListener("pause", self.prepareToResumeApp, false);
+
+		# resume from pause (background)
+		document.addEventListener("resume", self.resumeApp, false);
+
+		# for element.ondragstart handler outside angular
+		window._preventDefault = self._preventDefault
+
 		return self
 ]
 ).controller( 'ChallengeCtrl', [
@@ -359,10 +484,12 @@ angular.module(
 			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
 
 			# redirect to all if no active challenge
-			if (drawer.state.group=='findhappi' &&
-							drawer.state.item=='current' &&
-							drawer.state.counts['challenge']['active'] == 0)
-				$scope.drawerShowAll()
+			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
+				if drawer.state.counts['challenge']['active'] == 0
+					$scope.drawerShowAll()
+				else # load moment, challengePhotos
+					c = $scope.deck.topCard()
+					actionService._getChallengePhotos(c)
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -384,7 +511,6 @@ angular.module(
 			actionService.setCardStatus(stale, 'working')
 			return stale				
 		
-
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			options.shuffle = true
@@ -399,6 +525,7 @@ angular.module(
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
+				# notify.alert "Challenge saveToMoment "+JSON.stringify(p), "success", 20000
 				now = new Date()
 				if m?
 					photo = _.defaults p, {
@@ -407,27 +534,33 @@ angular.module(
 						modified: now.toJSON()
 					}
 					# update moment
-					syncService.set('photo', photo)
-					m.photoIds.push photo.id
-					m.stats.count = m.photoIds.length
-					m.stats.viewed += 1
-					m.photos = actionService._getPhotos m
-					actionService.setCardStatus(m, 'active', now)
+					if m.photoIds.indexOf(photo.id) == -1
+						syncService.set('photo', photo)
+						m.photoIds.push photo.id
+						m.stats.count = m.photoIds.length
+						m.stats.viewed += 1
+						m.photos = actionService._getPhotos m
+						actionService.setCardStatus(m, 'active', now)
 
-					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
-					$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
-					syncService.set('moment', m)
+						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
+						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
+						syncService.set('moment', m)
+						
+						notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
+					else 
+						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
 				return
 
 
 			if !navigator.camera
 				promise = cameraService.getPicture($event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 10000 )
 				return true	# continue to input[type=file] handler
 			else
 				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 15000 )
+			return;
 
 		$scope.challenge_pass = ($index)->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
@@ -454,9 +587,8 @@ angular.module(
 			m.stats.completedIn += 123						# fix this
 			m.stats.viewed += 1
 			c.stats.completions.push m.stats.completedIn
-			c.challengePhotos = null;
-
 			actionService.removeMarkedPhotos(c)
+			c.challengePhotos = null;
 			actionService.setCardStatus(stale, 'complete', now)
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)
@@ -633,6 +765,15 @@ angular.module(
 			options = drawer.getDrawerItem('findhappi', 'all')
 			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
+		$scope.moment_rating = (ev, value)->
+			ev.preventDefault()
+			ev.stopImmediatePropagation()
+			card = $scope.deck.topCard()
+			card.stats.rating.moment += value
+			card.stats.rating.moment = 0 if card.stats.rating.moment<0
+			card.stats.rating.moment = 5 if card.stats.rating.moment>5
+			actionService.persistRating.call {card:card}, ev
+
 		$scope.moment_cancel = (id)->
 			m = $scope.deck.topCard()
 			throw "ERROR: moment.id mismatch" if m.id != id 
@@ -696,15 +837,18 @@ angular.module(
 						modified: now.toJSON()
 					}
 					# update moment
-					syncService.set('photo', photo)
-					m.photoIds.push photo.id
-					m.stats.count = m.photoIds.length
-					m.stats.viewed += 1
-					m.photos = actionService._getPhotos m
-					actionService.setCardStatus(m, 'active', now)
+					if m.photoIds.indexOf(photo.id) == -1
+						syncService.set('photo', photo)
+						m.photoIds.push photo.id 
+						m.stats.count = m.photoIds.length
+						m.stats.viewed += 1
+						m.photos = actionService._getPhotos m
+						actionService.setCardStatus(m, 'active', now)
 
-					# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
-					syncService.set('moment', m)
+						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
+						syncService.set('moment', m)
+					else 
+						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
 				return
 
@@ -782,7 +926,7 @@ angular.module(
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
-			return      
+			return  
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')

@@ -7,7 +7,10 @@
       ></i><i class="fa fa-plane pull-right"></i>
     </accordion-heading>
     <div class="drawer-body">
-      <div class='item'><input class="search" ng-model="drawer.query" placeholder="Search"></div>
+      <div class='item'><input class="search" 
+      ng-model="drawer.state.query" 
+      ng-change="deck.cards()"
+      placeholder="Search"></div>
       <div class='item'>
         <button type="button" ng-click="shuffleDeck()"  class="shuffle btn btn-xs btn-default">Shuffle</button>
       </div>

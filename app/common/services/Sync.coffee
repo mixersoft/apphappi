@@ -185,34 +185,34 @@ angular.module(
 						else if "use $http"
 							# load challenges from $http
 							console.log "*** challenge.load()"  
-							promise = $http.get(CFG.challengeUrl).success (data, status, headers, config)->
-							  console.log "*** challenge ready"
-							promise.then (resp)->
-								# mark all as stale and let syncService.set() format
+							dfd = $q.defer()
+							$http.get(CFG.challengeUrl)
+							.success (data, status, headers, config)->
+							  	console.log "*** challenge ready"
+
+							 # return dfd.promise 	
+							.then (resp)->
 								data = resp.data
 								_.each data, (o)->
 									o.type = model
 									o.stale = true
-								# notify.alert "AppHappiRestangular resolved, count="+data.length
 								syncService.set(model, data)	# parseModel in .set()
-								return syncService.get(model)
-							return promise
-						else 	
+								dfd.resolve syncService.get('challenge') 
+							return dfd.promise
+
+						else if "use Restangular"	
+							dfd = $q.defer()
 							promise = AppHappiRestangular.all(model)
 							.getList({'modified':syncService.lastModified[model]})
 							.then (data)->
-								# return data if !_.isFunction(parseFn)
-								# parsed = parseFn data 
-								# localStorageService.set(model, parsed)
-
 								# mark all as stale and let syncService.set() format
 								_.each data, (o)->
 									o.type = model
 									o.stale = true
 								# notify.alert "AppHappiRestangular resolved, count="+data.length
 								syncService.set(model, data)	# parseModel in .set()
-								return syncService.get(model)
-							return promise
+								dfd.resolve syncService.get('challenge') 
+							return dfd.promise
 					when 'moment', 'photo'	
 						if !!syncService.lastModified[model] 
 							# get data from localService
