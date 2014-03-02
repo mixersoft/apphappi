@@ -205,7 +205,7 @@ angular.module(
 						group: group
 						item: item
 					}
-					notify.alert "nav to: "+_.values(options).join("-")
+					# notify.alert "nav to: "+_.values(options).join("-")
 				else 
 					# deprecate
 					notify.alert "deprecated in drawerItemClick()", 'warning'

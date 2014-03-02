@@ -108,7 +108,7 @@ angular.module(
 			else
 				id = now.getTime() + "-photo"
 
-			notify.alert "_getPhotoObj() photo.id=="+id, "success", 20000
+			notify.alert "_getPhotoObj() photo.id=="+id, "success", 2000
 			return {
 				id: id
 				dateTaken: dateTaken
@@ -134,7 +134,7 @@ angular.module(
 		_processImageFile = (file, dfd)->
 			reader = new FileReader()
 			reader.onloadend = (ev)-> 
-				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 30000
+				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 3000
 				src = ev.target.result
 				_processImageDataURL(src, dfd)
 			# starts here	...
@@ -165,7 +165,7 @@ angular.module(
 			_.defer ()->
 				start = new Date().getTime()
 				dataURL = atob(dataURL.replace(/^.*?,/,''))
-				notify.alert "*** _parseExif with JpegMeta ***, atob(dataURL)="+dataURL[0..60], "info", 30000
+				# notify.alert "*** _parseExif with JpegMeta ***, atob(dataURL)="+dataURL[0..60], "info", 3000
 				meta = new JpegMeta.JpegFile(dataURL, 'data:image/jpeg');
 				# groups: metaGroups, general, jfif, tiff, exif, gps
 				_.defaults meta.exif, meta.tiff
@@ -177,8 +177,8 @@ angular.module(
 				elapsed = new Date().getTime() - start
 				notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed, "success", 30000
 				delete exif['MakerNote']
-				# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 30000
-				# notify.alert "EXIF="+JSON.stringify(exif), null, 30000
+				# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 3000
+				# notify.alert "EXIF="+JSON.stringify(exif), null, 3000
 				dfd.resolve(exif)
 				clearTimeout(timeout)
 
@@ -294,7 +294,7 @@ angular.module(
 			# Take a photo using the device's camera with given options, callback chain starts
 			# returns a promise
 			getPicture : (options, $event)->
-				# notify.alert "_fsRoot BEFORE getPicture = "+_fsRoot?.toURL(), null, 30000
+				# notify.alert "_fsRoot BEFORE getPicture = "+_fsRoot?.toURL(), null, 3000
 				navigator.camera.getPicture self.imageUriReceived, self.cameraError, options
 				if _deferred?
 					_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
@@ -338,10 +338,10 @@ angular.module(
 				return notify.alert "Error: gotFileObject() deferred is null", "warning" if !_deferred?
 
 				# notify.alert "gotFileObject(), file="+JSON.stringify( file), "warning", 20000
-				# notify.alert "_fsRoot BEFORE on.ready = "+_fsRoot?.toURL(), null, 30000
+				# notify.alert "_fsRoot BEFORE on.ready = "+_fsRoot?.toURL(), null, 3000
 				steroids.on "ready", ->
-					# notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 30000	if _fsRoot
-					# notify.alert "_fsRoot NOT AVAILABLE", 'danger', 30000 if !_fsRoot?
+					# notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 3000	if _fsRoot
+					# notify.alert "_fsRoot NOT AVAILABLE", 'danger', 3000 if !_fsRoot?
 					
 					# targetDirURI = _fsRoot?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
 					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
@@ -374,14 +374,14 @@ angular.module(
 				if _deferred?
 					filepath = "/" + file.name
 					# notify.alert "fileMoved(): success filepath="+filepath, "success"
-					notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 30000
-					# notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 30000
+					# notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 3000
+					# notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 3000
 
 					_filepathTEST = filepath
 
 
 					if CFG.saveDownsizedJPG
-						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning", 30000
+						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning", 3000
 						_processImageFileEntry(file, _deferred).then( ()->
 							notify.alert "DONE! saving downsized JPG as dataURL", "success", 30000
 						)
