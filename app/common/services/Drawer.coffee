@@ -151,7 +151,7 @@ angular.module(
           # check topCard
           if /challenge/.test(route)
             c = deck.topCard()
-            if c?.type=="challenge" && c?.status="active"
+            if c?.type=="challenge" && c?.status=="active"
               controllerScope.getChallengePhotos(c) 
 
           if route? && route != $location.path()
