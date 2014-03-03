@@ -90,12 +90,16 @@ angular.module( 'appHappi', [
 )
 
 
-# HACK: prevent #drawer.force-open flash
-# TODO: move #drawer outside of ng-include
+# NOTE: adding .force-open as early as possible to prevent flash
+# directive 'responsiveDrawerWrap' will update on window.resize
 if window.innerWidth >= 768
 	try 
 		drawer = document.getElementById('drawer')
-		drawer.className += 'force-open' if drawer?
+		if drawer
+			classes = drawer.className.split(' ')	
+			if classes.indexOf('force-open')==-1
+		 		classes.push('force-open')
+		 		drawer.className = classes.join(' ')
 	catch error
 
 
@@ -114,18 +118,3 @@ angular.element(document).ready ()->
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
 	# continue document ready()
 
-
-
-
-  # init = ()-> 
-  #   setPageDimensions();
-
-  #   $(window).on("load resize orientationchange", function() {
-  #       setPageDimensions();
-  #   })
-
-
-  # # set the pane dimensions and scale the container
-  # setPageDimensions = ()->
-  # 	width = window.innerWidth
-    

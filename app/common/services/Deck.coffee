@@ -27,9 +27,9 @@ angular.module(
 				this.allCards = null
 				this.control = options?.control || {index:0}
 				this.deckCards = null
-				this.options = _.pick(options, ['filter', 'query', 'orderBy'])
 				this.shuffled = this.shuffledCards = null
-				this.cards(cards, options)
+				# this.options = _.pick(options, ['filter', 'query', 'orderBy'])	
+				this.cards(cards, null)
 				return this
 
 			index: (i)->
@@ -66,7 +66,7 @@ angular.module(
 					# console.info "deck.deckCards ="+this.deckCards?.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
 					# console.info "carousel.index = "+this.index()
 				
-				this.shuffle() if this.deckCards?.length == this.allCards?.length && !options.orderBy && !this.shuffled?
+				this.shuffle() if this.deckCards? && this.deckCards?.length == this.allCards?.length && !options.orderBy && !this.shuffled?
 
 				return this.deckCards if !this.shuffled?
 

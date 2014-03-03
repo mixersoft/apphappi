@@ -80,16 +80,6 @@ angular.module(
 						, []
 				return _.unique(found)
 
-			_getChallengePhotos : (c)->
-				c = c || deckService.topCard()
-				return false if c.type=="challenge" && c.status!="active"
-				m = _.findWhere self._getMoments(c), {status:'active'}
-				return false if !m
-				m.photos = self._getPhotos m if !m.photos?
-				return false if !m.photos
-				c.challengePhotos = m.photos.reverse()  	# for display of challenge only 'active'	
-				return c.challengePhotos				
-
 			_backgroundDeferred: null
 
 			# set up deferred BEFORE causing app to pause
@@ -191,44 +181,10 @@ angular.module(
 						c.stale = true	
 						syncService.set('challenge', this.card.challenge)
 
+			# deprecate, move to Drawer.coffee
 			drawerItemClick : (e, groupName, options)->
-				# set active
-				scope = this
-				if _.isString(e)
-					target = {id: e} 
-				else 
-					target = e.currentTarget 
 
-				[type, group, item] = target.id?.split('-') || []
-				if type == 'drawer'
-					options = {
-						group: group
-						item: item
-					}
-					# notify.alert "nav to: "+_.values(options).join("-")
-				else 
-					# deprecate
-					notify.alert "deprecated in drawerItemClick()", 'warning'
-					options = {item: options} if _.isString(options)
-					options.item = options.name if options?.name?
-					options.group = groupName
-				
-				return drawerService.itemClick options, (route)->
-					# drawerService.state is updated with new filter/query/search, setupDeck
-					isValid = scope.deck.validateDeck()
-					if !isValid
-						scope.deck.cards('refresh')
-					scope.deck.shuffle() if options.name=='shuffle' || options.shuffle
-
-					# check topCard
-					c = scope.deck.topCard()
-					self._getChallengePhotos(c) if c?.type=="challenge" && c?.status="active"
-
-					if route? && route != $location.path()
-						$location.path(route)
-					# else
-					# 	notify.alert "NOT setting NEW route"	, "warning"
-						# check = scope.deck.nextCard()
+				return drawerService.drawerItemClick.apply(this, arguments)
 
 			goToMoment : (ev, i)->
 				return if !/\/timeline/.test($location.path()) 
@@ -451,7 +407,7 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		$scope.initialDrawerState = {  
+		_initialDrawerState = {  
 			group: 'findhappi'  
 			item: 'current'
 		}
@@ -468,7 +424,7 @@ angular.module(
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='findhappi'
 				drawerItemOptions = drawer.getDrawerItem('findhappi', 'current')
-				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
+				state = _.defaults _initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -481,15 +437,15 @@ angular.module(
 				_challenges = o.challenge 
 
 			_cards = _.values _challenges
-			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+			deckOptions = {control: $scope.carousel}
+			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
 				if drawer.state.counts['challenge']['active'] == 0
 					$scope.drawerShowAll()
 				else # load moment, challengePhotos
-					c = $scope.deck.topCard()
-					actionService._getChallengePhotos(c)
+					$scope.getChallengePhotos()
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -509,12 +465,23 @@ angular.module(
 					if m.status=='active'
 						stale.push m
 			actionService.setCardStatus(stale, 'working')
-			return stale				
+			return stale		
+
+		# get photos for 'active' challenge in reverse order
+		$scope.getChallengePhotos = (c)->
+				c = c || $scope.deck.topCard()
+				return false if c.type=="challenge" && c.status!="active"
+				m = _.findWhere actionService._getMoments(c), {status:'active'}
+				return false if !m
+				m.photos = actionService._getPhotos m if !m.photos?
+				return false if !m.photos
+				c.challengePhotos = m.photos.reverse()  	# for display of challenge only 'active'	
+				return c.challengePhotos			
 		
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			options.shuffle = true
-			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
 
 		$scope.challenge_getPhoto = ($event)->
@@ -598,7 +565,7 @@ angular.module(
 			$scope.moment = null
 
 			# goto moment
-			return $scope.drawerItemClick 'drawer-gethappi-mostrecent', 'gethappi', {item:'mostrecent'}
+			return drawer.drawerItemClick 'drawer-gethappi-mostrecent', 'gethappi', {item:'mostrecent'}
 
 		$scope.challenge_open = ()->
 			deactivated = _deactivateChallenges()
@@ -624,7 +591,7 @@ angular.module(
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			# drawer.updateCounts( _challenges)
-			return $scope.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
+			return drawer.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
 
 
 		# TODO: change to accept
@@ -671,7 +638,7 @@ angular.module(
 
 
 			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
-			return $scope.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
+			return drawer.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
 
 		$scope.challenge_sleep = ()->
 			# set current challenge, then put app to sleep
@@ -714,7 +681,7 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		$scope.initialDrawerState = {
+		_initialDrawerState = {
 			group: 'gethappi'
 			item: 'mostrecent'
 		}
@@ -730,7 +697,7 @@ angular.module(
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='gethappi'
 				drawerItemOptions = drawer.getDrawerItem('gethappi', 'mostrecent')
-				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
+				state = _.defaults _initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
 			# wrap challenges in a Deck
@@ -750,7 +717,8 @@ angular.module(
 
 			# get nextCard
 			_cards = _.values _moments 
-			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+			deckOptions = {control: $scope.carousel} 
+			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
 			m = $scope.deck.topCard()
 			if $route.current.params.id? && m?.status=='active'
@@ -763,7 +731,7 @@ angular.module(
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
-			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
 		$scope.moment_rating = (ev, value)->
 			ev.preventDefault()
@@ -894,7 +862,7 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		$scope.initialDrawerState = {
+		_initialDrawerState = {
 			group: 'timeline'
 			item: 'photos'
 		}
@@ -910,7 +878,7 @@ angular.module(
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='timeline'
 				drawerItemOptions = drawer.getDrawerItem('timeline', 'photos')
-				state = _.defaults $scope.initialDrawerState, drawerItemOptions 
+				state = _.defaults _initialDrawerState, drawerItemOptions 
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -922,7 +890,8 @@ angular.module(
 
 			# get nextCard
 			_cards = _.values _photos 
-			$scope.deck = deckService.setupDeck(_cards, _.extend( {control: $scope.carousel}, drawer.state ) )
+			deckOptions = {control: $scope.carousel} 
+			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -930,7 +899,7 @@ angular.module(
 
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
-			return $scope.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
 
 		return;
 	]

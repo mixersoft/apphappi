@@ -20,28 +20,32 @@ angular.module(
       myNgModel: '='     # this is NOT working, scope.mirror is not set
     # link: link 
   }
-).directive('responsiveDrawerWrap', ($window)->
-
+).directive('responsiveDrawerWrap', [ 
+  'appConfig'
+  'drawerService' 
+  '$window'
+  (CFG, drawerService, $window)->
     return {
       restrict: 'A'
       link: (scope, element, attrs)->
         setResponsive = _.debounce (()->
                   # either $window.innerWidth or $window.outerWidth
-                  isStacked = $window.innerWidth < scope.CFG.drawerOpenBreakpoint
+                  isStacked = $window.innerWidth < CFG.drawerOpenBreakpoint
                   if (isStacked) 
                     element.removeClass('force-open')
                   else 
                     element.addClass('force-open')
-                  if scope.drawer?
-                    scope.drawer.setDrawerOpen() 
+                  # drawerService.setDrawerOpen() 
+                  drawerService.setDrawerOpen()
           ), 200
 
         angular.element($window).bind 'resize', ->
           setResponsive()
 
+        scope.drawer = drawerService
         setResponsive()
-    }  
-).factory('drawerService', [
+    }    
+]).factory('drawerService', [
   'appConfig'
   '$location'
   '$http'
@@ -79,9 +83,6 @@ angular.module(
         }
         return {'challenge': challengeCounts}
 
-      # set drawer state based on bootstrap grid breakpoint
-      forceDrawerOpen : null
-
     }
 
     self = {
@@ -92,12 +93,11 @@ angular.module(
         if !(_drawer.drawerWrap?.length)
           _drawer.drawerWrap = angular.element(document.getElementById('drawer'))  
         self.isDrawerOpen =  _drawer.drawerWrap.hasClass('force-open') 
-        # TODO: cancel animation for this transition
         _drawer.drawerWrap?.scope()?.$apply()
-        console.log "setDrawerOpen, isDrawerOpen="+self.isDrawerOpen
+        # console.log "setDrawerOpen, isDrawerOpen="+self.isDrawerOpen
         return
 
-      # discard open click as necessary using .fa-bars
+      # ng-click handler to discard .fa-bars open click as necessary 
       handleDrawerOpen: (e)->
         if !_drawer.drawerWrap
           _drawer.drawerWrap = angular.element(document.getElementById('drawer'))
@@ -121,10 +121,44 @@ angular.module(
             self.isDrawerOpen = false
           , delay  
 
+      drawerItemClick : (e, groupName, options)->
+        # set active
+        if _.isString(e)
+          target = {id: e} 
+        else 
+          target = e.currentTarget 
+
+        [type, group, item] = target.id?.split('-') || []
+        if type == 'drawer'
+          options = {
+            group: group
+            item: item
+          }
+          # notify.alert "nav to: "+_.values(options).join("-")
+        else 
+          throw "ERROR: expecting something in the form of 'drawer-[group]-[item]'"
+
+        return self.itemClick options, options.cb || (route)->
+          # controllerScope should validate deck and load route
+          controllerScope = angular.element(document.getElementById("notify")).scope()
+          # verify deck
+          deck = controllerScope.deck   
+          isValid = deck.validateDeck()
+          if !isValid
+            deck.cards('refresh')
+          deck.shuffle() if options.name=='shuffle' || options.shuffle
+
+          # check topCard
+          if /challenge/.test(route)
+            c = deck.topCard()
+            if c?.type=="challenge" && c?.status="active"
+              controllerScope.getChallengePhotos(c) 
+
+          if route? && route != $location.path()
+            $location.path(route)
+
       # set properties for drawerItem click
       itemClick: (options, cb)->
-        # same drawer-group, stay on page
-
         # special case for reset
         if options.group=='settings'
           switch options.item
@@ -157,11 +191,7 @@ angular.module(
         # save state to localStorage
         localStorageService.set('drawerState', self.state)
         # notify.alert "itemClick, filter="+JSON.stringify(self.state.filter)
-
-        if sameGroup
-          self.animateClose()
-        else 
-          self.animateClose(500)
+        self.animateClose()
 
         return cb(drawerItemOptions.route) if _.isFunction(cb)
         if !drawerItemOptions.route
@@ -175,13 +205,6 @@ angular.module(
         catch
           return false
          
-      XXXforceGroupOpen: (group)->
-        # deprecate,  drawerGroup is always open
-        # force open accordion-group on ng-click toggle()
-        # NOTE: this is different from initial state open/close
-        # self.state.group = group.name
-        return group.isOpen = false   # toggle will set isOpen=true
-
       init: (challenges, moments, drawerItemState)->
         # drawer = $rootScope.drawer
         _.extend(self.state, drawerItemState) if drawerItemState?
