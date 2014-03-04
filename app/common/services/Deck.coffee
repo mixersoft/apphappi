@@ -29,7 +29,7 @@ angular.module(
 				this.deckCards = null
 				this.shuffled = this.shuffledCards = null
 				# this.options = _.pick(options, ['filter', 'query', 'orderBy'])	
-				this.cards(cards, null)
+				this.cards(cards, options)
 				return this
 
 			index: (i)->

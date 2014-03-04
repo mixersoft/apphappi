@@ -114,6 +114,7 @@ angular.module(
 				dateTaken: dateTaken
 				Exif: exif || {}
 				src: uri || dataURL
+				rating: 0		# required for orderBy:-rating to work				
 			}
 
 		_processImageSrc = (src, dfd)->

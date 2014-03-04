@@ -903,7 +903,8 @@ angular.module(
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='timeline'
 				drawerItemOptions = drawer.getDrawerItem('timeline', 'photos')
-				state = _.defaults _initialDrawerState, drawerItemOptions 
+				state = _.defaults _initialDrawerState, drawerItemOptions
+			state.orderBy = "-rating" 
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -915,7 +916,10 @@ angular.module(
 
 			# get nextCard
 			_cards = _.values _photos 
-			deckOptions = {control: $scope.carousel} 
+			deckOptions = {
+				control: $scope.carousel
+				orderBy: "-rating"
+			} 
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
 			# hide loading
