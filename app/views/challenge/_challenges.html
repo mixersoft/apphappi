@@ -61,7 +61,7 @@
               ng-if="['new','pass'].indexOf(card.status)>=0">
                 <button type="button" class="btn btn-primary" ng-click="challenge_new_moment()">Accept</button>
                 <button bo-if="false" type="button" class="btn btn-default" ng-click="challenge_later()">Sleep</button>
-                <button type="button" ng-click="challenge_pass()"  class="btn btn-default">Pass</button>
+                <button type="button" ng-click="challenge_pass()"  class="btn btn-default">Next</button>
               </div>
               <div class="btn-group status-active"
               ng-if="['active'].indexOf(card.status)>=0">
@@ -80,7 +80,7 @@
               ng-if="['complete'].indexOf(card.status)>=0">
                 <button type="button" class="btn btn-primary" ng-click="challenge_open()">Open</button>
                 <button type="button" class="btn btn-default" title="repeat this challenge" ng-click="challenge_new_moment()"><i class="fa fa-copy"></i> Repeat</button>
-                <button type="button" class="btn btn-default" ng-click="deck.nextCard()">Next</button>
+                <button type="button" class="btn btn-default" ng-click="challenge_pass()">Next</button>
               </div>
               <div class="btn-group status-working"
               ng-if="['working'].indexOf(card.status)>=0">
