@@ -1,6 +1,6 @@
  <!-- div.thumb thumbnail template  -->
 <div id="{{photo.id}}" 
-class="thumb fade in {{photo.orientationLabel}}" 
+class="thumb {{photo.orientationLabel}}" 
 ng-class="{remove: isMarkedForRemoval($index, photo.id)}"
 ng-dblclick="markPhotoForRemoval(card, $event, $index, 'remove')"
 ng-click="markPhotoForRemoval(card, $event, $index, 'remove')"

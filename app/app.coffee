@@ -1,6 +1,7 @@
 angular.module( 'appHappi', [
 	'ngRoute'
 	'ngSanitize'
+	'ngAnimate'
 	'ui.bootstrap'
 	'angularMoment'
 	'LocalStorageModule'
@@ -11,7 +12,7 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: true
+	debug: false
 	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
@@ -20,6 +21,8 @@ angular.module( 'appHappi', [
 	camera: 
 		targetWidth : 320
 		quality: 85
+	gallery:
+		lazyloadOffset: 2
 	$curtain: angular.element(document.getElementById('curtain'))
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
 	challengeUrl: if window.location.protocol=='file:' then 'common/data/challenge.json' else '/common/data/challenge.json'
