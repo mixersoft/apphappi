@@ -287,6 +287,9 @@ angular.module(
 				  else	
 				    _.each( challenge.momentIds, (mid,k,l)->
 				    							moment = syncService.get('moment', mid)
+				    							if !moment? 
+				    								notify.alert "ERROR: moment not found, possible data corruption. challenge="+challenge.name+", mid="+mid
+				    								return
 				    							moment.photos = _.map moment.photoIds, ((id)->return syncService.get('photo', id))
 				    							moment.challenge = challenge    # moment belongsto challenge assoc
 				    							if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)

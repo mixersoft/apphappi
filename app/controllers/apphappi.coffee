@@ -537,11 +537,12 @@ angular.module(
 		$scope.challenge_pass = ($index)->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
+				m = $scope.moment
 				stale =_deactivateChallenges(c)
 				try
-					m = stale[1] 
-					if m?.photoIds.length==0
+					if m.photoIds.length==0 
 						m.remove = true
+						c.momentIds.splice(c.momentIds.indexOf(m.id), 1)
 						actionService.setCardStatus(c, 'pass')
 				catch error
 				syncService.set('challenge', stale)
