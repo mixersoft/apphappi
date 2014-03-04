@@ -121,7 +121,7 @@ angular.module(
             self.isDrawerOpen = false
           , delay  
 
-      drawerItemClick : (e, groupName, options)->
+      drawerItemClick : (e, callback)->
         # set active
         if _.isString(e)
           target = {id: e} 
@@ -130,7 +130,7 @@ angular.module(
 
         [type, group, item] = target.id?.split('-') || []
         if type == 'drawer'
-          options = {
+          drawerOptions = {
             group: group
             item: item
           }
@@ -138,7 +138,8 @@ angular.module(
         else 
           throw "ERROR: expecting something in the form of 'drawer-[group]-[item]'"
 
-        return self.itemClick options, options.cb || (route)->
+        # usually called from drawer.menuItem onclick handler
+        after_handleItemClick = (route)->
           # controllerScope should validate deck and load route
           controllerScope = angular.element(document.getElementById("notify")).scope()
           # verify deck
@@ -146,7 +147,6 @@ angular.module(
           isValid = deck.validateDeck()
           if !isValid
             deck.cards('refresh')
-          deck.shuffle() if options.name=='shuffle' || options.shuffle
 
           # check topCard
           if /challenge/.test(route)
@@ -156,6 +156,9 @@ angular.module(
 
           if route? && route != $location.path()
             $location.path(route)
+
+        return self.itemClick drawerOptions, callback || after_handleItemClick
+
 
       # set properties for drawerItem click
       itemClick: (options, cb)->

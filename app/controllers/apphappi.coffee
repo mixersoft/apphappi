@@ -182,7 +182,7 @@ angular.module(
 						syncService.set('challenge', this.card.challenge)
 
 			# deprecate, move to Drawer.coffee
-			drawerItemClick : (e, groupName, options)->
+			drawerItemClick : (e, callback)->
 
 				return drawerService.drawerItemClick.apply(this, arguments)
 
@@ -444,6 +444,7 @@ angular.module(
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
 				if drawer.state.counts['challenge']['active'] == 0
 					$scope.drawerShowAll()
+
 				else # load moment, challengePhotos
 					$scope.getChallengePhotos()
 
@@ -481,7 +482,11 @@ angular.module(
 		$scope.drawerShowAll = ()->
 			options = drawer.getDrawerItem('findhappi', 'all')
 			options.shuffle = true
-			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			after_handleItemClick = (route)->
+        $scope.deck.cards('refresh') 
+        # $scope.deck.shuffle()
+        return
+			return actionService.drawerItemClick 'drawer-findhappi-all', after_handleItemClick
 
 
 		$scope.challenge_getPhoto = ($event)->
@@ -565,7 +570,7 @@ angular.module(
 			$scope.moment = null
 
 			# goto moment
-			return drawer.drawerItemClick 'drawer-gethappi-mostrecent', 'gethappi', {item:'mostrecent'}
+			return actionService.drawerItemClick 'drawer-gethappi-mostrecent'
 
 		$scope.challenge_open = ()->
 			deactivated = _deactivateChallenges()
@@ -591,7 +596,12 @@ angular.module(
 			syncService.set('challenge', stale)
 			syncService.set('moment', stale)		
 			# drawer.updateCounts( _challenges)
-			return drawer.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
+
+			after_handleItemClick = (route)->
+        $scope.deck.cards('refresh') 
+        return
+
+			return actionService.drawerItemClick 'drawer-findhappi-current', after_handleItemClick
 
 
 		# TODO: change to accept
@@ -636,9 +646,12 @@ angular.module(
 			check = syncService.get('challenge', c.id)
 			notify.alert("challenge status="+check.status, 'success')
 
+			after_handleItemClick = (route)->
+        $scope.deck.cards('refresh') 
+        return
 
-			# drawer.updateCounts( _challenges, syncService.localData['moment'] )
-			return drawer.drawerItemClick 'drawer-findhappi-current', 'findhappi', {item:'current'}
+			return actionService.drawerItemClick 'drawer-findhappi-current', after_handleItemClick
+
 
 		$scope.challenge_sleep = ()->
 			# set current challenge, then put app to sleep
@@ -730,8 +743,13 @@ angular.module(
 			return      
 
 		$scope.drawerShowAll = ()->
-			options = drawer.getDrawerItem('findhappi', 'all')
-			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			return drawer.drawerItemClick 'drawer-findhappi-all'
+
+		$scope.lazyLoadGallery = ($index, offset)->
+			offset = offset || CFG.gallery?.lazyloadOffset || 2
+			isVisible = Math.abs($index - $scope.carousel.index) <= offset
+			return isVisible
+
 
 		$scope.moment_rating = (ev, value)->
 			ev.preventDefault()
@@ -865,6 +883,7 @@ angular.module(
 		_initialDrawerState = {
 			group: 'timeline'
 			item: 'photos'
+			orderBy: '-rating'
 		}
 		
 		# reset for testing
@@ -898,8 +917,7 @@ angular.module(
 			return  
 
 		$scope.drawerShowAll = ()->
-			options = drawer.getDrawerItem('findhappi', 'all')
-			return drawer.drawerItemClick 'drawer-findhappi-all', 'findhappi', options
+			return drawer.drawerItemClick 'drawer-findhappi-all'
 
 		return;
 	]

@@ -109,7 +109,7 @@
             </div> 
           </div>
           <div class="gallery clearfix" on-touch="galleryGlow"
-          ng-if="-2 < ($index-carousel.index) && ($index-carousel.index) < 2" >
+          ng-if="lazyLoadGallery($index)" >
             <div ng-repeat="photo in card.photos" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>
