@@ -85,9 +85,54 @@ angular.module( 'appHappi', [
 				 scope.$apply ()->
 				 	handleOnTouch.call(scope, e)
 
-			# element.bind 'click',(e)->
-			# 	 scope.$apply ()->
-			# 	 	handleOnTouch.call(scope, e) 
+			# TODO: destroy listeners
+			scope.$on '$destroy', ()->
+				element.unbind()	 	
+			return
+	}
+)
+
+.directive('deckPerpage', ($compile, $timeout)->
+	return {
+		restrict: "A"
+		scope:
+			perpage: "="
+			deck: "="
+		link : (scope, element, attrs)->
+			# TODO: use pull down to refresh pattern for pull up
+			pager = angular.element '<div class="pager-wrap" on-touch="galleryGlow"><div id="timeline-pager"><i class="fa fa-spinner fa-spin" ng-show="loading"></i> {{remaining}} more</div></div>'
+			element.append(pager)
+			scope.remaining = 0
+			scope.loading = false
+			
+			_updatePager = (type="loading")->
+				total = scope.deck.size()
+				showing = scope.deck.paginatedCards("showing")
+				scope.remaining = total-showing
+				if scope.remaining == 0 
+					pager.unbind()
+					pager.remove()
+				scope.loading = type=="loading"
+				# use timeout for now
+				$timeout (()->_updatePager("done")), 1000
+
+			pager.bind 'touchstart, click',(e)->
+				scope.$apply ()->
+				 	scope.deck.paginatedCards("more")
+				 	_updatePager("loading")
+
+			pager.bind 'touchend',(e)->
+				scope.$apply ()->
+				 	_updatePager("done")
+
+			# TODO: destroy listeners
+			scope.$on '$destroy', ()->
+				pager.unbind()	 	
+
+			# initialize to page=1, perpage=scope.perpage
+			scope.deck.paginatedCards(scope.perpage) 
+			_updatePager("done")	 	
+			$compile(pager.contents())(scope); 
 			return
 	}
 )

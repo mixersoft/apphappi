@@ -185,10 +185,10 @@
  */
 .thumb-meta-hover {
   background: fade(@snappi-darkblue,60%);
-    opacity: 1;
-    .btn-icon:hover {
-      color: #FFF;
-    }
+  opacity: 1;
+  .btn-icon:hover {
+    color: #FFF;
+  }
 }
 
 .gallery.touch .thumb .meta,
@@ -207,3 +207,26 @@
   }
 }
 
+.timeline.gallery {
+  .pager-wrap {
+    background: @snappi-darkblue;
+    bottom: 0;
+    color:@snappi-yellow;
+    cursor: default;
+    height: 48px;
+    line-height: 48px;
+    margin: 0 12px;
+    overflow: hidden;
+    position: relative;
+    .center-block();
+    &.touch {
+      opacity: 1
+      color: yellow;
+      font-size: 1.4em;
+    }
+    #timeline-pager {
+      font-size: @font-size-large;
+      text-align: center;
+    }
+  }
+}

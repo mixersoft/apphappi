@@ -77,6 +77,21 @@ angular.module(
 					, this
 				return this.shuffledCards
 
+			paginatedCards : (perpage)->
+				# initialize with perpage value
+				if !_.isNaN parseInt perpage
+					this.perpage = perpage
+					this.page = 1
+					return this.perpage
+				# ng-repeat = paginatedCards()	
+				end = this.perpage && Math.min(this.page * this.perpage, this.size()) || 0
+				if perpage=="more" && end < this.size()
+					return ++this.page
+				else if perpage=="showing"
+					return end
+				else
+					return this.cards()[0...end]
+
 			size: (all)	->
 				return this.allCards.length if all?
 				return this.deckCards.length

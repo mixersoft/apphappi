@@ -38,8 +38,8 @@
               </figure>  
             </div>
           </div>
-          <div class="gallery clearfix" on-touch="galleryGlow">
-            <div ng-repeat="photo in deck.cards()" ng-include="'/common/templates/_thumbnail.html'">
+          <div class="timeline gallery clearfix" on-touch="galleryGlow" deck-perpage="3" deck="deck">
+            <div ng-repeat="photo in deck.paginatedCards()" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>
         </div>
