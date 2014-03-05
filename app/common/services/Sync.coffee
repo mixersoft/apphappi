@@ -273,6 +273,8 @@ angular.module(
 						completedIn: _asDuration m.stats && m.stats.completedIn || 0
 					}
 					return  m
+				'photo': (m)->
+					m.rating = 0 if !m.rating?		
 			}
 
 			setForeignKeys: (challenges, moments)->
@@ -290,7 +292,10 @@ angular.module(
 				    							if !moment? 
 				    								notify.alert "ERROR: moment not found, possible data corruption. challenge="+challenge.name+", mid="+mid
 				    								return
-				    							moment.photos = _.map moment.photoIds, ((id)->return syncService.get('photo', id))
+				    							moment.photos = _.map moment.photoIds, ((id)->
+				    								photo = syncService.get('photo', id) 
+				    								photo.rating = 0 if !photo.rating?
+				    								return photo )
 				    							moment.challenge = challenge    # moment belongsto challenge assoc
 				    							if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
 				    								challenge.status = moment.status 
