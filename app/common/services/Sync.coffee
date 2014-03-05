@@ -299,7 +299,8 @@ angular.module(
 				console.log "syncService.setForeignKeys(), elapsed="+ (new Date().getTime() - now.getTime()) + "ms"
 				return
 		}
-
+		# for counts, circular dependency problem, should refactor
+		drawer.setSyncService(syncService)
 		# for debugging
 		window.localData = syncService.localData
 		return syncService

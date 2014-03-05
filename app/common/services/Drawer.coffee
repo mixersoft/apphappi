@@ -59,6 +59,7 @@ angular.module(
       url: '/common/data/drawer.json'
       json: {}    
       drawerWrap : null     #  #drawer element
+      syncService : null    # ref to syncService for counts
 
       # initial defaultDrawerItemState, override on drawer.init() in controller
 
@@ -69,6 +70,7 @@ angular.module(
         query: ''       # filter:[string]
         orderProp: ''   # orderBy propertyName
       }
+
       getCounts: (challenges, moments)->
         challengeCounts = _.reduce challenges, (
           (result, challenge)->
@@ -110,6 +112,8 @@ angular.module(
         return true # let accordion.ng-click do its work
 
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
+      setSyncService: (syncService)->
+        _drawer.syncService = syncService
 
       isDrawerItemActive: (id)->
         return id == self.state?['activeItemId']
@@ -222,21 +226,25 @@ angular.module(
       
 
       updateCounts: (challenges, moments)->
-        self.state.counts = _.extend (self.state.counts || {}), (_drawer.getCounts challenges)
-        # set counts for drawerGroups
-        updateList = []
-        updateList.push('findhappi') if challenges?
-        updateList.push('gethappi') if moments?
-        _.each updateList, (groupName)->
-          drawerGroup = _.findWhere _drawer.json.data, {name: groupName}
-          switch groupName
-            when 'findhappi' 
-              drawerGroup.count = _.values( challenges ).length
-            when 'gethappi' # moments
-              drawerGroup.count = _.values( _.filter moments, (o)-> o.status!='pass').length
-          self.state.counts[groupName] = drawerGroup.count
+        # set counts for drawerGroups from syncService
+        self.state.counts = self.state.counts || {}
+        updateList = [
+          {groupName:'findhappi', model:'challenge'}
+          {groupName:'gethappi', model:'moment'}
+          {groupName:'timeline', model:'photo'}
+        ]
+        throw "Error: syncService not set in Drawer" if !_drawer.syncService? 
+        _.each updateList, (o)->
+          models = _drawer.syncService['localData'][o.model]
+          self.state.counts[o.groupName] = _.values( models ).length
+          # additional parsing
+          switch o.model
+            when "challenge"
+              self.state.counts = _.extend self.state.counts, _drawer.getCounts models
+
         localStorageService.set('drawerState', self.state)  
-        return self
+        return self  
+          
 
       load: (url)->
         url = _drawer.url if _.isEmpty(url)
