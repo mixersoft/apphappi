@@ -38,7 +38,7 @@
               </figure>  
             </div>
           </div>
-          <div class="timeline gallery clearfix" on-touch="galleryGlow" deck-perpage="3" deck="deck">
+          <div class="timeline gallery clearfix" on-touch="galleryGlow" paginate-deck="deck" perpage="3">
             <div ng-repeat="photo in deck.paginatedCards()" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>

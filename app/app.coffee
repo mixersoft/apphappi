@@ -92,12 +92,12 @@ angular.module( 'appHappi', [
 	}
 )
 
-.directive('deckPerpage', ($compile, $timeout)->
+.directive('paginateDeck', ($compile, $timeout)->
 	return {
 		restrict: "A"
 		scope:
 			perpage: "="
-			deck: "="
+			deck: "=paginateDeck"
 		link : (scope, element, attrs)->
 			# TODO: use pull down to refresh pattern for pull up
 			pager = angular.element '<div class="pager-wrap" on-touch="galleryGlow"><div id="timeline-pager"><i class="fa fa-spinner fa-spin" ng-show="loading"></i> {{remaining}} more</div></div>'
