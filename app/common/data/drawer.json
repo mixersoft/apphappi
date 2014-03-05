@@ -4,8 +4,6 @@
   {
     "name": "gethappi",
     "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
-    "xxxstate": {
-    },
     "items": [
      {
       "name": "mostrecent",
@@ -47,8 +45,6 @@
   {
     "name": "findhappi",
     "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
-    "xxxstate": {
-    },
     "items": [
       {
         "name": "current",
@@ -104,12 +100,16 @@
   {
     "name": "timeline",
     "label": "<i class=\"fa fa-calendar\"></i> Timeline",
-    "xxxstate": {
-    },
     "items": [
       {
-        "name": "photos",
-        "label": "Happi Photos",
+        "name": "toprated",
+        "label": "Top Rated Photos",
+        "orderBy": "-rating",
+        "route": "/timeline"
+      },
+      {
+        "name": "mostrecent",
+        "label": "Most Recent Photos",
         "orderBy": "-dateTaken",
         "route": "/timeline"
       }
@@ -124,8 +124,6 @@
   {
     "name": "settings",
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
-    "state": {
-    },
     "items": [
       {
         "name": "debug",
@@ -133,14 +131,19 @@
         "switch": "CFG.debug"
       },
       {
-        "name": "reset",
-        "label": "Reset local data",
-        "route": "/challenges"
-      },
-      {
         "name": "reload",
         "label": "Reload",
         "route": "/"
+      },
+      {
+        "name": "drawer",
+        "label": "Reset Navigation",
+        "route": "/"
+      },
+      {
+        "name": "reset",
+        "label": "Reset local data",
+        "route": "/challenges"
       }
     ]
   }  

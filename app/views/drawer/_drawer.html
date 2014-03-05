@@ -96,9 +96,13 @@
           </h4>
         </div>
         <div class="panel-body">
-          <div id="drawer-timeline-photos" class="item" 
+          <div id="drawer-timeline-toprated" class="item" 
           ng-click="drawer.drawerItemClick($event)">
-            <i class="fa fa-picture-o"></i> My Happi Photos
+            <i class="fa fa-picture-o"></i> Top Rated
+          </div>
+          <div id="drawer-timeline-mostrecent" class="item" 
+          ng-click="drawer.drawerItemClick($event)">
+            <i class="fa fa-picture-o"></i> Most Recent
           </div>
         </div>
       </div>
@@ -131,6 +135,10 @@
           <div id="drawer-settings-reload" class="item" 
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-repeat"></i> Reload
+          </div>
+          <div id="drawer-settings-drawer" class="item" 
+          ng-click="drawer.drawerItemClick($event)">
+            <i class="fa fa-times-circle"></i> Reset Navigation
           </div>
           <div id="drawer-settings-reset" class="item" 
           ng-click="drawer.drawerItemClick($event)">

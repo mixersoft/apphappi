@@ -140,6 +140,11 @@ angular.module(
 			clearAll: ()->
 				localStorageService.clearAll()
 
+			clearDrawer: ()->
+				syncService.localData['drawer']['modified'] = false
+				localStorageService.set('drawer', syncService.localData['drawer'])
+				return syncService.lastModified['drawer'] = false
+
 			initLocalStorage: (models=[])->
 				CFG.userId = new Date().getTime() if !CFG.userId?
 				models = ['challenge', 'moment', 'drawer', 'photo']
@@ -159,7 +164,7 @@ angular.module(
 					)
 				switch model
 					when 'drawer' 
-						if !!syncService.lastModified[model] 
+						if !!syncService.lastModified[model]
 							# load drawer from localData
 							drawer.json syncService.localData['drawer']
 							drawer.ready = $q.defer()

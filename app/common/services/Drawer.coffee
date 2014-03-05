@@ -166,14 +166,18 @@ angular.module(
 
       # set properties for drawerItem click
       itemClick: (options, cb)->
-        # special case for reset
+        # Settings click will cause reload
         if options.group=='settings'
           switch options.item
             when 'reset'
-              localStorageService.clearAll()
-              self.animateClose(500)
+              resp = window.confirm('Are you sure you want to delete everything?')
+              if (resp==true)
+                localStorageService.clearAll()
+              self.animateClose()
               $timeout (()->window.location.reload()), 1000
               return
+            when 'drawer'
+              _drawer.syncService?.clearDrawer()
             when 'debug'
               CFG.debug = !CFG.debug
             when 'reload'
