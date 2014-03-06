@@ -84,6 +84,7 @@ angular.module(
 
 			# set up deferred BEFORE causing app to pause
 			prepareToResumeApp : (e)->
+				pauseTime = new Date().getTime()
 				return if !window.deviceReady
 				if e?
 					if !self._backgroundDeferred?
@@ -91,14 +92,23 @@ angular.module(
 				else
 					notify.alert "App was prepared to resume, then sent to background" 
 					self._backgroundDeferred = $q.defer()
-					self._backgroundDeferred.finally ()-> self._backgroundDeferred = null
-					return self._backgroundDeferred.promise
+					promise = self._backgroundDeferred.promise
+					.then (o)->
+						o.pauseDuration = (o.resumeTime - (pauseTime || 0))/1000
+						notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
+						return o
+					.finally ()-> self._backgroundDeferred = null
+					return promise
 			
 			resumeApp	 : (e)->
 				return if !window.deviceReady
 				$timeout (()=>
 					notify.alert "App was resumed from background"
-					self._backgroundDeferred?.resolve(e)
+					o = {
+						event: e
+						resumeTime: new Date().getTime() 
+					}
+					self._backgroundDeferred?.resolve( o )
 				), 0
 				
 			
@@ -379,6 +389,7 @@ angular.module(
 	'$q'
 	'$route'
 	'$location'
+	'$timeout'
 	'drawerService'
 	'syncService'
 	'deckService'
@@ -386,7 +397,7 @@ angular.module(
 	'notifyService'
 	'actionService'
 	'appConfig'
-	($scope, $filter, $q, $route, $location, drawer, syncService, deckService, cameraService, notify, actionService, CFG)->
+	($scope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraService, notify, actionService, CFG)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -444,6 +455,10 @@ angular.module(
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
 				if drawer.state.counts['challenge']['active'] == 0
 					$scope.drawerShowAll()
+					if window.Modernizr.touch 
+						# drawerItem.active not updating correctly on iOS
+						# NOT WORKING on iOS
+						angular.element(document.getElementById("drawer-findhappi-current")).removeClass('active')
 
 				else # load moment, challengePhotos
 					$scope.getChallengePhotos()
@@ -480,8 +495,6 @@ angular.module(
 				return c.challengePhotos			
 		
 		$scope.drawerShowAll = ()->
-			options = drawer.getDrawerItem('findhappi', 'all')
-			options.shuffle = true
 			after_handleItemClick = (route)->
         $scope.deck.cards('refresh') 
         # $scope.deck.shuffle()
@@ -904,7 +917,6 @@ angular.module(
 			if _.isEmpty(state) || state.group !='timeline'
 				drawerItemOptions = drawer.getDrawerItem('timeline', 'photos')
 				state = _.defaults _initialDrawerState, drawerItemOptions
-			state.orderBy = "-rating" 
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -918,7 +930,6 @@ angular.module(
 			_cards = _.values _photos 
 			deckOptions = {
 				control: $scope.carousel
-				orderBy: "-rating"
 			} 
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
@@ -931,4 +942,85 @@ angular.module(
 
 		return;
 	]
+).controller( 'SettingsCtrl', [
+	'appConfig'
+	'notifyService'
+	'syncService'
+	'$location'
+	'$timeout'
+	'$scope'
+	(CFG, notify, syncService, $location, $timeout, $scope)->
+		# hide loading
+		CFG.$curtain.addClass 'hidden'
+		$scope.notify = window.notify = notify
+
+		# localNotification Plugin
+		class LocalNotify 
+			constructor: (options)->
+				self = this
+				self._id = 0
+				self._notify = self.loadPlugin()
+				return
+
+			isReady: ()->
+				return !!this._notify
+
+			loadPlugin: ()->
+				CFG.debug = true
+				if window.plugin?.notification?.local? 
+					this._notify = window.plugin.notification.local
+				else 	
+					notify.alert "LocalNotification plugin is NOT available"
+					this._notify = false
+				return this._notify
+
+			showDefaults: ()->
+				return false if !this._notify
+				notify.alert JSON.stringify(this._notify.getDefaults()), "warning", 40000
+
+			add: (delay=5, options={})->
+				notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
+				notify.alert "this._notify"+ JSON.stringify (this._notify ), "warning", 60000
+				if !this._notify
+					$timeout (()->notify.alert "FAKE localNotification, delay was sec="+delay), delay*1000
+					return false 
+
+				now = new Date().getTime()
+				target = new Date( now + delay*1000)
+				notification = {
+						id: this._id++
+					date: target
+				}
+				notification['title'] = options.title if options.title?
+				notification['message'] = options.message if options.message?
+				notification['repeat'] = options.repeat if options.repeat?
+				notification['badge'] = options.badge if options.badge?
+				notification['json'] = JSON.stringify(options.data) if options.data?
+				notify.alert "message="+JSON.stringify( notification)
+				try 
+					this._notify.add(notification)
+				catch error
+					notify.alert "EXCEPTION: notification.local.add()", "danger", 30000
+				$timeout (()->notify.alert "localNotification, delay was sec="+delay), delay*1000
+
+
+		localNotify = new LocalNotify()
+
+		$scope.localNotification = (sec)->
+			localNotify.loadPlugin() if !localNotify.isReady()
+			localNotify.add sec, {
+				title: "Are you ready for a challenge?"
+				message: "AppHappi has a new challenge for you. "
+			}
+			
+
+		$scope.reminder = ($event, action)->
+			switch action
+				when "done"
+					# do nothing for now
+					$location.path('/challenges')
+				when "cancel"
+					$location.path('/challenges')
+
+	]	
 )

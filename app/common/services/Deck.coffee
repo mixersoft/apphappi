@@ -25,7 +25,11 @@ angular.module(
 			constructor: (cards, options)->
 				this.id = _deckCounter++
 				this.allCards = null
-				this.control = options?.control || {index:0}
+				if options?.control
+					this.control = options?.control 
+					delete options.control
+				else 
+					this.control = {index:0}
 				this.deckCards = null
 				this.shuffled = this.shuffledCards = null
 				# this.options = _.pick(options, ['filter', 'query', 'orderBy'])	
@@ -43,7 +47,7 @@ angular.module(
 			cards: (cards, options)->
 				if options?
 					options = _.pick(options, ['filter', 'query', 'orderBy']) 
-				else 
+				if _.isEmpty(options) 
 					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 
 
 				if cards?

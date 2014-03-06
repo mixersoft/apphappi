@@ -144,22 +144,24 @@ angular.module(
 
         # usually called from drawer.menuItem onclick handler
         after_handleItemClick = (route)->
+          if route? && route != $location.path()
+            return $location.path(route)
+
           # controllerScope should validate deck and load route
           controllerScope = angular.element(document.getElementById("notify")).scope()
           # verify deck
-          deck = controllerScope.deck   
+          return if !controllerScope?.deck?
+
+          deck = controllerScope?.deck   
           isValid = deck.validateDeck()
-          if !isValid
-            deck.cards('refresh')
+          deck.cards('refresh') if !isValid
 
           # check topCard
           if /challenge/.test(route)
             c = deck.topCard()
             if c?.type=="challenge" && c?.status=="active"
               controllerScope.getChallengePhotos(c) 
-
-          if route? && route != $location.path()
-            $location.path(route)
+          return
 
         return self.itemClick drawerOptions, callback || after_handleItemClick
 
@@ -175,13 +177,16 @@ angular.module(
                 localStorageService.clearAll()
               self.animateClose()
               $timeout (()->window.location.reload()), 1000
-              return
+              return window.location.reload();
             when 'drawer'
               _drawer.syncService?.clearDrawer()
+              return window.location.reload();
             when 'debug'
               CFG.debug = !CFG.debug
+              return
             when 'reload'
               return window.location.reload();
+            # when 'reminder' # do nothing
 
 
         sameGroup = self.state.group == options.group
@@ -198,7 +203,7 @@ angular.module(
           'activeItemId': ['drawer', options.group, options.item].join('-')
           }, drawerItemOptions, deckOptions)
 
-
+        notify.alert "drawer.activeItemId=="+self?.state?.activeItemId, "danger", 3000
         # save state to localStorage
         localStorageService.set('drawerState', self.state)
         # notify.alert "itemClick, filter="+JSON.stringify(self.state.filter)
@@ -211,7 +216,8 @@ angular.module(
 
       getDrawerItem: (drawerGroup, itemName) ->
         try 
-          drawerGroup = _.findWhere(_drawer.json.data, {name: drawerGroup})
+          drawerCfg = _drawer.syncService?.localData['drawer']?.data || _drawer.json.data
+          drawerGroup = _.findWhere(drawerCfg, {name: drawerGroup})
           return drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
         catch
           return false

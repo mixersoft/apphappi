@@ -126,6 +126,11 @@
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "items": [
       {
+        "name": "reminder",
+        "label": "Reminders",
+        "route": "/settings"
+      },
+      {
         "name": "debug",
         "label": "Developer Mode",
         "switch": "CFG.debug"

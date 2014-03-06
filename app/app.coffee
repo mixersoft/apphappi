@@ -12,7 +12,7 @@ angular.module( 'appHappi', [
 ]
 ).value('appConfig', {
 	userId: null
-	debug: false
+	debug: true
 	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
@@ -60,6 +60,10 @@ angular.module( 'appHappi', [
 			templateUrl: 'views/timeline/_timeline.html'
 			controller: 'TimelineCtrl'
 			})
+		.when('/settings', {
+			templateUrl: 'views/settings/_settings.html'
+			controller: 'SettingsCtrl'
+			})		
 		.otherwise {
 			redirectTo: '/challenges'
 		}

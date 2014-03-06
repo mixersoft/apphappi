@@ -97,10 +97,12 @@
         </div>
         <div class="panel-body">
           <div id="drawer-timeline-toprated" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-timeline-toprated')}"
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-picture-o"></i> Top Rated
           </div>
           <div id="drawer-timeline-mostrecent" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-timeline-mostrecent')}"
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-picture-o"></i> Most Recent
           </div>
@@ -127,6 +129,11 @@
           </h4>
         </div>
         <div class="panel-body">
+          <div id="drawer-settings-reminder" class="item" 
+          ng-click="drawer.drawerItemClick($event)"
+          ng-class="{active: drawer.isDrawerItemActive('drawer-settings-reminder')}">
+            <i class="fa fa-clock-o"></i> Reminders
+          </div>
           <div id="drawer-settings-debug" class="item" 
           ng-click="drawer.drawerItemClick($event)">
             Developer Mode
