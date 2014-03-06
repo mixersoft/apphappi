@@ -1,6 +1,9 @@
       <!--Body content-->
       <div id="notify" class="notify">
-        <alert ng-repeat="alert in notify.alert()" type="alert.type" close="notify.close(alert.key)">{{alert.msg}}</alert>
+        <alert ng-repeat="alert in notify.alert()" 
+          type="alert.type" 
+          close="notify.close(alert.key)"
+          ><div ng-bind-html="alert.msg"></div></alert>
       </div>
       
       <!-- empty list card -->

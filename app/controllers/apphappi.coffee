@@ -9,7 +9,7 @@ angular.module(
 		this.alerts = {}
 		this.timeouts = []
 		this.alert = (msg=null, type='info', timeout)->
-			return if !appConfig.debug || appConfig.debug=='off'
+			return this.alerts if !appConfig.debug || appConfig.debug=='off'
 			if msg? 
 				timeout = timeout || appConfig.notifyTimeout
 				now = new Date().getTime()
@@ -83,27 +83,29 @@ angular.module(
 			_backgroundDeferred: null
 
 			# set up deferred BEFORE causing app to pause
-			prepareToResumeApp : (e)->
+			prepareToResumeApp : (e, notification)->
+				return notify.alert "WARNING: already paused, check fake notify..." if self._backgroundDeferred?
+
 				pauseTime = new Date().getTime()
-				return if !window.deviceReady
-				if e?
-					if !self._backgroundDeferred?
-						notify.alert "App was NOT prepared to resume after being sent to background" 
-				else
-					notify.alert "App was prepared to resume, then sent to background" 
-					self._backgroundDeferred = $q.defer()
-					promise = self._backgroundDeferred.promise
-					.then (o)->
-						o.pauseDuration = (o.resumeTime - (pauseTime || 0))/1000
-						notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
-						return o
-					.finally ()-> self._backgroundDeferred = null
-					return promise
+				# return if !window.deviceReady
+				notify.alert "Preparing to send App to background..." 
+				self._backgroundDeferred = $q.defer()
+				promise = self._backgroundDeferred.promise
+				.then (o)->
+					o.pauseDuration = (o.resumeTime - (pauseTime || 0))/1000
+					o.notification = notification
+					# notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
+					return o
+				.finally ()-> self._backgroundDeferred = null
+				return promise
 			
 			resumeApp	 : (e)->
 				return if !window.deviceReady
 				$timeout (()=>
-					notify.alert "App was resumed from background"
+					if e == "LocalNotify" 
+						notify.alert "App was resumed from FAKE LocalNotify", "success"
+					else 	
+						notify.alert "App was resumed from background"
 					o = {
 						event: e
 						resumeTime: new Date().getTime() 
@@ -945,15 +947,12 @@ angular.module(
 ).controller( 'SettingsCtrl', [
 	'appConfig'
 	'notifyService'
+	'actionService'
 	'syncService'
 	'$location'
 	'$timeout'
 	'$scope'
-	(CFG, notify, syncService, $location, $timeout, $scope)->
-		# hide loading
-		CFG.$curtain.addClass 'hidden'
-		$scope.notify = window.notify = notify
-
+	(CFG, notify, actionService, syncService, $location, $timeout, $scope)->
 		# localNotification Plugin
 		class LocalNotify 
 			constructor: (options)->
@@ -966,11 +965,10 @@ angular.module(
 				return !!this._notify
 
 			loadPlugin: ()->
-				CFG.debug = true
 				if window.plugin?.notification?.local? 
 					this._notify = window.plugin.notification.local
 				else 	
-					notify.alert "LocalNotification plugin is NOT available"
+					# notify.alert "LocalNotification plugin is NOT available"
 					this._notify = false
 				return this._notify
 
@@ -978,9 +976,73 @@ angular.module(
 				return false if !this._notify
 				notify.alert JSON.stringify(this._notify.getDefaults()), "warning", 40000
 
-			add: (delay=5, options={})->
-				notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
-				notify.alert "this._notify"+ JSON.stringify (this._notify ), "warning", 60000
+			add: (delay=5, notification={})->
+				# notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
+				# notify.alert "LocalNotify._notify="+ JSON.stringify (this._notify ), "warning"
+
+				_showNotification = (notification)->
+					# force notify.alert
+					debugWas = CFG.debug
+					CFG.debug = true
+					if notification.title?
+						notify.alert "<h3>"+notification.title+"</h3><p>"+notification.message+"</p>", "info", 20000
+					else 
+						notify.alert notification.message, "info"
+					$timeout (()->CFG.debug = debugWas), 0
+
+
+				#
+				# FAKE notification emulating steroids api pause/resume
+				# for testing on desktop & touch 
+				# until touch localNotification plugin works
+				#
+				_handleResumeOrLocalNotify = (o)->
+					notify.alert "resuming with o="+JSON.stringify o
+
+					wasAlreadyAwake = _isAwakeWhenNotificationFired()
+
+					if wasAlreadyAwake && o.event=="LocalNotify"
+						# just show notification as alert, do not navigate
+						notify.alert "LocalNotify fired when already awake", "warning"
+						o.notification.message += " (fired when app was in use)"
+						_showNotification(o.notification)
+					
+					else if _isLongSleep(o.pauseDuration) 
+						# resume/localNotify from LongSleep should navigate to notification target, 
+						# 		i.e. active challenge, moment, or photo of the day
+
+						# pick a random challenge and activate
+						notify.alert "LocalNotify LONG SLEEP detected, pauseDuration=" + o.pauseDuration, "success"
+						o.notification.message += " (fired when app was in use)" if wasAlreadyAwake
+						o.notification.message += " (fired when app was in BACKGROUND)" if !wasAlreadyAwake
+						_showNotification(o.notification)
+						# after LONG_SLEEP, goto active challenge 'drawer-findhappi-current'
+						$timeout (()->
+							actionService.drawerItemClick('drawer-findhappi-current')
+						), 3000
+					else if !wasAlreadyAwake
+						# resume from shortSleep should just resume, not alert
+						# localNotify from shortSleep should just show notification as alert, do not navigate
+						_showNotification(o.notification)
+
+					return
+
+				if true && "fake notify"
+					window.deviceReady = "fake" if !window.deviceReady
+					promise = actionService.prepareToResumeApp(null, notification)
+						.then( _handleResumeOrLocalNotify )
+					$timeout (()->
+						# notify.alert "FAKE localNotification fired, delay was sec="+delay
+						actionService.resumeApp("LocalNotify")
+					), delay*1000
+					_showNotification({message: "LocalNotify set to fire, delay="+delay})
+					return	 
+
+
+				#
+				# skip until Cordova local notifications plugin works
+				#
+
 				if !this._notify
 					$timeout (()->notify.alert "FAKE localNotification, delay was sec="+delay), delay*1000
 					return false 
@@ -998,20 +1060,56 @@ angular.module(
 				notification['json'] = JSON.stringify(options.data) if options.data?
 				notify.alert "message="+JSON.stringify( notification)
 				try 
-					this._notify.add(notification)
+					# this._notify.add(notification)
 				catch error
 					notify.alert "EXCEPTION: notification.local.add()", "danger", 30000
-				$timeout (()->notify.alert "localNotification, delay was sec="+delay), delay*1000
+				$timeout (()->
+					notify.alert "localNotification, delay was sec="+delay
+				), delay*1000
 
+
+		# 
+		#	settingsCtrl
+		#
+
+		# hide loading
+		CFG.$curtain.addClass 'hidden'
+		$scope.notify = window.notify = notify
+
+		# protect against loading /settings directly, no drawer data
+		return $location.path('/') if !syncService.get('drawer')?
+
+		_isAwakeWhenNotificationFired = ()->
+			# simple Toggle
+			_isAwakeWhenNotificationFired.toggle = _isAwakeWhenNotificationFired.toggle || {}
+			_isAwakeWhenNotificationFired.toggle.value = !_isAwakeWhenNotificationFired.toggle.value 
+			return _isAwakeWhenNotificationFired.toggle.value
+
+		_isLongSleep = (sleep)->
+			LONG_SLEEP = 10 # 60*60 == 1 hour
+			return sleep > LONG_SLEEP
 
 		localNotify = new LocalNotify()
 
+		# need more copy for notifications
+		notifications = [
+			{
+				title: "Your 5 Minutes of Happi Starts Now"
+				message: "Spend 5 minutes to find some Happi - a new challenge awaits!"
+				target: "/challenges"
+			},
+			{
+				title: "Get Your Happi for the Day"
+				message: "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another."
+				target: "/moments?motd"
+			}
+		]
+
 		$scope.localNotification = (sec)->
 			localNotify.loadPlugin() if !localNotify.isReady()
-			localNotify.add sec, {
-				title: "Are you ready for a challenge?"
-				message: "AppHappi has a new challenge for you. "
-			}
+			message = notifications.shift()
+			notifications.push message
+			localNotify.add sec, message
 			
 
 		$scope.reminder = ($event, action)->
