@@ -51,7 +51,7 @@
       <div class="drawer-group" name='findhappi'>
         <div class="panel-heading">
           <h4 class="panel-title">
-            <i class="fa fa-smile-o"></i> FindHappi Moments
+            <i class="fa fa-search"></i> FindHappi Moments
             <span ng-bind="drawer.state.counts['findhappi']" class="badge badge-default"></span>
           </h4>
         </div>
@@ -129,10 +129,15 @@
           </h4>
         </div>
         <div class="panel-body">
+          <div id="drawer-settings-gettingstarted" class="item" 
+          ng-click="drawer.drawerItemClick($event)"
+          ng-class="{active: drawer.isDrawerItemActive('drawer-settings-gettingstarted')}">
+            <i class="fa fa-bullhorn"></i> Getting Started
+          </div>
           <div id="drawer-settings-reminder" class="item" 
           ng-click="drawer.drawerItemClick($event)"
           ng-class="{active: drawer.isDrawerItemActive('drawer-settings-reminder')}">
-            <i class="fa fa-clock-o"></i> Reminders
+            <i class="fa fa-bell"></i> Reminders
           </div>
           <hr />
           <div id="drawer-settings-debug" class="item" 

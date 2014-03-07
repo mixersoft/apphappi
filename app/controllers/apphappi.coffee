@@ -453,6 +453,9 @@ angular.module(
 			deckOptions = {control: $scope.carousel}
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
+			# redirect to /getting-started if necessary
+			$location.path('/getting-started') if !syncService.get('settings')?['hideGettingStarted']
+
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
 				if drawer.state.counts['challenge']['active'] == 0
@@ -980,14 +983,14 @@ angular.module(
 				# notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
 				# notify.alert "LocalNotify._notify="+ JSON.stringify (this._notify ), "warning"
 
-				_showNotification = (notification)->
+				_showNotification = (notification, type="info", delay=10000)->
 					# force notify.alert
 					debugWas = CFG.debug
 					CFG.debug = true
 					if notification.title?
-						notify.alert "<h3>"+notification.title+"</h3><p>"+notification.message+"</p>", "info", 20000
+						notify.alert "<h3>"+notification.title+"</h3><p>"+notification.message+"</p>", type, delay
 					else 
-						notify.alert notification.message, "info"
+						notify.alert notification.message, type, delay
 					$timeout (()->CFG.debug = debugWas), 0
 
 
@@ -1003,9 +1006,11 @@ angular.module(
 
 					if wasAlreadyAwake && o.event=="LocalNotify"
 						# just show notification as alert, do not navigate
+						context =  "<br /><p>(Pretend this notification fired while the app was already in use.)</p>" 
+						o.notification.message += context
 						notify.alert "LocalNotify fired when already awake", "warning"
-						o.notification.message += " (fired when app was in use)"
-						_showNotification(o.notification)
+						type = if wasAlreadyAwake then "info" else "success"
+						_showNotification(o.notification, type)
 					
 					else if _isLongSleep(o.pauseDuration) 
 						# resume/localNotify from LongSleep should navigate to notification target, 
@@ -1013,17 +1018,22 @@ angular.module(
 
 						# pick a random challenge and activate
 						notify.alert "LocalNotify LONG SLEEP detected, pauseDuration=" + o.pauseDuration, "success"
-						o.notification.message += " (fired when app was in use)" if wasAlreadyAwake
-						o.notification.message += " (fired when app was in BACKGROUND)" if !wasAlreadyAwake
-						_showNotification(o.notification)
+						if wasAlreadyAwake
+							context =  "<br /><p>(Pretend this notification fired while the app was already in use.)</p>" 
+						else 
+							context =  "<br /><p><b>(Pretend you got here after clicking from the Notification Center.)</b><p>" 
+						o.notification.message += context	
+						type = if wasAlreadyAwake then "info" else "success"
+						_showNotification(o.notification, type, 20000)
 						# after LONG_SLEEP, goto active challenge 'drawer-findhappi-current'
 						$timeout (()->
 							actionService.drawerItemClick('drawer-findhappi-current')
-						), 3000
+						), 2000
 					else if !wasAlreadyAwake
 						# resume from shortSleep should just resume, not alert
 						# localNotify from shortSleep should just show notification as alert, do not navigate
-						_showNotification(o.notification)
+						type = if wasAlreadyAwake then "info" else "success"
+						_showNotification(o.notification, type)
 
 					return
 
@@ -1035,7 +1045,7 @@ angular.module(
 						# notify.alert "FAKE localNotification fired, delay was sec="+delay
 						actionService.resumeApp("LocalNotify")
 					), delay*1000
-					_showNotification({message: "LocalNotify set to fire, delay="+delay})
+					_showNotification({message: "LocalNotify set to fire, delay="+delay}, "warning", 2000)
 					return	 
 
 
@@ -1075,9 +1085,14 @@ angular.module(
 		# hide loading
 		CFG.$curtain.addClass 'hidden'
 		$scope.notify = window.notify = notify
+		_.each actionService.exports, (key)->
+			$scope[key] = actionService[key] 
+
+
+
 
 		# protect against loading /settings directly, no drawer data
-		return $location.path('/') if !syncService.get('drawer')?
+		# return $location.path('/') if !syncService.get('drawer')?
 
 		_isAwakeWhenNotificationFired = ()->
 			# simple Toggle
@@ -1105,6 +1120,7 @@ angular.module(
 			}
 		]
 
+
 		$scope.localNotification = (sec)->
 			localNotify.loadPlugin() if !localNotify.isReady()
 			message = notifications.shift()
@@ -1120,5 +1136,129 @@ angular.module(
 				when "cancel"
 					$location.path('/challenges')
 
+
+
+
+		# Getting Started ###
+		$scope.carouselIndex = null
+		$scope.formatCardBody = (body)->
+			body = body.join("</p><p>") if _.isArray(body) 
+			return "<p>"+body+"</p>"
+		$scope.gettingStartedDone = ()->
+			settings = syncService.get('settings')
+			settings['hideGettingStarted']=true
+			syncService.set('settings', settings)
+			$location.path('/challenges') 
+				
+
+		$scope.gettingStarted = [
+			{
+				icon: "fa-bullhorn"
+				subhead: "Getting Started"
+				title:"#TooManyPhotos #Overwhelmed #<i class='fa fa-frown-o'>"
+				body:[
+					"Forever scrolling through your CameraRoll? Can't find the photo you know is there?"
+					"""
+					Snaphappi is here to help. 
+					We take the 'work' out of your CameraRoll by making it <u><b>Play</b></u>. 
+					Find the Happi moments in your CameraRoll and put them at the tip of your fingers.
+					"""
+					"""
+					Re-living moments, telling stories, sharing photos — 
+					everything is <u><b>Easy</b></u> when you can see the big picture.
+					"""
+				]
+				footer: ""
+			}
+			{
+				icon: "fa-clock-o"
+				subhead: "Getting Started"
+				title:"Just 5 Minutes a Day"
+				body:[
+					"Don't be overwhelmed. Just 5 minutes a day gets you a Happi CameraRoll."
+					"""
+					<ul>
+					<li>Find <i class='fa fa-picture-o'></i> and build Happi Moments from your CameraRoll.</li>
+					</li><li>Set <i class='fa fa-bell'></i> to catch you when you have a few minutes to spare.
+					</li><li>Re-live a Moment and brighten your day <i class='fa fa-smile-o'></i> !
+					</li><li>Share <i class='fa fa-picture-o'></i> with your <i class='fa fa-users'></i>.
+					</li></ul>
+					"""
+				]
+				footer: "Think of this as a personal trainer for your CameraRoll"
+			}
+			{
+				icon: "fa-search"
+				subhead: "Find Happi"
+				title:"Your Challenge Awaits!"
+				body:[
+					"We've got fun Challenges that cover every corner of your CameraRoll."
+					"""
+					We'll offer a new Challenge every day, or feel free to pick your own.
+					<i class='fa fa-search'></i> your CameraRoll with a fresh perspective and build a Happi Moment.
+					"""
+					"""
+					<ul>
+					<li>swipe <i class='fa fa-arrows-h'></i> to see more Challenges
+					</li><li><i class='fa fa-hand-o-down'></i> 'Accept' to take on a Challenge, or <i class='fa fa-hand-o-down'></i> 'Repeat'
+					</li><li>tap <i class='fa fa-picture-o'></i> to access your CameraRoll
+					</li></ul>
+					"""
+					"No pressure — you can always add to your Moments later."
+				]
+				# footer:"Rise to the Challenge, it's your destiny"
+			}
+			{
+				icon: "fa-smile-o"
+				subhead: "Get Happi"
+				title:"Take a Moment to Get Happi"
+				body:[
+					"Re-live all your best Moments from one place."
+					"""
+					<ul>
+					<li>tap <i class='fa fa-chevron-down'></i> for details
+					</li><li><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i> your favorite Moments for quick access
+					</li><li>tap <i class='fa fa-pencil-square-o'></i> to edit your Moments
+					</li><li>tap <i class='fa fa-picture-o'></i> to add more photos
+					</li><li>double-tap a photo in <i class='fa fa-pencil-square-o'></i> mode to remove
+					</li></ul>
+					"""
+					"Make this your 'go-to' place for those times when you're feeling <i class='fa fa-meh-o'></i>, or even <i class='fa fa-frown-o'></i>"
+				]
+			}
+			{
+				icon: "fa-calendar"
+				subhead: "Timeline"
+				title:"This is Easy"
+				body:[
+					"""
+					The Timeline is where all your hard work pays off.  
+					No more digging through your CameraRoll — all your <i class='fa fa-heart'></i> photos are at the tip of your fingers(!) 
+					"""
+					"""
+					<ul>
+					<li><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i> your favorite Photos for quick access
+					</li><li>tap <i class='fa fa-arrow-up'></i> for easy sharing through <i class='fa fa-envelope'>, <i class='fa fa-facebook-square'></i>, <i class='fa fa-twitter-square'></i> 
+					</li><li>tap <i class='fa fa-arrow-right'></i> to open the Moment
+					</li></ul>
+					"""
+				]
+				# footer:"This is Easy!"
+			}
+			{
+				icon: "fa-bell"
+				subhead: "Reminders"
+				title:"Reminders"
+				body:[
+					"""
+					Set a <i class='fa fa-bell'></i> to get your 5 minutes a day — every day. 
+					Pick a <i class='fa fa-clock-o'></i> when you know you'll be playing games on your <i class='fa fa-mobile'></i> anyways.
+					"""
+					"Think of all the <i class='fa fa-smile-o'></i><i class='fa fa-smile-o'></i><i class='fa fa-smile-o'></i> you'll have!"
+					"<br /><div class='title text-center'>That's it, you're ready to go!</div>"
+				]
+				footer:""
+			}
+		]
 	]	
 )

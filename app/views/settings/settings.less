@@ -1,0 +1,37 @@
+// Core variables and mixins
+@import "variables.less";
+@import "mixins.less";
+
+// snaphappi variables
+@snappi-red:            #D01F40;
+@snappi-darkred:        #711124;
+@snappi-orange:         #F16122;
+@snappi-yellow:         #FDF9D0;
+@snappi-darkblue:       #152437;   
+@snappi-peach:          #E9C1C1;
+
+@font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
+
+@card-width: 320px;
+
+.card.getting-started {
+	cursor: default;
+	min-height: 400px;
+	.body {
+		.title {
+			font-size: @font-size-large;
+			font-weight: bold;
+		}
+		.content {
+			font-size: ceil(@font-size-base * 0.9); // ~11px;	
+		}
+	}
+}
+
+#getting-started .rn-carousel-indicator {
+	bottom: 5px;
+	background-color: transparent;
+	.active {
+		color: @snappi-red;
+	}
+}

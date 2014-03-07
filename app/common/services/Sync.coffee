@@ -76,6 +76,7 @@ angular.module(
 				if !id?
 					# just a wrapper for localStorageService
 					return localStorageService.get('drawerState') if key=='drawerState'
+					return localStorageService.get('settings') || {} if key=='settings'
 					return syncService.localData[key] 
 
 				if syncService.localData[key]?[id]?.stale  # this is WRONG
@@ -105,6 +106,10 @@ angular.module(
 						when 'drawerState'
 							# just a wrapper for localStorageService
 							return localStorageService.set('drawerState', drawer.state)
+						when 'settings'
+							localStorageService.set('settings', collection)
+							syncService.localData[key] = localStorageService.get('settings')
+							return syncService.localData[key]
 						else 
 							console.warn "WARNING: syncService, key="+key
 
@@ -141,7 +146,7 @@ angular.module(
 				localStorageService.clearAll()
 
 			clearDrawer: ()->
-				syncService.localData['drawer']['modified'] = false
+				syncService.localData['drawer']= null
 				localStorageService.set('drawer', syncService.localData['drawer'])
 				return syncService.lastModified['drawer'] = false
 
