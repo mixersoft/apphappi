@@ -2,10 +2,11 @@
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+<!--[if gt IE 8]><!--> 
+<html class="no-js"  ng-app="myApp"> <!--<![endif]-->
   <head>
     <meta charset="utf-8">
-    <title>AppHappi</title>
+    <title>AppHappi - Plain Angular, no Steroids</title>
 
     <meta http-equiv="X-UA-Compatible"  content="IE=edge,chrome=1">
     <meta name="viewport"               content="width=device-width, initial-scale=1.0">
@@ -13,10 +14,10 @@
     <meta name="author"                 content="michael@snaphappi.com">
 
     <!-- build:css stylesheets/vendor.min.css -->
-    <link rel="stylesheet" href="/stylesheets/bootstrap.css" />
-    <link rel="stylesheet" href="/stylesheets/font-awesome.css" />
-    <link rel="stylesheet" href="/vendor/fonts/snappi-fonts.css" />
-    <link rel="stylesheet" href="/vendor/topcoat/css/topcoat-mobile-light.css" />
+    <link rel="stylesheet" href="stylesheets/bootstrap.css" />
+    <link rel="stylesheet" href="stylesheets/font-awesome.css" />
+    <link rel="stylesheet" href="fonts/snappi-fonts.css" />
+    <link rel="stylesheet" href="font/topcoat-mobile-light.css" />
     <!-- endbuild -->
 
     <!-- build:css stylesheets/app.min.css -->
@@ -28,8 +29,6 @@
     <![endif]-->
 
     <!-- build:js javascripts/vendor-HEAD.min.js -->
-    <script src="http://localhost/cordova.js"></script>
-    <script src="/components/steroids-js/steroids.js"></script>
     <!-- endbuild -->
 
     <style>
@@ -37,6 +36,7 @@
             font-family: "Roboto";
         }
     </style>
+
     
   </head>
   <body>
@@ -61,7 +61,24 @@
 
       <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>Navbar example</h1>
+        <h1>Angular Example</h1>
+        <div ng-controller="appCtrl">
+          <img class="pull-right" 
+          ng-click="imgClick($event)"
+          ng-longtap="longtap($event)"
+          xxontouchend="jstouchend(event)"
+          ng-src="http://dev.snaphappi.com/svc/STAGING/stage6/.thumbs/bs~51df6d92-27ec-49bd-b22d-0a5f0afc6d44.jpg">
+          <h1>{{title}}</h1>
+          <!-- if I set my-ng-model='CFG.debug' in markup it works, but not in the directive link Fn -->
+          <on-off-switch my-directive-var="options.switchModel"></on-off-switch>
+          
+          <div>options.switchModel={{options.switchModel}}, should be 'CFG.debug'</div>
+          <div>CFG.debug={{CFG.debug}}</div>
+          <button type="button" class="btn btn-primary" ng-click="CFG.debug=!CFG.debug">Toggle CFG.debug</button>
+          <button type="button" class="btn btn-primary" ng-click="options.switchModel=!options.switchModel">Toggle options.switchModel</button>
+
+          
+        </div>
         <p>This example is a quick exercise to illustrate how the default, static and fixed to top navbar work. It includes the responsive CSS and HTML, so it also adapts to your viewport and device.</p>
         <p>To see the difference between static and fixed top navbars, just scroll.</p>
         <p>
@@ -72,69 +89,81 @@
 
 
     <div class="row-fluid med-grey-back dark-dust min-height-1500">
-
-      <div ng-include src="'app/views/header.html'"></div>
-      <div view-loading ng-show="isViewLoading"></div>
-      <div ui-view class="first-load"></div>
-
     </div>
 
-    <!-- build:js javascripts/vendor-BODY.min.js -->
-    <script src="/components/parse-js-sdk/lib/parse-1.2.16.min.js"></script>
+        <!-- build:js javascripts/vendor-BODY.min.js -->
     <script src="/components/modernizr/modernizr.js"></script>
-    <!-- // <script src="/components/underscore/underscore-min.js"></script> -->
-    <script src="/components/lodash/dist/lodash.underscore.js"></script>
-    
-    <script src="/components/angular/angular.min.js"></script>
+    <script src="/components/lodash/dist/lodash.js"></script>
+    <script src="/components/angular/angular.js"></script>
     <script src="/components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
-    <script src="/components/angular-animate/angular-animate.js"></script>
-    <script src="/components/angular-ui-router/release/angular-ui-router.js"></script>
+    <script src="javascripts/angular-touch.longtap.js"></script>
     <!-- endbuild -->
-
-
-    <!-- build:js javascripts/app.min.js -->
-    <!-- endbuild -->
-
-    <!-- Async Social SDKs -->
-    <div id="fb-root"></div>
-
     <script type="text/javascript">
-      (function(doc, script) {
-        var js, 
-            fjs = doc.getElementsByTagName(script)[0],
-            add = function(url, id) {
-                if (doc.getElementById(id)) {return;}
-                js = doc.createElement(script);
-                js.src = url;
-                id && (js.id = id);
-                fjs.parentNode.insertBefore(js, fjs);
-            };
-        // Facebook SDK
-        add('//connect.facebook.net/en_US/all.js', 'facebook-jssdk');
-        // Twitter SDK
-        add('//platform.twitter.com/widgets.js', 'twitter-wjs');
-      }(document, 'script'));
-    </script>
+      angular.module(
+        'myApp', ['ui.bootstrap', 'ngTouch'] )
+      .directive('onOffSwitch', function() {
+        var myDirectiveVarAsString = '';
+        return {
+          restrict: 'AE',
+          scope: {
+            myDirectiveVar: '=',
+          },
+          replace: true,
+          template: '<div class="btn-group">\
+              <button type="button" class="btn btn-primary" ng-model="myDirectiveVar" btn-radio="false">Off</button>\
+              <button type="button" class="btn btn-primary" ng-model="myDirectiveVar" btn-radio="true">On</button>\
+          </div>',
+          xxxcompile: function(element, attrs) {
+            console.debug("compile() attrs.myDirectiveVar="+attrs.myDirectiveVar)
+            // I need scope.$parent here, but it's only avail in  link()
+            // myEvalDirectiveVar = eval("scope.$parent."+attrs.myDirectiveVar)
+            var _myEvalDirectiveVar = "CFG.debug" // set manually and it works
+            attrs.$set('myDirectiveVar', _myEvalDirectiveVar)
+            return 
+          },
+          link: function(scope, element, attrs) {
+            // scope.myDirectiveVar = 'options.switchModel'
+            // scope.$parent.options.switchModel = 'CFG.debug'
+            // scope.$parent.CFG.debug = false on init
+            //
+            // NOTE: myDirectiveVar gets the correct initial value from 'CFG.debug'
+            // but it is still watching 'options.switchModel'
+            var myDirectiveVar_asString = scope.myDirectiveVar
+            console.log(attrs.myDirectiveVar+"="+myDirectiveVar_asString)
+            attrs.$set('myDirectiveVar', myDirectiveVar_asString)
+            scope.myDirectiveVar = eval("scope.$parent."+myDirectiveVar_asString)
+            
+            console.log("myDirectiveVar="+scope.myDirectiveVar)
+            // ???: How do I get scope.myDirectiveVar to bind to something else from 
+            // link(), I can do it in compile() but I don't have access to scope
+            console.debug(scope)
+            console.debug(attrs)
+            console.debug(element)
+          }, 
+        }
+      })
+      .controller( 'appCtrl', 
+        ['$scope', function($scope){
+          $scope.title = "Angular ui-bootstrap on/off switch";
+          $scope.CFG = {'debug': false}
+          $scope.options = {'switchModel': "CFG.debug"}
+          $scope.switchModel = $scope.options.switchModel
+          $scope.longtap = function(e){
+            var check = e;
+          }
+          $scope.imgClick = function(e){
+            var check = e;
+            console.log("ngImgClick at "+e.timeStamp)
+          }
+      }])  
 
-  
-    <!-- Async resolve promise when FB SDK is loaded, this triggers Parse.FacebookUtils.init() -->
-    <script>
-      var fbDeferred = $.Deferred();
-      window.fbPromise = fbDeferred.promise();
-      window.fbAsyncInit = function() {
-        fbDeferred.resolve();
-      };
-    </script>
+      jstouchend = function(e){
+        console.log("jstouchend at "+e.timeStamp)
+        var check = e;
+      }
 
+    </script>    
 
-    
-
-    <script type="text/javascript">
-      // manual bootstrap
-      angular.element(document).ready(function() {
-        angular.bootstrap(document, ['app']);
-      });
-    </script>
 
   </body>
 </html>

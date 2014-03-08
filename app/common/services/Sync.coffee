@@ -151,7 +151,12 @@ angular.module(
 				return syncService.lastModified['drawer'] = false
 
 			initLocalStorage: (models=[])->
-				CFG.userId = new Date().getTime() if !CFG.userId?
+				if !CFG.userId?
+					settings = syncService.get('settings')
+					if !settings['userId']?
+						settings['userId'] = new Date().getTime() 
+						syncService.set('settings', settings)
+					CFG.userId = settings['userId']
 				models = ['challenge', 'moment', 'drawer', 'photo']
 				for model in models
 					syncService.promises[model] = syncService.initLocalStorageModel model
@@ -302,10 +307,17 @@ angular.module(
 				    							if !moment? 
 				    								notify.alert "ERROR: moment not found, possible data corruption. challenge="+challenge.name+", mid="+mid
 				    								return
-				    							moment.photos = _.map moment.photoIds, ((id)->
+				    							missing = []
+				    							moment.photos = _.reduce moment.photoIds, ((result, id)->
 				    								photo = syncService.get('photo', id) 
-				    								photo.rating = 0 if !photo.rating?
-				    								return photo )
+				    								if !!photo
+				    									photo.rating = 0 if !photo.rating?
+					    								result.push photo
+					    							else
+				    									notify.alert "WARNING: DB error, photoId not found. photoId="+id
+				    									missing =  missing.push id 
+				    								return result ), []
+			    								_.each missing, (id)->moment.photoIds.splice( moment.photoIds.indexOf(id),1)
 				    							moment.challenge = challenge    # moment belongsto challenge assoc
 				    							if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
 				    								challenge.status = moment.status 

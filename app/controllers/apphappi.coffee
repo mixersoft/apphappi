@@ -338,7 +338,7 @@ angular.module(
 							throw "challengePhotos is ALREADY null" if !card.challengePhotos
 							throw "removePhoto() id mismatch" if id != card.challengePhotos[i].id
 							m = _.findWhere self._getMoments(card), {status:'active'}
-							momentIndex = m.photoIds.length - (i+1)	# reversed array
+							momentIndex = m.photoIds.length - (parseInt(i)+1)	# reversed array
 							challengeIndex = i
 						else throw "invalid card type"
 
@@ -420,15 +420,10 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		_initialDrawerState = {  
-			group: 'findhappi'  
-			item: 'current'
-		}
-
 
 		# reset for testing
 		syncService.clearAll() if $route.current.params.reset
-		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
+		syncService.initLocalStorage() 
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
@@ -436,8 +431,7 @@ angular.module(
 			# reload or init drawer
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='findhappi'
-				drawerItemOptions = drawer.getDrawerItem('findhappi', 'current')
-				state = _.defaults _initialDrawerState, drawerItemOptions 
+				state = drawer.getDrawerItem('findhappi', 'current')
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -453,8 +447,6 @@ angular.module(
 			deckOptions = {control: $scope.carousel}
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
-			# redirect to /getting-started if necessary
-			$location.path('/getting-started') if !syncService.get('settings')?['hideGettingStarted']
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
@@ -718,14 +710,10 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		_initialDrawerState = {
-			group: 'gethappi'
-			item: 'mostrecent'
-		}
 		
 		# reset for testing
 		syncService.clearAll() if $route.current.params.reset
-		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
+		syncService.initLocalStorage()  
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
@@ -733,8 +721,7 @@ angular.module(
 			# reload or init drawer
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='gethappi'
-				drawerItemOptions = drawer.getDrawerItem('gethappi', 'mostrecent')
-				state = _.defaults _initialDrawerState, drawerItemOptions 
+				state = drawer.getDrawerItem('gethappi', 'mostrecent')
 			drawer.init o.challenge, o.moment, state
 
 			# wrap challenges in a Deck
@@ -904,15 +891,10 @@ angular.module(
 			$scope[key] = actionService[key] 
 
 		$scope.drawer = drawer;
-		_initialDrawerState = {
-			group: 'timeline'
-			item: 'photos'
-			orderBy: '-rating'
-		}
 		
 		# reset for testing
 		syncService.clearAll() if $route.current.params.reset
-		syncService.initLocalStorage(['challenge', 'moment', 'drawer', 'photo']) 
+		syncService.initLocalStorage() 
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
@@ -920,8 +902,7 @@ angular.module(
 			# reload or init drawer
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='timeline'
-				drawerItemOptions = drawer.getDrawerItem('timeline', 'photos')
-				state = _.defaults _initialDrawerState, drawerItemOptions
+				state = drawer.getDrawerItem('timeline', 'photos')
 			drawer.init o.challenge, o.moment, state
 
 			if $route.current.params.id?
@@ -952,10 +933,12 @@ angular.module(
 	'notifyService'
 	'actionService'
 	'syncService'
+	'drawerService'
 	'$location'
 	'$timeout'
 	'$scope'
-	(CFG, notify, actionService, syncService, $location, $timeout, $scope)->
+	'$q'
+	(CFG, notify, actionService, syncService, drawer, $location, $timeout, $scope, $q)->
 		# localNotification Plugin
 		class LocalNotify 
 			constructor: (options)->
@@ -1081,6 +1064,9 @@ angular.module(
 		# 
 		#	settingsCtrl
 		#
+		# redirect to /getting-started if necessary
+		if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
+			$location.path('/challenges') 
 
 		# hide loading
 		CFG.$curtain.addClass 'hidden'
@@ -1088,11 +1074,17 @@ angular.module(
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
+		$scope.drawer = drawer
 
+		# reset for testing
+		syncService.initLocalStorage() 
 
-
-		# protect against loading /settings directly, no drawer data
-		# return $location.path('/') if !syncService.get('drawer')?
+		$q.all( syncService.promises ).then (o)->
+			# reload or init drawer
+			state = syncService.get('drawerState')
+			if _.isEmpty(state) || state.group !='settings'
+				state = drawer.getDrawerItem('settings', 'gettingstarted')
+			drawer.init o.challenge, o.moment, state		# load to get counts
 
 		_isAwakeWhenNotificationFired = ()->
 			# simple Toggle
@@ -1148,7 +1140,7 @@ angular.module(
 			settings = syncService.get('settings')
 			settings['hideGettingStarted']=true
 			syncService.set('settings', settings)
-			$location.path('/challenges') 
+			drawer.drawerItemClick('drawer-findhappi-current')
 				
 
 		$scope.gettingStarted = [
@@ -1220,7 +1212,7 @@ angular.module(
 					</li><li><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i><i class='fa fa-star'></i> your favorite Moments for quick access
 					</li><li>tap <i class='fa fa-pencil-square-o'></i> to edit your Moments
 					</li><li>tap <i class='fa fa-picture-o'></i> to add more photos
-					</li><li>double-tap a photo in <i class='fa fa-pencil-square-o'></i> mode to remove
+					</li><li>long-tap a photo in <i class='fa fa-pencil-square-o'></i> mode to remove
 					</li></ul>
 					"""
 					"Make this your 'go-to' place for those times when you're feeling <i class='fa fa-meh-o'></i>, or even <i class='fa fa-frown-o'></i>"

@@ -1,7 +1,7 @@
 # For an explanation of the steroids.config properties, see the guide at
 # http://guides.appgyver.com/steroids/guides/project_configuration/config-application-coffee/
 
-steroids.config.name = "AppHappi.2"
+steroids.config.name = "AppHappi"
 
 # -- Initial Location --
 steroids.config.location = "http://localhost/apphappi.html"

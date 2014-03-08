@@ -177,10 +177,10 @@ angular.module(
                 localStorageService.clearAll()
               self.animateClose()
               $timeout (()->window.location.reload()), 1000
-              return window.location.reload();
+              return $location.path('/')
             when 'drawer'
               _drawer.syncService?.clearDrawer()
-              return window.location.reload();
+              return $location.path('/')
             when 'debug'
               CFG.debug = !CFG.debug
               return
@@ -218,7 +218,9 @@ angular.module(
         try 
           drawerCfg = _drawer.syncService?.localData['drawer']?.data || _drawer.json.data
           drawerGroup = _.findWhere(drawerCfg, {name: drawerGroup})
-          return drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
+          drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
+          drawerItemOptions['group'] = drawerGroup.name
+          return drawerItemOptions
         catch
           return false
          
@@ -227,6 +229,8 @@ angular.module(
         _.extend(self.state, drawerItemState) if drawerItemState?
 
         self.updateCounts(challenges, moments)
+
+        self.state.activeItemId = ["drawer",self.state.group, self.state.item || self.state.name ].join('-')
 
         # set drawer query, filter property
         # drawerGroup = _.findWhere(_drawer.json.data, {name: self.state.group})

@@ -126,6 +126,11 @@
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "items": [
       {
+        "name": "gettingstarted",
+        "label": "Getting Started",
+        "route": "/getting-started"
+      },
+      {
         "name": "reminder",
         "label": "Reminders",
         "route": "/settings"

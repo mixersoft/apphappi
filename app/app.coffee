@@ -67,9 +67,13 @@ angular.module( 'appHappi', [
 		.when('/getting-started', {
 			templateUrl: 'views/settings/_gettingstarted.html'
 			controller: 'SettingsCtrl'
+		})
+		.when('/getting-started/check', {
+			templateUrl: 'views/settings/_gettingstarted.html'
+			controller: 'SettingsCtrl'
 		})		
 		.otherwise {
-			redirectTo: '/challenges'
+			redirectTo: '/getting-started/check'
 		}
 		# TODO: use html5Mode with /index.html
 		$locationProvider.html5Mode(false).hashPrefix('!')
