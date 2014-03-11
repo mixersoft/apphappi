@@ -43,7 +43,9 @@
           ng-click="drawer.drawerItemClick($event)">
             by Category
           </div>
-          <div id="drawer-gethappi-shuffle" class="item" ng-click="drawer.drawerItemClick($event)">
+          <div id="drawer-gethappi-shuffle" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-shuffle')}"
+          ng-click="drawer.drawerItemClick($event)">
             Shuffle
           </div>
         </div>

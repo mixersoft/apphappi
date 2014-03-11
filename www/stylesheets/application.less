@@ -47,6 +47,14 @@ body {
 	/*max-width: @card-width;*/
 }
 
+.emulate {
+	&.iphone4 {
+		max-width: 320px;
+		max-height: 480px;
+		overflow-x:hidden;
+	}
+}
+
 .device {
 	position: absolute;
 	width: 100%;
@@ -105,13 +113,32 @@ i.fa, .badge, .label {
 }
 
 .notify {
-	position: fixed;
-	top: 40px;
 	background: transparent;
-	left: 10%;
-	right: 10%;
-	z-index: 100;
+	&.overlay {
+		position: fixed;
+		top: 40px;
+		left: 10%;
+		right: 10%;
+		z-index: 100;
+	}
+	&.inline {
+		margin: 10px auto 0;
+		.alert{
+			margin-bottom: 0;
+			background-color: @snappi-darkblue;
+			color: @snappi-yellow;
+			h4 {
+				text-align: center;
+			}
+			.close {
+				color: @snappi-yellow;
+				opacity: 1;
+			}
+		}
+	}
 }
+
+
 
 
 .card-wrap {

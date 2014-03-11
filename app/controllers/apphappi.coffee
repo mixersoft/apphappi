@@ -5,13 +5,14 @@ angular.module(
 ).service( 'notifyService', [
 	'$timeout'
 	'appConfig'
-	($timeout, appConfig)->
+	($timeout, CFG)->
 		this.alerts = {}
+		this.messages = {}
 		this.timeouts = []
 		this.alert = (msg=null, type='info', timeout)->
-			return this.alerts if !appConfig.debug || appConfig.debug=='off'
+			return this.alerts if !CFG.debug || CFG.debug=='off'
 			if msg? 
-				timeout = timeout || appConfig.notifyTimeout
+				timeout = timeout || CFG.notifyTimeout
 				now = new Date().getTime()
 				`while (this.alerts[now]) {
 					now += 0.1;
@@ -21,15 +22,40 @@ angular.module(
 			else 
 				# start timeouts on ng-repeat
 				this.timerStart()
-			return this.alerts 
+			return this.alerts
+		# same as alert, but always show, ignore CFG.debug	
+		this.message = (msg=null, type='info', timeout)->
+			if msg? 
+				timeout = timeout || CFG.messageTimeout
+				now = new Date().getTime()
+				`while (this.alerts[now]) {
+					now += 0.1;
+				}`
+				if _.isObject(msg)
+					# force notify.alert
+					if msg.title?
+						msg = "<h4>"+msg.title+"</h4><p>"+msg.message+"</p>"
+					else 
+						msg  msg.message
+
+				this.messages[now] = {msg: msg, type:type, key:now} if msg?
+				this.timeouts.push({key: now, value: timeout})
+			else 
+				# start timeouts on ng-repeat
+				this.timerStart()
+			return this.messages
+		this.clearMessages = ()->
+			this.messages = {}
 		this.close = (key)->
-			delete this.alerts[key]
+			delete this.alerts[key] if this.alerts[key]
+			delete this.messages[key] if this.messages[key]
 		this.timerStart = ()->
 			_.each this.timeouts, (o)=>
 				$timeout (()=>
-					delete this.alerts[o.key]
-					), o.value
-			this.timeouts = []	
+					delete this.alerts[o.key] if this.alerts[o.key]
+					delete this.messages[o.key] if this.messages[o.key]
+				), o.value
+			this.timeouts = []
 		return	
 ]
 ).factory( 'actionService', [ 
@@ -405,6 +431,7 @@ angular.module(
 		# Controller: ChallengeCtrl
 		#
 		CFG.$curtain.find('h3').html('Loading Challenges...')
+		notify.clearMessages() 
 
 		_challenges = _moments = _cards = null
 
@@ -434,19 +461,33 @@ angular.module(
 				state = drawer.getDrawerItem('findhappi', 'current')
 			drawer.init o.challenge, o.moment, state
 
-			if $route.current.params.id?
-				# filter challenges by id
-				if _.isNaN parseInt $route.current.params.id 
-					f = {"name": $route.current.params.id}
-				else f = {"id": $route.current.params.id}
-				_challenges = $filter('filter')(o.challenge, f)
-			else 
+			id = $route.current.params.id
+			if !id?
+				# route = '/challenges'
 				_challenges = o.challenge 
+			else if $location.path()=='/challenges/draw-new'
+				_challenges = o.challenge 
+				# draw new challenge after $scope.deck is set
+			else if _.isNaN parseInt id 
+				# route = '/challenges/birthday'
+				f = {"name": id}
+				_challenges = $filter('filter')(o.challenge, f)
+			else if !_.isNaN parseInt id
+				# route = '/challenges/23'
+					f = {"id": id}
+				_challenges = $filter('filter')(o.challenge, f)
 
 			_cards = _.values _challenges
 			deckOptions = {control: $scope.carousel}
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
+			if $location.path()=='/challenges/draw-new'
+				_drawNewChallenge(_challenges)
+				notify.message {
+					title: "Your Challenge Awaits!"
+					message: "Welcome back. We dare you to take on this Challenge! <span class='nowrap'>(But feel free to choose another.)</span>"
+				}, null
+				# 'drawer-findhappi-current'
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
@@ -464,7 +505,26 @@ angular.module(
 			CFG.$curtain.addClass 'hidden'
 			return
 
+		# pick a new challenge to feature
+		_drawNewChallenge = (challenges)->
+			pickFrom = _.where challenges, {status:'new'}
+			pickFrom = _.where challenges, {status:'pass'} if _.isEmpty(pickFrom) 
+			pickFrom = _.where challenges, {status:'working'} if _.isEmpty(pickFrom) 
+			pickFrom = _.where challenges, {status:'completed'} if _.isEmpty(pickFrom)
+			pickFrom = challenges if _.isEmpty(pickFrom)
+			# pick a challenge
+			selected = _.sample(pickFrom)
+			switch selected.status
+				when "new","pass", "completed"
+					$scope.challenge_new_moment(selected)
+				when "working"
+					$scope.challenge_open(selected)
+
+
+
 		# deactivate any active challenges before activating a new one
+		# set status to 'pass' if moment.photoIds.length=0
+		# otherwise set status to 'working'
 		_deactivateChallenges = (active)->
 			if active?
 				active = [active] if _.isPlainObject(active)
@@ -473,11 +533,15 @@ angular.module(
 				active = _.where $scope.deck.allCards, {status:'active'}
 			stale = []
 			_.each active, (c)->
+				hasMany = [c]
+				newStatus = 'pass'
 				stale.push c
 				_.each actionService._getMoments( c ), (m)-> 
 					if m.status=='active'
 						stale.push m
-			actionService.setCardStatus(stale, 'working')
+						hasMany.push m
+						newStatus = 'working' if m.photoIds.length
+				actionService.setCardStatus(hasMany, newStatus)
 			return stale		
 
 		# get photos for 'active' challenge in reverse order
@@ -588,14 +652,14 @@ angular.module(
 			# goto moment
 			return actionService.drawerItemClick 'drawer-gethappi-mostrecent'
 
-		$scope.challenge_open = ()->
-			deactivated = _deactivateChallenges()
+		$scope.challenge_open = (c)->
+			deactivated = _deactivateChallenges() 
 
-			c = $scope.deck.topCard()
+			c = $scope.deck.topCard() if !c
 			stale = [c]
 			now = new Date()
 
-			m = $scope.moment || _.findWhere  actionService._getMoments( c ), {status:'working'} 
+			m = _.findWhere  actionService._getMoments( c ), {status:'working'} 
 
 			if !m? && c.momentIds.length
 					# working moment not found, just activate the first moment
@@ -620,11 +684,14 @@ angular.module(
 			return actionService.drawerItemClick 'drawer-findhappi-current', after_handleItemClick
 
 
+		# @param challenge c
+		# @return moment 
+
 		# TODO: change to accept
-		$scope.challenge_new_moment = ()->
+		$scope.challenge_new_moment = (c)->
 			deactivated = _deactivateChallenges()
 
-			c = $scope.deck.topCard()
+			c = $scope.deck.topCard() if !c
 			c.stats.accept += 1
 			now = new Date()
 			stale = [c]
@@ -696,6 +763,7 @@ angular.module(
 		# Controller: MomentCtrl
 		#
 		CFG.$curtain.find('h3').html('Loading Moments...')
+		notify.clearMessages() 
 
 		_challenges = _moments = _cards = null
 
@@ -722,27 +790,41 @@ angular.module(
 			state = syncService.get('drawerState')
 			if _.isEmpty(state) || state.group !='gethappi'
 				state = drawer.getDrawerItem('gethappi', 'mostrecent')
-			drawer.init o.challenge, o.moment, state
 
 			# wrap challenges in a Deck
 			_challenges = deckService.setupDeck(o.challenge)
 
-			if $route.current.params.id?
-				# filter moments by id
-				if _.isNaN parseInt $route.current.params.id 
-					f = {"name": $route.current.params.id}
-				else f = {"id": $route.current.params.id}
+			id = $route.current.params.id
+			if !id?
+				# route = '/moments'
+				# TODO: deprecate, confirm moments should not be saved as pass...
+				_moments = $filter('filter')(o.moment, {status:"!pass"})
+			else if $location.path()=='/moments/shuffle'
+				_moments = $filter('filter')(o.moment, {status:"!pass"})
+			else if _.isNaN parseInt id 
+				# route = '/moments/birthday'
+				f = {"name": $route.current.params.id}
 				_moments = $filter('filter')(_.values( o.moment ), f)
-			else 
-				o.moment = $filter('filter')(o.moment, {status:"!pass"})
-				_moments = o.moment
-
+			else if !_.isNaN parseInt id
+				# route = '/moments/23'
+				f = {"id": $route.current.params.id}
+				_moments = $filter('filter')(_.values( o.moment ), f)
 
 
 			# get nextCard
 			_cards = _.values _moments 
 			deckOptions = {control: $scope.carousel} 
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
+			if $location.path()=='/moments/shuffle'
+				$scope.deck.shuffle()
+				state = drawer.getDrawerItem('gethappi', 'shuffle')
+				notify.message {
+					title: "Enjoy a Moment of Happi!"
+					message: "Welcome back. Enjoy this Moment, then take a moment to make another.
+					<span class='nowrap'>(Find yourself another Challenge...)</span>"
+				}, null
+
+			drawer.init o.challenge, o.moment, state
 
 			m = $scope.deck.topCard()
 			if $route.current.params.id? && m?.status=='active'
@@ -877,6 +959,7 @@ angular.module(
 		# Controller: MomentCtrl
 		#
 		CFG.$curtain.find('h3').html('Loading Timeline...')
+		notify.clearMessages() 
 
 		_challenges = _moments = _cards = null
 
@@ -943,7 +1026,6 @@ angular.module(
 		class LocalNotify 
 			constructor: (options)->
 				self = this
-				self._id = 0
 				self._notify = self.loadPlugin()
 				return
 
@@ -953,8 +1035,14 @@ angular.module(
 			loadPlugin: ()->
 				if window.plugin?.notification?.local? 
 					this._notify = window.plugin.notification.local
+				if this.isReady()
+					this._notify.onadd = this.onadd
+					this._notify.ontrigger = this.ontrigger
+					this._notify.onclick = this.onclick
+					this._notify.oncancel = this.oncancel
+					notify.alert "localNotify, callbacks added", "success"
 				else 	
-					# notify.alert "LocalNotification plugin is NOT available"
+					notify.alert "LocalNotification plugin is NOT available"
 					this._notify = false
 				return this._notify
 
@@ -966,17 +1054,92 @@ angular.module(
 				# notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
 				# notify.alert "LocalNotify._notify="+ JSON.stringify (this._notify ), "warning"
 
-				_showNotification = (notification, type="info", delay=10000)->
-					# force notify.alert
-					debugWas = CFG.debug
-					CFG.debug = true
-					if notification.title?
-						notify.alert "<h3>"+notification.title+"</h3><p>"+notification.message+"</p>", type, delay
+				now = new Date().getTime()
+				target = new Date( now + delay*1000)
+				msg = {
+						id: now 				# seems to crash on id:0 (?)
+					date: target
+				}
+				msg['title'] = notification.title if notification.title?
+				msg['message'] = notification.message if notification.message?
+				msg['repeat'] = notification.repeat if notification.repeat?
+				msg['badge'] = notification.badge || 1
+				msg['autoCancel'] = true
+				msg['json'] = JSON.stringify(notification.data) if notification.data?
+
+				# notify.alert "localNotify.add() BEFORE message="+JSON.stringify( msg ), null, 30000
+				self = this
+				try 
+					if this.isReady()
+						this._notify.add(msg)
+						notify.alert "localNotify.add()  AFTER message="+JSON.stringify( msg ), "danger", 30000
+						notify.message({
+							title: "A reminder was set to fire in "+ delay+" seconds"
+							message: "To see the notification, press the 'Home' button and close this app." 
+							}, null, 4500)
 					else 
-						notify.alert notification.message, type, delay
-					$timeout (()->CFG.debug = debugWas), 0
+						# msg.message = "EMULATED: "+msg.message
+						# notify.alert "localNotification EMULATED, delay="+delay
+						# $timeout (()->
+						# 	notify.message(msg)
+						# ), delay*1000
+						this.fakeNotify(delay, notification)
+				catch error
+					notify.alert "EXCEPTION: notification.local.add(), error="+JSON.stringify error, "danger", 60000
+		
+			# @param except string or array of Strings
+			_cancelScheduled : (except)->
+				self = this
+				except = [except] if !_.isArray(except) 
+				this._notify.getScheduledIds (ids)->
+					_.each ids, (id)->
+						return if except.indexOf(id) > -1
+						notify.alert "_cancelScheduled, id="+id, "warning", 30000
+						self._notify.cancel(id)
 
+			# @params state = [foreground | background]
+			onadd :(id,state,json)=>
+				notify.alert "onadd state="+state+", json="+json, "info"
+				except = id
+				this._cancelScheduled(except)
+				return true
 
+			ontrigger :(id,state,json)=>
+				# state=foreground
+				if state=='foreground'
+					notify.alert "ontrigger state="+state+", json="+json, "success"
+					# Note: The ontrigger callback is only invoked in background if the app is not suspended!
+					this._notify.cancel(id)
+				else this.onclick.apply(this, arguments)
+				return true
+
+			onclick :(id,state,json)=>
+				# state=background
+				try 
+					notify.alert "onclick state="+state+", json="+json, "success"
+					# this._notify.cancel(id)
+					this._notify.cancelAll()
+					target = JSON.parse(json).target
+					$location.path(target)
+				catch error
+					notify.alert "EXCEPTION: localNotify.onclick(), error="+JSON.stringify error, "danger", 60000
+				return true
+
+			oncancel :(id,state,json)=>
+				notify.alert "CANCEL oncancel state="+state+", json="+json, "info"
+				# this.scheduled.slice(this.scheduled.indexOf(id),1)
+				return true
+
+			fakeNotify: (delay, notification)=>
+				_isAwakeWhenNotificationFired = ()->
+					# simple Toggle
+					_isAwakeWhenNotificationFired.toggle = _isAwakeWhenNotificationFired.toggle || {}
+					_isAwakeWhenNotificationFired.toggle.value = !_isAwakeWhenNotificationFired.toggle.value 
+					return _isAwakeWhenNotificationFired.toggle.value
+
+				_isLongSleep = (sleep)->
+					LONG_SLEEP = 10 # 60*60 == 1 hour
+					return sleep > LONG_SLEEP
 				#
 				# FAKE notification emulating steroids api pause/resume
 				# for testing on desktop & touch 
@@ -993,7 +1156,7 @@ angular.module(
 						o.notification.message += context
 						notify.alert "LocalNotify fired when already awake", "warning"
 						type = if wasAlreadyAwake then "info" else "success"
-						_showNotification(o.notification, type)
+						notify.message(o.notification, type)
 					
 					else if _isLongSleep(o.pauseDuration) 
 						# resume/localNotify from LongSleep should navigate to notification target, 
@@ -1007,7 +1170,7 @@ angular.module(
 							context =  "<br /><p><b>(Pretend you got here after clicking from the Notification Center.)</b><p>" 
 						o.notification.message += context	
 						type = if wasAlreadyAwake then "info" else "success"
-						_showNotification(o.notification, type, 20000)
+						notify.message(o.notification, type, 20000)
 						# after LONG_SLEEP, goto active challenge 'drawer-findhappi-current'
 						$timeout (()->
 							actionService.drawerItemClick('drawer-findhappi-current')
@@ -1016,49 +1179,22 @@ angular.module(
 						# resume from shortSleep should just resume, not alert
 						# localNotify from shortSleep should just show notification as alert, do not navigate
 						type = if wasAlreadyAwake then "info" else "success"
-						_showNotification(o.notification, type)
+						notify.message(o.notification, type)
 
 					return
 
-				if true && "fake notify"
-					window.deviceReady = "fake" if !window.deviceReady
-					promise = actionService.prepareToResumeApp(null, notification)
-						.then( _handleResumeOrLocalNotify )
-					$timeout (()->
-						# notify.alert "FAKE localNotification fired, delay was sec="+delay
-						actionService.resumeApp("LocalNotify")
-					), delay*1000
-					_showNotification({message: "LocalNotify set to fire, delay="+delay}, "warning", 2000)
-					return	 
-
-
-				#
-				# skip until Cordova local notifications plugin works
-				#
-
-				if !this._notify
-					$timeout (()->notify.alert "FAKE localNotification, delay was sec="+delay), delay*1000
-					return false 
-
-				now = new Date().getTime()
-				target = new Date( now + delay*1000)
-				notification = {
-						id: this._id++
-					date: target
-				}
-				notification['title'] = options.title if options.title?
-				notification['message'] = options.message if options.message?
-				notification['repeat'] = options.repeat if options.repeat?
-				notification['badge'] = options.badge if options.badge?
-				notification['json'] = JSON.stringify(options.data) if options.data?
-				notify.alert "message="+JSON.stringify( notification)
-				try 
-					# this._notify.add(notification)
-				catch error
-					notify.alert "EXCEPTION: notification.local.add()", "danger", 30000
+				window.deviceReady = "fake" if !window.deviceReady
+				promise = actionService.prepareToResumeApp(null, notification)
+					.then( _handleResumeOrLocalNotify )
 				$timeout (()->
-					notify.alert "localNotification, delay was sec="+delay
+					# notify.alert "FAKE localNotification fired, delay was sec="+delay
+					actionService.resumeApp("LocalNotify")
 				), delay*1000
+				notify.message({message: "LocalNotify set to fire, delay="+delay}, "warning", 2000)
+				return			
+		#
+		# end Class Notify
+		#
 
 
 		# 
@@ -1068,8 +1204,9 @@ angular.module(
 		if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
 			$location.path('/challenges') 
 
-		# hide loading
-		CFG.$curtain.addClass 'hidden'
+		CFG.$curtain.find('h3').html('Loading Settings...')
+		notify.clearMessages() 	
+
 		$scope.notify = window.notify = notify
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
@@ -1085,17 +1222,13 @@ angular.module(
 			if _.isEmpty(state) || state.group !='settings'
 				state = drawer.getDrawerItem('settings', 'gettingstarted')
 			drawer.init o.challenge, o.moment, state		# load to get counts
+			# hide loading
+			CFG.$curtain.addClass 'hidden'
 
-		_isAwakeWhenNotificationFired = ()->
-			# simple Toggle
-			_isAwakeWhenNotificationFired.toggle = _isAwakeWhenNotificationFired.toggle || {}
-			_isAwakeWhenNotificationFired.toggle.value = !_isAwakeWhenNotificationFired.toggle.value 
-			return _isAwakeWhenNotificationFired.toggle.value
 
-		_isLongSleep = (sleep)->
-			LONG_SLEEP = 10 # 60*60 == 1 hour
-			return sleep > LONG_SLEEP
 
+
+		# ************************* Reminders ******************************
 		localNotify = new LocalNotify()
 
 		# need more copy for notifications
@@ -1103,35 +1236,30 @@ angular.module(
 			{
 				title: "Your 5 Minutes of Happi Starts Now"
 				message: "Spend 5 minutes to find some Happi - a new challenge awaits!"
-				target: "/challenges"
+				data: {
+					target: "/challenges/draw-new"
+				}
 			},
 			{
 				title: "Get Your Happi for the Day"
 				message: "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another."
-				target: "/moments?motd"
+				data: {
+					target: "/moments/shuffle"	
+				}
+				
 			}
 		]
 
 
 		$scope.localNotification = (sec)->
 			localNotify.loadPlugin() if !localNotify.isReady()
-			message = notifications.shift()
-			notifications.push message
+			message = _.sample notifications
+			# notify.alert "$scope.localNotification(): message="+JSON.stringify message
 			localNotify.add sec, message
 			
 
-		$scope.reminder = ($event, action)->
-			switch action
-				when "done"
-					# do nothing for now
-					$location.path('/challenges')
-				when "cancel"
-					$location.path('/challenges')
 
-
-
-
-		# Getting Started ###
+		# ************************* Getting Started ******************************8
 		$scope.carouselIndex = null
 		$scope.formatCardBody = (body)->
 			body = body.join("</p><p>") if _.isArray(body) 

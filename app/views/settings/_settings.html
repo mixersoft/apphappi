@@ -1,5 +1,11 @@
-<div id="notify" class="notify">
+<div id="notify" class="notify overlay">
   <alert ng-repeat="alert in notify.alert()" 
+    type="alert.type" 
+    close="notify.close(alert.key)"
+    ><div ng-bind-html="alert.msg"></div></alert>
+</div>
+<div id="message" class="notify inline">
+    <alert ng-repeat="alert in notify.message()" 
     type="alert.type" 
     close="notify.close(alert.key)"
     ><div ng-bind-html="alert.msg"></div></alert>
@@ -14,9 +20,9 @@
 	    </figure>  
 	  </div>  
 	  <div class="body">
-	    <h3 class="title">Happi in Just 5 Minutes a Day</h3>
+	    <h3 class="title">Just 5 Minutes a Day</h3>
 	    <p>Set a reminder to find your Happi. Just 5 minutes a day is all it takes. And before you know it, you'll have all your Happi at the tip of your fingers.</p>
-	    <h4>When do you usually have time <span class="nowrap">to play on your phone?</span></h4>
+	    <h4>When would you like to<span class="nowrap">put in your 5 minutes a day?</span></h4>
 	    <div id="set-reminder">
 	    	<div class='btn-group'>
 		    	<button type="button" class="btn btn-primary" 
@@ -24,17 +30,11 @@
 		      <button type="button" class="btn btn-primary" 
 		      ng-click="localNotification(5)" >5 sec</button>
 		      <button type="button" class="btn btn-primary" 
-		      ng-click="localNotification(15)">15 sec</button>
+		      ng-click="localNotification(30)">30 sec</button>
 		    </div>
 	    </div>
 	  </div>
 	  <div class="footer">
-	    <div class='btn-group hidden'>
-	    	<button type="button" class="btn btn-default" 
-	      ng-click="reminder($event,'cancel')">Cancel</button>
-	      <button type="button" class="btn btn-primary" 
-	      ng-click="reminder($event,'done')">Done</button>
-	    </div>
 	  </div>
 	</div>
 </div>

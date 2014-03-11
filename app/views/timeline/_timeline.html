@@ -1,9 +1,15 @@
       <!--Body content-->
-      <div id="notify" class="notify">
+      <div id="notify" class="notify overlay">
         <alert ng-repeat="alert in notify.alert()" 
         type="alert.type" 
         close="notify.close(alert.key)"
         ><div ng-bind-html="alert.msg"></div></alert>
+      </div>
+      <div id="message" class="notify inline">
+          <alert ng-repeat="alert in notify.message()" 
+          type="alert.type" 
+          close="notify.close(alert.key)"
+          ><div ng-bind-html="alert.msg"></div></alert>
       </div>
       
       <!-- empty list card -->

@@ -138,7 +138,6 @@ angular.module(
             group: group
             item: item
           }
-          # notify.alert "nav to: "+_.values(options).join("-")
         else 
           throw "ERROR: expecting something in the form of 'drawer-[group]-[item]'"
 

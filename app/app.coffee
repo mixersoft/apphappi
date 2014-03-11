@@ -15,6 +15,7 @@ angular.module( 'appHappi', [
 	debug: false
 	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
+	messageTimeout: 10000
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true
 	# NOTE: only dataURLs are persisting between re-scans
@@ -36,6 +37,10 @@ angular.module( 'appHappi', [
 			templateUrl: 'views/challenge/_challenges.html'
 			controller: 'ChallengeCtrl'
 			})
+		.when('/challenges/draw-new', {
+			templateUrl: 'views/challenge/_challenges.html'
+			controller: 'ChallengeCtrl'
+			})
 		.when('/challenges/:id', {
 			templateUrl: 'views/challenge/_challenges.html'
 			controller: 'ChallengeCtrl'
@@ -45,6 +50,10 @@ angular.module( 'appHappi', [
 			controller: 'ChallengeCtrl'
 			})
 		.when('/moments', {
+			templateUrl: 'views/moment/_moments.html'
+			controller: 'MomentCtrl'
+			})
+		.when('/moments/shuffle', {
 			templateUrl: 'views/moment/_moments.html'
 			controller: 'MomentCtrl'
 			})
