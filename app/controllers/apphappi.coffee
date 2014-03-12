@@ -1009,6 +1009,15 @@ angular.module(
 		$scope.drawerShowAll = ()->
 			return drawer.drawerItemClick 'drawer-findhappi-all'
 
+		$scope.showImgSrc = ($event)->
+			# target = $event.target
+			thumb = $event.target.parentNode.parentNode.parentNode.parentNode
+			img = thumb.querySelector('img')
+			scope = angular.element(thumb).scope()
+			notify.alert "img.src="+img.src[0..60], "warning", 3000
+			notify.alert "img.fileURI="+scope.photo.fileURI, "danger", 3000
+			return
+
 		return;
 	]
 ).controller( 'SettingsCtrl', [

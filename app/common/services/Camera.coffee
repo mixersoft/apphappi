@@ -113,7 +113,8 @@ angular.module(
 				id: id
 				dateTaken: dateTaken
 				Exif: exif || {}
-				src: uri || dataURL
+				src: dataURL || uri
+				fileURI: if _.isString(uri) then uri else null
 				rating: 0		# required for orderBy:-rating to work				
 			}
 
@@ -136,14 +137,14 @@ angular.module(
 			reader = new FileReader()
 			reader.onloadend = (ev)-> 
 				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 3000
-				src = ev.target.result
-				_processImageDataURL(src, dfd)
+				dataURL = ev.target.result
+				_processImageDataURL(dataURL, file, dfd)
 			# starts here	...
 			reader.readAsDataURL(file);
 			# setTimeout( ()->dfd.reject("timeout"), 5000)
 			return dfd.promise
 
-		_processImageDataURL = (dataURL, dfdFINAL)->
+		_processImageDataURL = (dataURL, file, dfdFINAL)->
 			dfdExif = $q.defer()
 			dfdDownsize = $q.defer()
 			promises = {
@@ -153,10 +154,11 @@ angular.module(
 			$q.all(promises).then (o)->
 				check = _.filter o, (v)->return v=='timeout'
 				if check?.length
-					notify.alert "jsTimeout for " + JSON.stringify check
-				photo = _getPhotoObj(null, o.downsized, o.exif)
+					notify.alert "jsTimeout for " + JSON.stringify check, "warning", 10000
+				src = '/'+file.name
+				photo = _getPhotoObj(src, o.downsized, o.exif)
 
-				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 3000
+				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 30000
 				
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
 			return dfdFINAL.promise
@@ -176,7 +178,7 @@ angular.module(
 													return result
 												,{}	)
 				elapsed = new Date().getTime() - start
-				notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed, "success", 30000
+				notify.alert "JpegMeta.JpegFile parse, elapsed MS="+elapsed
 				delete exif['MakerNote']
 				# notify.alert "EXIF="+_.values(_.pick(exif,['DateTimeOriginal','Make','Model'])).join('-'), null, 3000
 				# notify.alert "EXIF="+JSON.stringify(exif), null, 3000
@@ -210,6 +212,8 @@ angular.module(
 			#	
 			return NO_cameraService = {
 				# use HTML5 File api in browser
+				getFilesystem : ()->
+					return null
 				getPicture: (e)->
 					if _deferred?
 						_deferred.reject(  '(HTML5 getPicture() cancelled'  )
@@ -279,6 +283,9 @@ angular.module(
 					correctOrientation: true
 					targetWidth: CFG.camera.targetWidth
 
+			getFilesystem : ()->
+				return _fsRoot
+
 			# Camera failure callback
 			cameraError : (message)->
 				# navigator.notification.alert 'Cordova says: ' + message, null, 'Capturing the photo failed!'
@@ -309,10 +316,10 @@ angular.module(
 
 			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
 			imageUriReceived : (imageURI)->
-				notify.alert "imageUriReceived() from CameraRoll, imageURI="+imageURI
+				# notify.alert "imageUriReceived() from CameraRoll, imageURI="+imageURI
 
 				if true && "moveTo steroids.app.absoluteUserFilesPath" && _deferred?
-					notify.alert "saving file to steroids.app.absoluteUserFilesPath...", "warning"
+					# notify.alert "saving file to steroids.app.absoluteUserFilesPath...", "warning"
 					_fileErrorComment = "imageUriReceived"
 					window.resolveLocalFileSystemURI imageURI, self.gotFileObject, self.fileError
 					return
@@ -344,8 +351,8 @@ angular.module(
 					# notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 3000	if _fsRoot
 					# notify.alert "_fsRoot NOT AVAILABLE", 'danger', 3000 if !_fsRoot?
 					
-					# targetDirURI = _fsRoot?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
-					targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
+					targetDirURI = self.getFilesystem()?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
+					# targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
 					# targetDirURI += "/.."
 
 					# NOTE
@@ -354,14 +361,14 @@ angular.module(
 					
 					fileName = new Date().getTime()+'.jpg'
 
-					notify.alert "targetDirURI="+targetDirURI, 'info', 10000
+					# notify.alert "targetDirURI="+targetDirURI, 'info'
 					_fileErrorComment = "gotFileObject"
 
 					window.resolveLocalFileSystemURI(
 						targetDirURI,
 						((directory)->
-													_fileErrorComment = "resolveLocalFileSystemURI, path="+directory.fullPath+'/'+fileName
-													file.moveTo directory, fileName, self.fileMoved, self.fileError),
+							_fileErrorComment = "resolveLocalFileSystemURI, path="+directory.fullPath+'/'+fileName
+							file.moveTo directory, fileName, self.fileMoved, self.fileError),
 						self.fileError
 					)
 					# _requestFsPERSISTENT()

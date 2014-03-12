@@ -19,6 +19,7 @@ angular.module( 'appHappi', [
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true
 	# NOTE: only dataURLs are persisting between re-scans
+	# EXCEPT: in adhoc app (test this)
 	camera: 
 		targetWidth : 320
 		quality: 85
@@ -92,6 +93,24 @@ angular.module( 'appHappi', [
     return items.slice().reverse()
 
 )
+# set fallback Img.src for fullres
+.directive('photo', ()->
+	return {
+		restrict: "A"
+		scope: {
+			photo: "="
+		}
+		link : (scope, element, attrs)->
+			# add class="prefer-fileurl" to ng-include
+			if element.parent().parent().parent().parent().hasClass('prefer-fileurl')
+				attrs.ngSrc = scope.photo.fileURI || scope.photo
+				element.bind('error', ()->angular.element(this).attr("src", scope.photo.src) )				
+				# TODO: destroy listeners
+				scope.$on '$destroy', ()->
+					element.unbind()	 	
+			else attrs.ngSrc = scope.photo.src
+	}
+)
 .directive('onTouch', ()->
 	return {
 		restrict: "A"
@@ -112,7 +131,6 @@ angular.module( 'appHappi', [
 			return
 	}
 )
-
 .directive('paginateDeck', ($compile, $timeout)->
 	return {
 		restrict: "A"

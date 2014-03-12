@@ -10,10 +10,10 @@ ondragstart="_preventDefault(event)"
   <div class="crop-wrap" >
     <div class="crop">
       <img class=""  
-        data-w0="{{photo.origW}}"
-        data-h0="{{photo.origH}}"
-        data-root-src="{{photo.rootSrc}}"
-        ng-src="{{photo.src}}"
+        orig-width="{{photo.Exif && photo.Exif.PixelXDimension}}"
+        orig-height="{{photo.Exif && photo.Exif.PixelYDimension}}"
+        photo="photo"
+        ng-src="{{photo.fileURI || photo.src}}"
       >
     </div>
   </div>
@@ -36,7 +36,8 @@ ondragstart="_preventDefault(event)"
       </span>
       <span class="inline-icons right">
         <i class='btn-icon fa {{photo.favorite && 'fa-heart' || 'fa-heart-o'}} ' title='favorite'> {{photo.favorite}}</i>
-        <i class='btn-icon fa fa-info-circle'  title='show info'></i>
+        <i class='btn-icon fa fa-info-circle'  title='show info'
+        ng-click="showImgSrc($event)"></i>
         <i class='btn-icon fa fa-arrow-up' title='share'
         ng-click="socialShare($event, $index, $scope)"
         ></i>

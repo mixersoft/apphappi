@@ -48,7 +48,7 @@
             </div>
           </div>
           <div class="timeline gallery clearfix" on-touch="galleryGlow" paginate-deck="deck" perpage="3">
-            <div ng-repeat="photo in deck.paginatedCards()" ng-include="'/common/templates/_thumbnail.html'">
+            <div class="prefer-fileurl" ng-repeat="photo in deck.paginatedCards()" ng-include="'/common/templates/_thumbnail.html'">
             </div>
           </div>
         </div>
