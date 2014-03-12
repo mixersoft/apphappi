@@ -273,10 +273,17 @@ angular.module(
 					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
 					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
 					targetWidth: CFG.camera.targetWidth
-					popoverOptions: # iPad camera roll popover position
-						width: 768
-						height: 190
-						arrowDir: Camera.PopoverArrowDirection.ARROW_UP
+					popoverOptions: new CameraPopoverOptions(
+							460,
+							260,
+							100,
+							100, 
+							Camera.PopoverArrowDirection.ARROW_UP
+						)
+					# iPad camera roll popover position
+						# width: 768
+						# height: 
+						# arrowDir: Camera.PopoverArrowDirection.ARROW_UP
 				fromCamera:
 					quality: CFG.camera.quality
 					destinationType: navigator.camera.DestinationType.IMAGE_URI
