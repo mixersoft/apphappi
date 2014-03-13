@@ -171,15 +171,25 @@ angular.module(
         if options.group=='settings'
           switch options.item
             when 'reset'
-              resp = window.confirm('Are you sure you want to delete everything?')
-              if (resp==true)
-                localStorageService.clearAll()
-              self.animateClose()
-              $timeout (()->window.location.reload()), 1000
-              return $location.path('/')
-            when 'drawer'
-              _drawer.syncService?.clearDrawer()
-              return $location.path('/')
+              _resetCb = (clearAll=false)->
+                localStorageService.clearAll() if clearAll
+                self.animateClose()
+                $timeout (()->window.location.reload()), 1000
+                return $location.path('/')
+
+              if navigator.notification
+                _onConfirm = (index)->
+                  clearAll = index==2 
+                  return _resetCb(clearAll)
+                navigator.notification.confirm(
+                        "You are about to delete everything and reset the App.", # message
+                        _onConfirm,
+                        "Are you sure?", # title 
+                        ['Cancel', 'OK']
+                      )
+              else
+                resp = window.confirm('Are you sure you want to delete everything?')
+                return _resetCb(resp)
             when 'debug'
               CFG.debug = !CFG.debug
               return
@@ -227,6 +237,7 @@ angular.module(
         # drawer = $rootScope.drawer
         _.extend(self.state, drawerItemState) if drawerItemState?
 
+        # update syncService
         self.updateCounts(challenges, moments)
 
         self.state.activeItemId = ["drawer",self.state.group, self.state.item || self.state.name ].join('-')
@@ -248,7 +259,7 @@ angular.module(
         ]
         throw "Error: syncService not set in Drawer" if !_drawer.syncService? 
         _.each updateList, (o)->
-          models = _drawer.syncService['localData'][o.model]
+          models = _drawer.syncService.get(o.model)
           self.state.counts[o.groupName] = _.values( models ).length
           # additional parsing
           switch o.model

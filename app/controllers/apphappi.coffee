@@ -608,17 +608,18 @@ angular.module(
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 15000 )
 			return;
 
-		$scope.challenge_pass = ($index)->
+		$scope.challenge_pass = ()->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
 				# set status=pass if current card, then show all challenges
-				m = $scope.moment
 				stale =_deactivateChallenges(c)
-				try
-					if m.photoIds.length==0 
-						m.remove = true
-						c.momentIds.splice(c.momentIds.indexOf(m.id), 1)
-						actionService.setCardStatus(c, 'pass')
-				catch error
+				m = _.findWhere stale, {type:'moment'}
+				# m = $scope.moment || _.findWhere  actionService._getMoments( c ), {status:'active'} 
+				
+				if m.photoIds.length==0 
+					m.remove = true 		# remove empty moment
+					c.momentIds.splice(c.momentIds.indexOf(m.id), 1)
+					# actionService.setCardStatus(c, 'pass')
+
 				syncService.set('challenge', stale)
 				syncService.set('moment', stale)
 				# drawer.updateCounts( _challenges )	
@@ -634,23 +635,36 @@ angular.module(
 			m = $scope.moment || _.findWhere  actionService._getMoments( c ), {status:'active'} 
 			throw "warning: challenge.status != active in $scope.challenge_done()" if c.status != 'active'
 			throw "warning: moment.status != active in $scope.challenge_done()" if m.status != 'active'
+			if m.photoIds.length
+				stale = [c, m]
+				m.stats.completedIn += 123						# fix this
+				m.stats.viewed += 1
+				c.stats.completions.push m.stats.completedIn
+				actionService.removeMarkedPhotos(c)
+				c.challengePhotos = null;
+				actionService.setCardStatus(stale, 'complete', now)
+				syncService.set('challenge', stale)
+				syncService.set('moment', stale)
+				# drawer.updateCounts( _challenges )
+				# clear 'active' challenge photos
+				$scope.moment = null
+				# goto moment
+				return actionService.drawerItemClick 'drawer-gethappi-mostrecent'
+			else # no photos selected
+				_onConfirm = (isCallback=false)->
+					$scope.challenge_pass()
+					return $scope.$apply() if isCallback
+				if navigator.notification
+					navigator.notification.confirm("You haven't found any photos for this Challenge.", # message
+									(index)->return _onConfirm("callback") if index==2 ,
+									"Are you sure you are Done?" # title	
+									['Cancel', 'Yes']
+								)
+				else 
+					 resp = window.confirm("Are you sure you are Done? You haven't found any photos for this Challenge.")
+						_onConfirm() if (resp==true)
 
-			stale = [c, m]
-			m.stats.completedIn += 123						# fix this
-			m.stats.viewed += 1
-			c.stats.completions.push m.stats.completedIn
-			actionService.removeMarkedPhotos(c)
-			c.challengePhotos = null;
-			actionService.setCardStatus(stale, 'complete', now)
-			syncService.set('challenge', stale)
-			syncService.set('moment', stale)
-			# drawer.updateCounts( _challenges )
-
-			# clear 'active' challenge photos
-			$scope.moment = null
-
-			# goto moment
-			return actionService.drawerItemClick 'drawer-gethappi-mostrecent'
+			
 
 		$scope.challenge_open = (c)->
 			deactivated = _deactivateChallenges() 
@@ -840,7 +854,7 @@ angular.module(
 		_showSupportAfterFirstChallenge = (m)->
 			_wasJustNow = (m)->
 				# moment was just created
-				return false if !(m.modified == m.challenge?.modified)
+				return false if !m || !(m.modified == m.challenge?.modified)
 				return new Date() - new Date(m.modified) < 5000	  # 5 sec delay
 			_wasYesterday = (last2)-> 
 				# prev moment was created yesterday
@@ -866,6 +880,9 @@ angular.module(
 			return drawer.drawerItemClick 'drawer-findhappi-all'
 
 		$scope.lazyLoadGallery = ($index, offset)->
+			# BUG: $index no longer accurately represents card.index, why?
+			# use carouselBufferSize for "lazyLoad"
+			return true
 			offset = offset || CFG.gallery?.lazyloadOffset || 2
 			isVisible = Math.abs($index - $scope.carousel.index) <= offset
 			return isVisible
