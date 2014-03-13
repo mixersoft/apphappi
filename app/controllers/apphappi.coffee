@@ -592,7 +592,7 @@ angular.module(
 						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 						syncService.set('moment', m)
 						
-						notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
+						# notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
 					else 
 						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
@@ -830,10 +830,37 @@ angular.module(
 			if $route.current.params.id? && m?.status=='active'
 				$scope.set_editMode(m) 
 
-
+			# check if user just completed first challenge of the day
+			_showSupportAfterFirstChallenge(m) if drawer.state['item']=='mostrecent' 
+				
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
-			return      
+			return  
+
+		_showSupportAfterFirstChallenge = (m)->
+			_wasJustNow = (m)->
+				# moment was just created
+				return false if !(m.modified == m.challenge?.modified)
+				return new Date() - new Date(m.modified) < 5000	  # 5 sec delay
+			_wasYesterday = (last2)-> 
+				# prev moment was created yesterday
+				return true if last2.length < 2
+				last = new Date(last2[0].created).getDate()
+				prev = new Date(last2[1].created).getDate()
+				return true if last >  prev || last == 1
+			_showReminder = ()->
+				# show reminder after loading MomentCtrl
+				notify.message {
+					title: "Congratulations!"
+					message: "You got your 5 minutes in for the day. Enjoy this Moment of Happi and remember to pace yourself by setting a Reminder for the next time."
+				}, null, 30000
+				return true
+			if _wasJustNow(m)
+				last2 = $filter('orderBy')($scope.deck.allCards, '-created')[0...2]
+				# ask to set reminder if first challenge of the day
+				_showReminder() if _wasYesterday(last2)
+			return
+			    
 
 		$scope.drawerShowAll = ()->
 			return drawer.drawerItemClick 'drawer-findhappi-all'

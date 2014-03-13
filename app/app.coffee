@@ -103,12 +103,13 @@ angular.module( 'appHappi', [
 		link : (scope, element, attrs)->
 			# add class="prefer-fileurl" to ng-include
 			if element.parent().parent().parent().parent().hasClass('prefer-fileurl')
-				attrs.ngSrc = scope.photo.fileURI || scope.photo
+				# attrs.ngSrc = scope.photo.fileURI || scope.photo
+				element.attr('src', scope.photo.fileURI || scope.photo)
 				element.bind('error', ()->angular.element(this).attr("src", scope.photo.src) )				
 				# TODO: destroy listeners
 				scope.$on '$destroy', ()->
 					element.unbind()	 	
-			else attrs.ngSrc = scope.photo.src
+			else element.attr('src',scope.photo.src)
 	}
 )
 .directive('onTouch', ()->
