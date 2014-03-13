@@ -300,7 +300,7 @@ angular.module(
 				_.each challenges, (challenge)->
 				  # challenge.moments = _.where(momentsAsArray, {challengeId: challenge.id})
 				  if !challenge.momentIds?.length
-				  	challenge.status = 'new'
+				  	challenge.status = 'new' if !challenge.status  # otherwise status='pass'
 				  else	
 				    _.each( challenge.momentIds, (mid,k,l)->
 				    							moment = syncService.get('moment', mid)
