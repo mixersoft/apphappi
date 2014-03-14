@@ -1,15 +1,15 @@
+<!-- html5-steroids-angular-boilerplate -->
 <!DOCTYPE html>
 <!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
 <!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
 <!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> 
-<html class="no-js"  ng-app="myApp"> <!--<![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
   <head>
     <meta charset="utf-8">
-    <title>AppHappi - Plain Angular, no Steroids</title>
+    <title>AppHappi</title>
 
     <meta http-equiv="X-UA-Compatible"  content="IE=edge,chrome=1">
-    <meta name="viewport"               content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"               content="width=device-width, initial-scale=1">
     <meta name="description"            content="AppHappi by Snaphappi">
     <meta name="author"                 content="michael@snaphappi.com">
 
@@ -18,25 +18,25 @@
     <link rel="stylesheet" href="stylesheets/font-awesome.css" />
     <link rel="stylesheet" href="fonts/snappi-fonts.css" />
     <link rel="stylesheet" href="font/topcoat-mobile-light.css" />
+    <link rel="stylesheet" href="stylesheets/angular-carousel.css" />
+    <link rel="stylesheet" href="stylesheets/animate/animate.css" />
     <!-- endbuild -->
 
     <!-- build:css stylesheets/app.min.css -->
-    <link rel="stylesheet" href="/stylesheets/application.css" />
+    <link rel="stylesheet" href="stylesheets/application.css" />
+    <link rel="stylesheet" href="views/drawer/drawer.css" />
+    <link rel="stylesheet" href="views/challenge/challenge.css" />
+    <link rel="stylesheet" href="views/moment/moment.css" />
+    <link rel="stylesheet" href="views/timeline/timeline.css" />
+    <link rel="stylesheet" href="views/settings/settings.css" />
     <!-- endbuild -->
 
     <!--[if lt IE 9]>
     <script src="components/html5shiv-dist/html5shiv.js"></script>
     <![endif]-->
 
-    <!-- build:js javascripts/vendor-HEAD.min.js -->
-    <!-- endbuild -->
-
-    <style>
-        body {
-            font-family: "Roboto";
-        }
-    </style>
-
+    <script src="http://localhost/cordova.js"></script>
+    <script src="components/steroids-js/steroids.js"></script>
     
   </head>
   <body>
@@ -47,123 +47,68 @@
     <noscript>
         Please enable Javascript to experience this site :)
     </noscript>
-
-     <!-- sample bootstrap copy  -->
-    <div class="container">
-        <div class="starter-template">
-        <h1>Bootstrap starter template</h1>
-        <p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
-
-        <h1>Welcome to Steroids!</h1>
-
-        <p>Awesome! This file is located at <strong>www/index.html</strong> &mdash; open it, change some text, save the file, and press enter in the Terminal window running <strong>$ steroids connect</strong>. The changes are updated to all connected devices. Cool, ain't it?</p>
-        </div>
-
-      <!-- Main component for a primary marketing message or call to action -->
-      <div class="jumbotron">
-        <h1>Angular Example</h1>
-        <div ng-controller="appCtrl">
-          <img class="pull-right" 
-          ng-click="imgClick($event)"
-          ng-longtap="longtap($event)"
-          xxontouchend="jstouchend(event)"
-          ng-src="http://dev.snaphappi.com/svc/STAGING/stage6/.thumbs/bs~51df6d92-27ec-49bd-b22d-0a5f0afc6d44.jpg">
-          <h1>{{title}}</h1>
-          <!-- if I set my-ng-model='CFG.debug' in markup it works, but not in the directive link Fn -->
-          <on-off-switch my-directive-var="options.switchModel"></on-off-switch>
-          
-          <div>options.switchModel={{options.switchModel}}, should be 'CFG.debug'</div>
-          <div>CFG.debug={{CFG.debug}}</div>
-          <button type="button" class="btn btn-primary" ng-click="CFG.debug=!CFG.debug">Toggle CFG.debug</button>
-          <button type="button" class="btn btn-primary" ng-click="options.switchModel=!options.switchModel">Toggle options.switchModel</button>
-
-          
-        </div>
-        <p>This example is a quick exercise to illustrate how the default, static and fixed to top navbar work. It includes the responsive CSS and HTML, so it also adapts to your viewport and device.</p>
-        <p>To see the difference between static and fixed top navbars, just scroll.</p>
-        <p>
-          <a class="btn btn-lg btn-primary" href="../../components/#navbar" role="button">View navbar docs »</a>
-        </p>
-      </div>
-    </div> <!-- /container -->
-
-
-    <div class="row-fluid med-grey-back dark-dust min-height-1500">
+    <div id="curtain" class="center">
+        <h3>Loading...</h3>
+        <i class="fa fa-spinner fa-spin fa-2x"></i>
     </div>
 
-        <!-- build:js javascripts/vendor-BODY.min.js -->
-    <script src="/components/modernizr/modernizr.js"></script>
-    <script src="/components/lodash/dist/lodash.js"></script>
-    <script src="/components/angular/angular.js"></script>
-    <script src="/components/angular-bootstrap/ui-bootstrap-tpls.js"></script>
+    <div class="device hidden">
+        <div class="device-border iphone4 center-block"></div>
+    </div>
+
+    <div id="ng-app" >
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-4">
+                  <div id="drawer" responsive-drawer-wrap
+                  ng-include="'/views/drawer/_drawer.html'">
+                  </div>
+                </div>
+                <div id="body" class="col-sm-offset-4 col-sm-8">
+                    <div class="view-container view-animate-container">
+                      <div ng-view class="view-frame view-animate"></div>
+                    </div>
+                </div>
+            </div>
+        </div>  
+    </div> 
+
+
+
+    <!-- build:js javascripts/vendor-BODY.min.js -->
+    <script src="components/modernizr/modernizr.js"></script>
+    <script src="components/lodash/dist/lodash.min.js"></script>
+    <script src="components/angular/angular.js"></script>
+    <script src="components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
+    <script src="components/angular-animate/angular-animate.min.js"></script>
+    <script src="components/angular-route/angular-route.min.js"></script>
+    <script src="components/angular-local-storage/angular-local-storage.min.js"></script>
+    <script src="components/moment/min/moment.min.js"></script>
+    <script src="components/angular-moment/angular-moment.min.js"></script>
+    <script src="components/angular-sanitize/angular-sanitize.min.js"></script>
+    <!-- // <script src="components/angular-gestures/gestures.min.js"></script> -->
+    <script src="components/restangular/dist/restangular.min.js"></script>
+    <script src="components/angular-bindonce/bindonce.js"></script>
+    <!-- // <script src="components/angular-touch/angular-touch.js"></script> -->
     <script src="javascripts/angular-touch.longtap.js"></script>
+    <script src="components/angular-carousel/dist/angular-carousel.js"></script>
+    <!-- // <script src="javascripts/exif.js"></script> -->
+    <!-- // <script src="javascripts/binaryajax.js"></script> -->
+    <script src="javascripts/jpegmeta.js"></script>
+    <!-- // <script src="components/parse-js-sdk/lib/parse-1.2.16.min.js"></script> -->
     <!-- endbuild -->
-    <script type="text/javascript">
-      angular.module(
-        'myApp', ['ui.bootstrap', 'ngTouch'] )
-      .directive('onOffSwitch', function() {
-        var myDirectiveVarAsString = '';
-        return {
-          restrict: 'AE',
-          scope: {
-            myDirectiveVar: '=',
-          },
-          replace: true,
-          template: '<div class="btn-group">\
-              <button type="button" class="btn btn-primary" ng-model="myDirectiveVar" btn-radio="false">Off</button>\
-              <button type="button" class="btn btn-primary" ng-model="myDirectiveVar" btn-radio="true">On</button>\
-          </div>',
-          xxxcompile: function(element, attrs) {
-            console.debug("compile() attrs.myDirectiveVar="+attrs.myDirectiveVar)
-            // I need scope.$parent here, but it's only avail in  link()
-            // myEvalDirectiveVar = eval("scope.$parent."+attrs.myDirectiveVar)
-            var _myEvalDirectiveVar = "CFG.debug" // set manually and it works
-            attrs.$set('myDirectiveVar', _myEvalDirectiveVar)
-            return 
-          },
-          link: function(scope, element, attrs) {
-            // scope.myDirectiveVar = 'options.switchModel'
-            // scope.$parent.options.switchModel = 'CFG.debug'
-            // scope.$parent.CFG.debug = false on init
-            //
-            // NOTE: myDirectiveVar gets the correct initial value from 'CFG.debug'
-            // but it is still watching 'options.switchModel'
-            var myDirectiveVar_asString = scope.myDirectiveVar
-            console.log(attrs.myDirectiveVar+"="+myDirectiveVar_asString)
-            attrs.$set('myDirectiveVar', myDirectiveVar_asString)
-            scope.myDirectiveVar = eval("scope.$parent."+myDirectiveVar_asString)
-            
-            console.log("myDirectiveVar="+scope.myDirectiveVar)
-            // ???: How do I get scope.myDirectiveVar to bind to something else from 
-            // link(), I can do it in compile() but I don't have access to scope
-            console.debug(scope)
-            console.debug(attrs)
-            console.debug(element)
-          }, 
-        }
-      })
-      .controller( 'appCtrl', 
-        ['$scope', function($scope){
-          $scope.title = "Angular ui-bootstrap on/off switch";
-          $scope.CFG = {'debug': false}
-          $scope.options = {'switchModel': "CFG.debug"}
-          $scope.switchModel = $scope.options.switchModel
-          $scope.longtap = function(e){
-            var check = e;
-          }
-          $scope.imgClick = function(e){
-            var check = e;
-            console.log("ngImgClick at "+e.timeStamp)
-          }
-      }])  
 
-      jstouchend = function(e){
-        console.log("jstouchend at "+e.timeStamp)
-        var check = e;
-      }
 
-    </script>    
-
+    <!-- build:js javascripts/app.min.js -->
+    <script src="app.js"></script>
+    <script src="common/services/Drawer.js"></script>
+    <script src="common/services/Sync.js"></script>
+    <script src="common/services/Deck.js"></script>
+    <script src="common/services/Camera.js"></script>
+    <script src="models/restangular.js"></script>
+    <script src="controllers/apphappi.js"></script>
+    <script src="common/data/json.js"></script>
+    <!-- endbuild -->
 
   </body>
 </html>
