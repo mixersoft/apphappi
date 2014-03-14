@@ -147,14 +147,17 @@
             <on-off-switch my-ng-model="CFG.debug" class="pull-right"></on-off-switch>
           </div>
           <div id="drawer-settings-reload" class="item" 
+          ng-if="CFG.debug"
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-repeat"></i> Reload
           </div>
           <div id="drawer-settings-drawer" class="item" 
+          ng-if="CFG.debug"
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-times-circle"></i> Reset Navigation
           </div>
           <div id="drawer-settings-reset" class="item" 
+          ng-if="CFG.debug"
           ng-click="drawer.drawerItemClick($event)">
             <i class="fa fa-times-circle"></i> Reset All Data
           </div>
