@@ -618,6 +618,7 @@ angular.module(
 				if m.photoIds.length==0 
 					m.remove = true 		# remove empty moment
 					c.momentIds.splice(c.momentIds.indexOf(m.id), 1)
+					drawer.state.counts['gethappi'] -= 1
 					# actionService.setCardStatus(c, 'pass')
 
 				syncService.set('challenge', stale)
