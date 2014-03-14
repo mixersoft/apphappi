@@ -132,7 +132,7 @@ angular.module( 'appHappi', [
 			return
 	}
 )
-.directive('paginateDeck', ($compile, $timeout)->
+.directive('paginateDeck', ($compile, $timeout, $window)->
 	return {
 		restrict: "A"
 		scope:
@@ -152,6 +152,7 @@ angular.module( 'appHappi', [
 				if scope.remaining == 0 
 					pager.unbind()
 					pager.remove()
+					angular.element($window).off 'scroll', _paginateAfterScroll
 				scope.loading = type=="loading"
 				# use timeout for now
 				$timeout (()->_updatePager("done")), 1000
@@ -165,9 +166,24 @@ angular.module( 'appHappi', [
 				scope.$apply ()->
 				 	_updatePager("done")
 
+			# same as infinite-scroll
+			_paginateAfterScroll = _.debounce (e)->
+						win = this
+						el = element[0]
+						win_bottom = win.pageYOffset + win.innerHeight
+						el_bottom = el.offsetTop + el.offsetHeight
+						if scope.remaining && el_bottom < (win_bottom + 100) 
+							scope.deck.paginatedCards("more")
+							_updatePager("loading")
+						return
+					, 250		# inifinite-scroll Timeout
+
+			angular.element($window).on 'scroll', _paginateAfterScroll
+
 			# TODO: destroy listeners
 			scope.$on '$destroy', ()->
-				pager.unbind()	 	
+				pager.unbind()
+				angular.element($window).off 'scroll', _paginateAfterScroll
 
 			# initialize to page=1, perpage=scope.perpage
 			scope.deck.paginatedCards(scope.perpage) 
