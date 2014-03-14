@@ -4,7 +4,7 @@
 steroids.config.name = "AppHappi"
 
 # -- Initial Location --
-steroids.config.location = "http://localhost/apphappi.html"
+steroids.config.location = "http://localhost"
 
 # -- Tab Bar --
 # steroids.config.tabBar.enabled = true

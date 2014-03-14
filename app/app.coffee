@@ -86,6 +86,7 @@ angular.module( 'appHappi', [
 			redirectTo: '/getting-started/check'
 		}
 		# TODO: use html5Mode with /index.html
+		# $locationProvider.html5Mode(true)
 		$locationProvider.html5Mode(false).hashPrefix('!')
 ]
 ).filter('reverse', ()->
