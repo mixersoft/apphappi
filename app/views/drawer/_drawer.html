@@ -140,6 +140,11 @@
           ng-class="{active: drawer.isDrawerItemActive('drawer-settings-reminder')}">
             <i class="fa fa-bell"></i> Reminders
           </div>
+          <div id="drawer-settings-about" class="item" 
+          ng-click="drawer.drawerItemClick($event)"
+          ng-class="{active: drawer.isDrawerItemActive('drawer-settings-about')}">
+            <i class="fa fa-info-circle"></i> About Snaphappi
+          </div>
           <hr />
           <div id="drawer-settings-debug" class="item" 
           ng-click="drawer.drawerItemClick($event)">

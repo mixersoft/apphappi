@@ -193,6 +193,9 @@ angular.module(
             when 'debug'
               CFG.debug = !CFG.debug
               return
+            when 'drawer'
+              _drawer.syncService?.clearDrawer()  
+              return $location.path('/')
             when 'reload'
               return window.location.reload();
             # when 'reminder' # do nothing

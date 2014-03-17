@@ -1,0 +1,40 @@
+<div id="notify" class="notify">
+  <alert ng-repeat="alert in notify.alert()" 
+    type="alert.type" 
+    close="notify.close(alert.key)"
+    ><div ng-bind-html="alert.msg"></div></alert>
+</div>
+<!--Body content-->
+<div id="about">
+	<div class="card-wrap">
+		<div class="getting-started card text-center">
+		  <div class="header">
+		    <figure class="icon">
+		      <i class="icon fa fa-3x fa-info-circle"></i>
+		      <figcaption class="category"></figcaption>
+		    </figure>  
+		  </div>  
+		  <div class="body">
+		    <div class="title">About Snaphappi</div>
+		    <div class="content text-left center-block">
+		    	<div>
+		    		<strong>Our mission is to take the <em>“work”</em> out of family photos and make it <em>“play”</em>.</strong>
+		    		<p><b>AppHappi</b> was created to offer you a quick, easy, and free "bite" from our “apple” (a.k.a rated photos). We know you don't have the time or patience to organize and rate your photos - but by making a game of it, maybe you do.</p>
+		    		<p>We believe your photos are <u>not</u> a To-do list, something to finish and forget. Instead, they are there to re-live and enjoy every day. Have fun with it!</p>
+		    		<p>Find us on the web with the icons below and give us your feedback.</p>
+		    	</div>
+		    </div>
+		  </div>
+		  <div class="footer">
+		  	<div>
+			  	<a title="see our Facebook page" target="_social" href="http://www.facebook.com/Snaphappi"><i class="fa fa-facebook-square fa-2x"></i></a>
+	&nbsp;<a title="see our Twitter feed" target="_social" href="https://twitter.com/snaphappi"><i class="fa fa-twitter-square fa-2x"></i></a>
+	&nbsp;<a title="see our Pinterest board" target="_social" href="http://pinterest.com/snaphappi/curated-family-photos/"><i class="fa fa-pinterest-square fa-2x"></i></a>
+	&nbsp;<a title="see our Tumblr blog" target="_social" href="http://tumblr.snaphappi.com/"><i class="fa fa-tumblr-square fa-2x"></i></a>	
+		  	</div>
+		  </div>
+		</div>
+	</div>
+</div>
+
+

@@ -81,6 +81,10 @@ angular.module( 'appHappi', [
 		.when('/getting-started/check', {
 			templateUrl: 'views/settings/_gettingstarted.html'
 			controller: 'SettingsCtrl'
+		})
+		.when('/about', {
+			templateUrl: 'views/settings/_about.html'
+			controller: 'SettingsCtrl'
 		})		
 		.otherwise {
 			redirectTo: '/getting-started/check'

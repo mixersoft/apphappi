@@ -136,6 +136,11 @@
         "route": "/settings"
       },
       {
+        "name": "about",
+        "label": "About Snaphappi",
+        "route": "/about"
+      },
+      {
         "name": "debug",
         "label": "Developer Mode",
         "switch": "CFG.debug"
