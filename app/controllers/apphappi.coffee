@@ -36,7 +36,7 @@ angular.module(
 					if msg.title?
 						msg = "<h4>"+msg.title+"</h4><p>"+msg.message+"</p>"
 					else 
-						msg  msg.message
+						msg = msg.message
 
 				this.messages[now] = {msg: msg, type:type, key:now} if msg?
 				this.timeouts.push({key: now, value: timeout})
