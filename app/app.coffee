@@ -214,8 +214,14 @@ if window.innerWidth >= 768
 
 # bootstrap 
 window.deviceReady = false
+# window.Modernizr.touch = false # for loading from port 4000 on mobile browsers
 if window.Modernizr.touch
+	timeout = setTimeout ()->
+			angular.bootstrap document.getElementById('ng-app'), ['appHappi']	
+			notify.alert "WARNING: deviceready TIMEOUT", "warning",
+		, 2000
 	document.addEventListener "deviceready", ()->
+		clearTimeout timeout
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']
 		location.reload() if !navigator.camera?
 		window.deviceReady = !!navigator.camera

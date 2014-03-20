@@ -129,8 +129,13 @@ angular.module(
         # set active
         if _.isString(e)
           target = {id: e} 
-        else 
+        else if (e.currentTarget?)
+          # BUG: drawer closing too soon on iOS6 after touchend/scroll
+          # TODO: how do we discard ng-click if we are scrolling drawer by touchmove/touchend
+          # notify.alert("drawerItemClick, event.type="+e.type)
           target = e.currentTarget 
+        else throw "Error: expecting string or Event"
+
 
         [type, group, item] = target.id?.split('-') || []
         if type == 'drawer'
