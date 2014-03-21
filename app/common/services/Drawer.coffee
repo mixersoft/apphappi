@@ -42,6 +42,12 @@ angular.module(
         angular.element($window).bind 'resize', ->
           setResponsive()
 
+        if window.Modernizr.touch 
+          # drawer will add a delay to the last scroll before closing with touch devices
+          angular.element($window).bind 'scroll', _.throttle ()->
+              if element.scope()?.drawer?.isDrawerOpen
+                element.scope()?.drawer.scrolling = now = new Date().getTime()
+
         scope.drawer = drawerService
         setResponsive()
     }    
@@ -89,6 +95,7 @@ angular.module(
 
     self = {
       isDrawerOpen: false
+      scrolling: 0          # unixtime of last scroll event
 
       setDrawerOpen: ()->
         # directive responsiveDrawerWrap will add/remove .force-open class to drawerWrap
@@ -121,6 +128,10 @@ angular.module(
       animateClose: (delay=750)->
         return if !_drawer.drawerWrap?
         return if _drawer.drawerWrap?.hasClass('force-open')
+        # TODO: we really just want to add to delay on touchstart
+        if window.Modernizr.touch 
+          sinceLastScroll = new Date().getTime() - self.scrolling 
+          delay += 2000 if sinceLastScroll < 2000
         $timeout ()->
             self.isDrawerOpen = false
           , delay  
