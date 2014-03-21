@@ -41,13 +41,18 @@
 }
 
 .drawer {
+  margin: 0;
+  position: relative;
+  z-index: 100;
   &.inverse, &.inverse .panel-heading {
     border-color: @snappi-darkblue;
   }
   &.inverse .panel-collapse {
     border-top: 1px solid #FFF;
   } 
-  margin: 0 2px;
+  input.search {
+    width: 100%;
+  }
 }
 
 .drawer-group {
@@ -65,8 +70,3 @@
   }
 }
 
-.drawer {
-  input.search {
-    width: 100%;
-  }
-}

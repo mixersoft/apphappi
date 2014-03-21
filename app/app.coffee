@@ -108,7 +108,7 @@ angular.module( 'appHappi', [
 			# add class="prefer-fileurl" to ng-include
 			if element.parent().parent().parent().parent().hasClass('prefer-fileurl')
 				# attrs.ngSrc = scope.photo.fileURI || scope.photo
-				element.attr('src', scope.photo.fileURI || scope.photo)
+				element.attr('src', scope.photo.fileURI || scope.photo.src)
 				element.bind('error', ()->angular.element(this).attr("src", scope.photo.src) )				
 				# TODO: destroy listeners
 				scope.$on '$destroy', ()->
@@ -136,7 +136,7 @@ angular.module( 'appHappi', [
 			return
 	}
 )
-.directive('paginateDeck', ($compile, $timeout, $window)->
+.directive('paginateDeck', [ '$compile', '$timeout', '$window', ($compile, $timeout, $window)->
 	return {
 		restrict: "A"
 		scope:
@@ -195,7 +195,7 @@ angular.module( 'appHappi', [
 			$compile(pager.contents())(scope); 
 			return
 	}
-)
+])
 
 
 # NOTE: adding .force-open as early as possible to prevent flash
