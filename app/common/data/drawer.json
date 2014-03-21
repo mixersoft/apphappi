@@ -133,7 +133,7 @@
       {
         "name": "reminder",
         "label": "Reminders",
-        "route": "/settings"
+        "route": "/settings/reminders"
       },
       {
         "name": "about",

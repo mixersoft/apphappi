@@ -69,8 +69,8 @@ angular.module( 'appHappi', [
 			templateUrl: 'views/timeline/_timeline.html'
 			controller: 'TimelineCtrl'
 			})
-		.when('/settings', {
-			templateUrl: 'views/settings/_settings.html'
+		.when('/settings/reminders', {
+			templateUrl: 'views/settings/_reminders.html'
 			controller: 'SettingsCtrl'
 			})		
 		.when('/getting-started', {
@@ -217,8 +217,10 @@ window.deviceReady = false
 if window.Modernizr.touch
 	timeout = setTimeout ()->
 			angular.bootstrap document.getElementById('ng-app'), ['appHappi']	
-			notify.alert "WARNING: deviceready TIMEOUT", "warning",
-		, 2000
+			setTimeout ()->
+					notify.alert("WARNING: deviceready TIMEOUT", "warning", 20000)
+				, 10000
+		,2000	
 	document.addEventListener "deviceready", ()->
 		clearTimeout timeout
 		angular.bootstrap document.getElementById('ng-app'), ['appHappi']

@@ -301,19 +301,23 @@ angular.module(
 				# return if window.Modernizr?.touch && e.type == 'click'  # ng-swipe -> touchend
 				notify.alert ".thumb action detected, type="+e.type+", action="+action, 'success'
 
-				el = e.currentTarget;
+				el = e.currentTarget || e.target
+				loop # same as $el.closest('.thumb')
+					break if /\bthumb\b/.test(el.className)
+					el = el.parentNode	
+					return false if !el
 
 				card.markPhotoForRemoval = {} if !card.markPhotoForRemoval?
 				$card = angular.element(el)
 
-				while $card.length && !$card.hasClass('thumb')
-					$card = $card.parent()
-				return if !$card.length
+				# while $card.length && !$card.hasClass('thumb')
+				# 	$card = $card.parent()
+				# return if !$card.length
 
 				# notify.alert "card, id="+$card.attr('id')
 
 				eventHandled = false
-				if !action?
+				if !action? || action=='toggle'
 					action = if $card.hasClass('remove') then 'undo' else 'remove'
 				switch action
 					when 'undo'
@@ -1132,12 +1136,14 @@ angular.module(
 							message: "To see the notification, press the 'Home' button and close this app." 
 							}, null, 4500)
 					else 
-						# msg.message = "EMULATED: "+msg.message
-						# notify.alert "localNotification EMULATED, delay="+delay
-						# $timeout (()->
-						# 	notify.message(msg)
-						# ), delay*1000
-						this.fakeNotify(delay, notification)
+						msg.message = "EMULATED: "+msg.message
+						notify.alert "localNotification EMULATED, delay="+delay
+						if "emulate"
+							this.fakeNotify(delay, notification)
+						else 
+							$timeout (()->
+								notify.message(msg)
+							), delay*1000
 				catch error
 					notify.alert "EXCEPTION: notification.local.add(), error="+JSON.stringify error, "danger", 60000
 		
@@ -1186,13 +1192,14 @@ angular.module(
 
 			fakeNotify: (delay, notification)=>
 				_isAwakeWhenNotificationFired = ()->
+					return false
 					# simple Toggle
 					_isAwakeWhenNotificationFired.toggle = _isAwakeWhenNotificationFired.toggle || {}
 					_isAwakeWhenNotificationFired.toggle.value = !_isAwakeWhenNotificationFired.toggle.value 
 					return _isAwakeWhenNotificationFired.toggle.value
 
 				_isLongSleep = (sleep)->
-					LONG_SLEEP = 10 # 60*60 == 1 hour
+					LONG_SLEEP = 4 # 60*60 == 1 hour
 					return sleep > LONG_SLEEP
 				#
 				# FAKE notification emulating steroids api pause/resume
@@ -1217,7 +1224,7 @@ angular.module(
 						# 		i.e. active challenge, moment, or photo of the day
 
 						# pick a random challenge and activate
-						notify.alert "LocalNotify LONG SLEEP detected, pauseDuration=" + o.pauseDuration, "success"
+						notify.alert "LocalNotify RESUME detected, pauseDuration=" + o.pauseDuration, "success"
 						if wasAlreadyAwake
 							context =  "<br /><p>(Pretend this notification fired while the app was already in use.)</p>" 
 						else 
@@ -1258,6 +1265,7 @@ angular.module(
 		if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
 			$location.path('/challenges') 
 
+
 		CFG.$curtain.find('h3').html('Loading Settings...')
 		notify.clearMessages() 	
 
@@ -1269,7 +1277,6 @@ angular.module(
 
 		# reset for testing
 		syncService.initLocalStorage() 
-
 		$q.all( syncService.promises ).then (o)->
 			# reload or init drawer
 			state = syncService.get('drawerState')
@@ -1280,10 +1287,19 @@ angular.module(
 			CFG.$curtain.addClass 'hidden'
 
 
-
-
 		# ************************* Reminders ******************************
-		localNotify = new LocalNotify()
+		if $location.path()=='/settings/reminders' 
+			localNotify = new LocalNotify()
+			if !localNotify.isReady()
+				notify.message {
+						title: "Note: Reminders Are Emulated"
+						message: """
+							Reminders are emulated for this test configuration because Notifications are <u>not</u> available. 
+							To get actual notifications you will need to install the AppHappi (preview) app.
+							"""
+					}
+				, null, 20000
+
 
 		# need more copy for notifications
 		notifications = [
@@ -1329,7 +1345,7 @@ angular.module(
 			{
 				icon: "fa-bullhorn"
 				subhead: "Getting Started"
-				title:"#TooManyPhotos #Overwhelmed #<i class='fa fa-frown-o'>"
+				title:"#TooManyPhotos <span class='nowrap'>#Overwhelmed #<i class='fa fa-frown-o'></span>"
 				body:[
 					"Forever scrolling through your CameraRoll? Can't find the photo you know is there?"
 					"""
