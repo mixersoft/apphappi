@@ -3,7 +3,7 @@
 class="thumb {{photo.orientationLabel}}" 
 ng-class="{remove: isMarkedForRemoval($index, photo.id)}"
 ng-dblclick="markPhotoForRemoval(card, $event, $index, 'remove')"
-ng-longtap="markPhotoForRemoval(card, $event, $index, 'remove')"
+ng-longtap="markPhotoForRemoval(card, $event, $index, 'toggle')"
 ng-click="false"
 ondragstart="_preventDefault(event)"
 >
