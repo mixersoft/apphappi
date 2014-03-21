@@ -20,10 +20,12 @@ module.exports = (grunt)->
     'copy:optimize'
     'useminPrepare'
     'uglify'
-    'concat' 
     'cssmin' 
+    # 'concat:app-build'
+    # 'concat:vendor-build'
+    'concat:app-min'
+    'concat:vendor-min'
     'usemin'
-    'concat:app-full'
   ])
 
   uglifyNew = require('grunt-usemin-uglifynew');
@@ -244,13 +246,13 @@ module.exports = (grunt)->
 
     # Browser-based testing
     # Minify app `.css` resources -> `.min.css`
-    # cssmin: 
-    #   minify: 
-    #     expand: true,
-    #     cwd: '<%= BUILD_DIR %>stylesheets',
-    #     src: ['*.css', '!*.min.css'],
-    #     dest: '<%= BUILD_DIR %>stylesheets',
-    #     ext: '.min.css'
+    cssmin: 
+      minify: 
+        expand: true,
+        cwd: '<%= BUILD_DIR %>stylesheets',
+        src: ['*.css', '!*.min.css'],
+        dest: '<%= BUILD_DIR %>stylesheets',
+        ext: '.min.css'
 
     # Express requires `server.script` to reload from changes
     express:
@@ -266,13 +268,13 @@ module.exports = (grunt)->
 
     # Output for optimized app index
     usemin:
-      html:         '<%= BUILD_DIR %>apphappi.html'
+      html:         '<%= BUILD_DIR %>index.html'
 
 
 
     # Input for optimized app index
     useminPrepare:
-      html:         '<%= BUILD_DIR %>apphappi.html'
+      html:         '<%= BUILD_DIR %>index.html'
       options: 
         flow: 
           steps: 
@@ -288,22 +290,47 @@ module.exports = (grunt)->
           except: ['**/*.min.js']
 
     concat:
-      # appMin:
-      #   files: [
-      #     dest: 'dist/javascripts/app.min.js',
-      #     src: [
-      #       '.tmp/uglify/app.js',
-      #       '.tmp/uglify/common/services/Drawer.js',
-      #       '.tmp/uglify/common/services/Sync.js',
-      #       '.tmp/uglify/common/services/Deck.js',
-      #       '.tmp/uglify/common/services/Camera.js',
-      #       '.tmp/uglify/models/restangular.js',
-      #       '.tmp/uglify/controllers/apphappi.js'
-      #     ]
-      #   ]
-      'app-full':
+      'app-min':
         files: [
-          dest: 'dist/javascripts/app.min.js',
+          dest: '<%= BUILD_DIR %>/javascripts/app.min.js',
+          src: [
+            '.tmp/uglify/app.js',
+            '.tmp/uglify/common/services/Drawer.js',
+            '.tmp/uglify/common/services/Sync.js',
+            '.tmp/uglify/common/services/Deck.js',
+            '.tmp/uglify/common/services/Camera.js',
+            '.tmp/uglify/models/restangular.js',
+            '.tmp/uglify/controllers/apphappi.js'
+            '.tmp/uglify/common/data/json.js'
+          ]
+        ]
+      'vendor-min':
+        files: [
+          dest: '<%= BUILD_DIR %>/javascripts/vendor-BODY.min.js'
+          src: [ 
+           # '<%= BUILD_DIR %>/components/parse-js-sdk/lib/parse-1.2.16.min.js',
+           '.tmp/uglify/components/modernizr/modernizr.js',
+           '.tmp/uglify/components/lodash/dist/lodash.min.js',
+           # '.tmp/uglify/components/angular/angular.min.js',
+           '<%= BUILD_DIR %>/components/angular/angular.js',
+           '.tmp/uglify/components/angular-bootstrap/ui-bootstrap-tpls.min.js',
+           '.tmp/uglify/components/angular-animate/angular-animate.min.js',
+           '.tmp/uglify/components/angular-route/angular-route.min.js',
+           # '.tmp/uglify/components/restangular/dist/restangular.min.js',
+           '.tmp/uglify/components/angular-local-storage/angular-local-storage.min.js',
+           '.tmp/uglify/components/moment/min/moment.min.js',
+           '.tmp/uglify/components/angular-moment/angular-moment.min.js',
+           '.tmp/uglify/components/angular-sanitize/angular-sanitize.min.js' 
+           '.tmp/uglify/components/angular-bindonce/bindonce.min.js'
+           '.tmp/uglify/javascripts/angular-touch.longtap.js'
+           # '.tmp/uglify/components/angular-carousel/dist/angular-carousel.js'
+           '.tmp/uglify/javascripts/angular-carousel.requestAnimationFrame.js',
+           '.tmp/uglify/javascripts/jpegmeta.js'
+          ]   
+        ]  
+      'app-build':
+        xxxfiles: [
+          dest: '<%= BUILD_DIR %>/javascripts/app.min.js',
           src: [
             '<%= BUILD_DIR %>/app.js',
             '<%= BUILD_DIR %>/common/services/Drawer.js',
@@ -312,26 +339,32 @@ module.exports = (grunt)->
             '<%= BUILD_DIR %>/common/services/Camera.js',
             '<%= BUILD_DIR %>/models/restangular.js',
             '<%= BUILD_DIR %>/controllers/apphappi.js' 
+            '<%= BUILD_DIR %>/common/data/json.js' 
           ]
         ]
-      # vendor:
-      #   files: [
-      #     dest: '<%= BUILD_DIR %>/javascripts/vendor-BODY.min.js'
-      #     src: [ 
-      #      # '<%= BUILD_DIR %>/components/parse-js-sdk/lib/parse-1.2.16.min.js',
-      #      '<%= BUILD_DIR %>/components/modernizr/modernizr.js',
-      #      '<%= BUILD_DIR %>/components/lodash/dist/lodash.min.js',
-      #      '<%= BUILD_DIR %>/components/angular/angular.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-bootstrap/ui-bootstrap-tpls.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-animate/angular-animate.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-route/angular-route.min.js',
-      #      '<%= BUILD_DIR %>/components/restangular/dist/restangular.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-local-storage/angular-local-storage.min.js',
-      #      '<%= BUILD_DIR %>/components/moment/min/moment.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-moment/angular-moment.min.js',
-      #      '<%= BUILD_DIR %>/components/angular-sanitize/angular-sanitize.min.js' 
-      #     ]   
-      #   ]
+      'vendor-build':
+        XXXfiles: [
+          dest: '<%= BUILD_DIR %>/javascripts/vendor-BODY.min.js'
+          src: [ 
+           # '<%= BUILD_DIR %>/components/parse-js-sdk/lib/parse-1.2.16.min.js',
+           '<%= BUILD_DIR %>/components/modernizr/modernizr.js',
+           '<%= BUILD_DIR %>/components/lodash/dist/lodash.min.js',
+           '<%= BUILD_DIR %>/components/angular/angular.js',
+           '<%= BUILD_DIR %>/components/angular-bootstrap/ui-bootstrap-tpls.min.js',
+           '<%= BUILD_DIR %>/components/angular-animate/angular-animate.min.js',
+           '<%= BUILD_DIR %>/components/angular-route/angular-route.min.js',
+           # '<%= BUILD_DIR %>/components/restangular/dist/restangular.js',
+           '<%= BUILD_DIR %>/components/angular-local-storage/angular-local-storage.min.js',
+           '<%= BUILD_DIR %>/components/moment/min/moment.min.js',
+           '<%= BUILD_DIR %>/components/angular-moment/angular-moment.min.js',
+           '<%= BUILD_DIR %>/components/angular-sanitize/angular-sanitize.min.js' 
+           '<%= BUILD_DIR %>/components/angular-bindonce/bindonce.min.js'
+           '<%= BUILD_DIR %>/javascripts/angular-touch.longtap.js'
+           # '<%= BUILD_DIR %>/components/angular-carousel/dist/angular-carousel.js'
+           '<%= BUILD_DIR %>/javascripts/angular-carousel.requestAnimationFrame.js'
+           '<%= BUILD_DIR %>/javascripts/jpegmeta.js'
+          ]   
+        ]
 
     # "Compile CoffeeScript files from app/ and www/ to dist/"
     coffee:

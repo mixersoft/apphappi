@@ -373,6 +373,28 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
       var e = touches[0].originalEvent || touches[0];
       touchStartX = e.clientX;
       touchStartY = e.clientY;
+
+      // trigger longTap BEFORE touchend 
+      longTapTimeout = setTimeout( function(){
+        if (tapping) {
+          // Call preventGhostClick so the clickbuster will catch the corresponding click.
+          preventGhostClick(touchStartX, touchStartY);
+
+          // Blur the focused element (the button, probably) before firing the callback.
+          // This doesn't work perfectly on Android Chrome, but seems to work elsewhere.
+          // I couldn't get anything to work reliably on Android Chrome.
+          if (tapElement) {
+            tapElement.blur();
+          }
+
+          if (!angular.isDefined(attr.disabled) || attr.disabled === false) {
+            element.triggerHandler('longtap', [event]);
+          }
+          resetState();
+        }
+      }, 2*TAP_DURATION)
+
+      
     });
 
     element.on('touchmove', function(event) {

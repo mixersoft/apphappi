@@ -16,8 +16,9 @@ angular.module(
   '$filter'
   'notifyService'
   '$http' 
-  'AppHappiRestangular'
-, (localStorageService, CFG, drawer, $q, $filter, notify, $http, AppHappiRestangular)->
+  # 'AppHappiRestangular'
+# , (localStorageService, CFG, drawer, $q, $filter, notify, $http, AppHappiRestangular)->
+, (localStorageService, CFG, drawer, $q, $filter, notify, $http)->
 			# private methods
 	_asDuration = (secs)->
 		duration = moment.duration(secs*1000) 
@@ -215,7 +216,7 @@ angular.module(
 								dfd.resolve syncService.get('challenge') 
 							return dfd.promise
 
-						else if "use Restangular"	
+						else if false && "use Restangular"	
 							dfd = $q.defer()
 							promise = AppHappiRestangular.all(model)
 							.getList({'modified':syncService.lastModified[model]})
