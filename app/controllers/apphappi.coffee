@@ -435,37 +435,24 @@ angular.module(
 		# Controller: ChallengeCtrl
 		#
 		CFG.$curtain.find('h3').html('Loading Challenges...')
-		notify.clearMessages() 
+		# notify.clearMessages() 
 
 		_challenges = _moments = _cards = null
 
 		# attributes
-		# $scope.$route = $route
-		# $scope.$location = $location
-		# $scope.cameraService = cameraService
-		$scope.notify = window.notify = notify
-		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		$scope.drawer = drawer;
-
-		# reset for testing
-		syncService.clearAll() if $route.current.params.reset
-		syncService.initLocalStorage() 
-
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
-			# reload or init drawer
-			state = syncService.get('drawerState')
-			if _.isEmpty(state) || state.group !='findhappi'
-				state = drawer.getDrawerItem('findhappi', 'current')
-			drawer.init o.challenge, o.moment, state
+			_.extend($scope.route, drawer.getRoute())
+			drawer.init o.challenge, o.moment, $scope.route.drawerState
 
 			id = $route.current.params.id
+			# id = $scope.route.params[0]
 			if !id?
 				# route = '/challenges'
 				_challenges = o.challenge 
@@ -787,33 +774,19 @@ angular.module(
 		_challenges = _moments = _cards = null
 
 		# attributes
-		# $scope.$route = $route
-		# $scope.$location = $location
-		# $scope.cameraService = cameraService
-		$scope.notify = window.notify = notify
-		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		$scope.drawer = drawer;
-		
-		# reset for testing
-		syncService.clearAll() if $route.current.params.reset
 		syncService.initLocalStorage()  
-
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
-			# reload or init drawer
-			state = syncService.get('drawerState')
-			if _.isEmpty(state) || state.group !='gethappi'
-				state = drawer.getDrawerItem('gethappi', 'mostrecent')
-
 			# wrap challenges in a Deck
 			_challenges = deckService.setupDeck(o.challenge)
 
 			id = $route.current.params.id
+			# id = $scope.route.params[0]
 			if !id?
 				# route = '/moments'
 				# TODO: deprecate, confirm moments should not be saved as pass...
@@ -822,11 +795,11 @@ angular.module(
 				_moments = $filter('filter')(o.moment, {status:"!pass"})
 			else if _.isNaN parseInt id 
 				# route = '/moments/birthday'
-				f = {"name": $route.current.params.id}
+				f = {"name": id}
 				_moments = $filter('filter')(_.values( o.moment ), f)
 			else if !_.isNaN parseInt id
 				# route = '/moments/23'
-				f = {"id": $route.current.params.id}
+				f = {"id": id}
 				_moments = $filter('filter')(_.values( o.moment ), f)
 
 
@@ -843,10 +816,12 @@ angular.module(
 					<span class='nowrap'>(Find yourself another Challenge...)</span>"
 				}, null
 
-			drawer.init o.challenge, o.moment, state
+			# drawer.init o.challenge, o.moment, state
+			_.extend($scope.route, drawer.getRoute())
+			drawer.init o.challenge, o.moment, $scope.route.drawerState
 
 			m = $scope.deck.topCard()
-			if $route.current.params.id? && m?.status=='active'
+			if id? && m?.status=='active'
 				$scope.set_editMode(m) 
 
 			# check if user just completed first challenge of the day
@@ -1005,7 +980,7 @@ angular.module(
 	'appConfig'
 	($scope, $filter, $q, $route, $location, drawer, syncService, deckService, notify, actionService, CFG)->
 		#
-		# Controller: MomentCtrl
+		# Controller: TimelineCtrl
 		#
 		CFG.$curtain.find('h3').html('Loading Timeline...')
 		notify.clearMessages() 
@@ -1013,33 +988,23 @@ angular.module(
 		_challenges = _moments = _cards = null
 
 		# attributes
-		# $scope.$route = $route
-		# $scope.$location = $location
-		# $scope.cameraService = cameraService
-		$scope.notify = window.notify = notify
 		$scope.CFG = CFG
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		$scope.drawer = drawer;
-		
-		# reset for testing
-		syncService.clearAll() if $route.current.params.reset
 		syncService.initLocalStorage() 
-
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
 			syncService.setForeignKeys(o.challenge, o.moment)
-			# reload or init drawer
-			state = syncService.get('drawerState')
-			if _.isEmpty(state) || state.group !='timeline'
-				state = drawer.getDrawerItem('timeline', 'photos')
-			drawer.init o.challenge, o.moment, state
+			_.extend($scope.route, drawer.getRoute())
+			drawer.init o.challenge, o.moment, $scope.route.drawerState
 
-			if $route.current.params.id?
+			id = $route.current.params.id?
+			# id = $scope.route.params[0]
+			if id	
 				# filter moments by id
-				f = {"id": $route.current.params.id}
+				f = {"id": id}
 				_photos = $filter('filter')(_.values( o.photo ), f)
 			else 
 				_photos = o.photo
@@ -1269,21 +1234,14 @@ angular.module(
 		CFG.$curtain.find('h3').html('Loading Settings...')
 		notify.clearMessages() 	
 
-		$scope.notify = window.notify = notify
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		$scope.drawer = drawer
-
-		# reset for testing
 		syncService.initLocalStorage() 
 		$q.all( syncService.promises ).then (o)->
-			# reload or init drawer
-			state = syncService.get('drawerState')
-			if _.isEmpty(state) || state.group !='settings'
-				state = drawer.getDrawerItem('settings', 'gettingstarted')
-			drawer.init o.challenge, o.moment, state		# load to get counts
-			# hide loading
+			_.extend($scope.route, drawer.getRoute())
+			drawer.init o.challenge, o.moment, $scope.route.drawerState
+
 			CFG.$curtain.addClass 'hidden'
 
 

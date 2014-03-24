@@ -352,7 +352,7 @@ ngTouch.directive('ngClick', ['$parse', '$timeout', '$rootElement',
         touchStartY;
 
     // added support for ng-longtap 
-    var longtapHandler = $parse(attr.ngLongtap),
+    var longtapHandler = attr.ngLongtap && $parse(attr.ngLongtap),
         longTapTimeout;
 
     function resetState() {

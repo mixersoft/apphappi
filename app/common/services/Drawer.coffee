@@ -258,12 +258,7 @@ angular.module(
 
         # update syncService
         self.updateCounts(challenges, moments)
-
-        self.state.activeItemId = ["drawer",self.state.group, self.state.item || self.state.name ].join('-')
-
-        # set drawer query, filter property
-        # drawerGroup = _.findWhere(_drawer.json.data, {name: self.state.group})
-        # drawerGroup.isOpen = true;
+        self.state.activeItemId = ["drawer", self.state.group, self.state.name || self.state.item ].join('-')
         return self
 
       
@@ -306,7 +301,114 @@ angular.module(
 
       ready: (drawer)->   # should be a promise
         return "Usage: self.load(url); self.ready.then();"
-    }
 
+      # fake ng-route using ng-includes
+      # @return {controller, action, view, params:[], drawerState:{}}
+      # TODO: move drawer.load into syncService and add syncService as dependency
+      getRoute : (path)->
+        path = $location.path() if !path?  
+        # path = '/getting-started/check' if !path?
+        pathparts = path.split('/')
+        route = {
+          path: path
+          controller: pathparts[1]
+          action: if pathparts.length>2 then pathparts[2] else ''
+          view: null
+          params: pathparts[3..] 
+          drawerState: localStorageService.get('drawerState')
+        }
+
+        _changeLocation = (url, force)->
+          $location.path(url)
+          $scope = $scope || angular.element(document).scope()
+          if $scope
+            $scope.apply() if (force || !$scope.$$phase)
+          else   
+            window.location.href = $location.absUrl()
+            window.location.reload()
+
+        switch route.controller
+          when 'challenges', 'challenge'
+            route.controller = 'ChallengeCtrl'
+            route.view = '/views/challenge/_challenges.html'
+            route.drawerState = self.getDrawerItem('findhappi', 'current') if _.isEmpty(route.drawerState) || route.drawerState.group !='findhappi'
+          when 'moments', 'moment'
+            route.controller = 'MomentCtrl'
+            route.view = '/views/moment/_moments.html'
+            route.drawerState = self.getDrawerItem('gethappi', 'mostrecent') if _.isEmpty(route.drawerState) || route.drawerState.group !='gethappi'
+          when 'timeline'
+            route.controller = 'TimelineCtrl'
+            route.view = '/views/challenge/_challenges.html'
+            route.drawerState = self.getDrawerItem('timeline', 'toprated') if _.isEmpty(route.drawerState) || route.drawerState.group !='timeline'
+          when 'settings'
+            route.controller = 'SettingsCtrl'
+            switch path
+              when '/settings/reminders'
+                route.view = '/views/settings/_reminders.html'
+                route.drawerState = self.getDrawerItem('settings', 'reminder') if _.isEmpty(route.drawerState) || route.drawerState.group !='settings'
+              else 
+                _changeLocation('/getting-started/check', true)
+          when 'getting-started', 'about'
+            route.controller = 'SettingsCtrl'
+            # TODO: refactor /settings path in drawer.json
+            switch path
+              when '/getting-started', '/getting-started/check'
+                route.view = '/views/settings/_gettingstarted.html'
+                route.drawerState = self.getDrawerItem('settings', 'gettingstarted')
+              when '/about'  
+                route.view = '/views/settings/_about.html'
+                route.drawerState = self.getDrawerItem('settings', 'about')
+              else 
+                _changeLocation('/getting-started/check', true)
+          else
+            _changeLocation('/getting-started/check', true)
+        return route
+      # end getRoute()
+    }
     return self
-])
+  ]
+).controller( 'DrawerCtrl', [
+  '$scope'
+  '$q'
+  'appConfig'
+  'drawerService'
+  'notifyService'
+  'actionService'
+  'syncService'
+  ($scope, $q, CFG, drawer, notify, actionService, syncService )->
+    #
+    # Controller: DrawerCtrl
+    #
+    CFG.$curtain.find('h3').html('Loading Menus...')
+
+    # attributes
+    notify.clearMessages()
+    $scope.notify = window.notify = notify
+    $scope.CFG = CFG
+    $scope.route = {
+      # controller: 'SettingsCtrl'
+      # view: 'views/settings/_about.html'
+    }
+    $scope.drawer = drawer
+    $scope.getController = ()->
+      return $scope.route.controller || ''
+
+    # TODO: refactor actionService for exports
+    _exports = ['drawerItemClick', 'shuffleDeck']  
+    drawer['actions'] = _.pick actionService, _exports
+    
+    # reset for testing
+    syncService.clearAll() if route?.params[0] == 'reset'
+    # initLocalStorage ONCE in DrawerCtrl and make available for all other controllers
+    syncService.initLocalStorage()
+    $q.all( syncService.promises ).then (o)->
+      # rebuild FKs
+      syncService.setForeignKeys(o.challenge, o.moment)
+      # set defaultState based on "controller" & use ng-include instead of ng-route
+      # TODO: move drawer.load into syncService and add syncService as dependency to drawerService
+      $scope.route = drawer.getRoute()
+      drawer.init o.challenge, o.moment, $scope.route.drawerState
+      return 
+    # done DrawerCtrl
+    return
+])    
