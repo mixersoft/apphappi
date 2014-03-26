@@ -369,34 +369,39 @@ angular.module(
   ]
 ).controller( 'DrawerCtrl', [
   '$scope'
+  '$rootScope'
   '$q'
   'appConfig'
   'drawerService'
   'notifyService'
   'actionService'
   'syncService'
-  ($scope, $q, CFG, drawer, notify, actionService, syncService )->
+  ($scope, $rootScope, $q, CFG, drawer, notify, actionService, syncService )->
     #
     # Controller: DrawerCtrl
+    #   - use $rootScope to share common services with 'view' controllers
     #
-    CFG.$curtain.find('h3').html('Loading Menus...')
+    # CFG.$curtain.find('h3').html('Loading Menus...')
 
     # attributes
-    notify.clearMessages()
-    $scope.notify = window.notify = notify
-    $scope.CFG = CFG
-    $scope.route = {
+    $rootScope.CFG = CFG
+    $rootScope.notify = window.notify = notify
+    $rootScope.drawer = drawer
+    $rootScope.route = {
       # controller: 'SettingsCtrl'
       # view: 'views/settings/_about.html'
     }
-    $scope.drawer = drawer
-    $scope.getController = ()->
-      return $scope.route.controller || ''
 
+    $scope.CFG = $rootScope.CFG         # used by on-off-switch
+    $scope.route = $rootScope.route
+    $scope.drawer = $rootScope.drawer
+    $scope.deck = null                  # refresh deck.cards() on filter
     # TODO: refactor actionService for exports
-    _exports = ['drawerItemClick', 'shuffleDeck']  
-    drawer['actions'] = _.pick actionService, _exports
-    
+    $scope.shuffleDeck = actionService.shuffleDeck
+
+    # init
+    notify.clearMessages()
+
     # reset for testing
     syncService.clearAll() if route?.params[0] == 'reset'
     # initLocalStorage ONCE in DrawerCtrl and make available for all other controllers
@@ -406,8 +411,8 @@ angular.module(
       syncService.setForeignKeys(o.challenge, o.moment)
       # set defaultState based on "controller" & use ng-include instead of ng-route
       # TODO: move drawer.load into syncService and add syncService as dependency to drawerService
-      $scope.route = drawer.getRoute()
-      drawer.init o.challenge, o.moment, $scope.route.drawerState
+      _.extend( $rootScope.route, drawer.getRoute() )
+      drawer.init o.challenge, o.moment, $rootScope.route.drawerState
       return 
     # done DrawerCtrl
     return

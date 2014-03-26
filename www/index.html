@@ -57,13 +57,13 @@
 
     <div id="ng-app" >
         <div class="container">
-            <div class="row"
-            ng-controller="DrawerCtrl">
+            <div class="row">
                 <div class="col-sm-4">
-                  <div id="drawer" 
-                  responsive-drawer-wrap
-                  ng-include="'/views/drawer/_drawer.html'">
-                  </div>
+                    <div id="drawer" 
+                    ng-controller="DrawerCtrl"
+                    responsive-drawer-wrap
+                    ng-include="'/views/drawer/_drawer.html'">
+                    </div>
                 </div>
                 <div id="body" class="col-sm-offset-4 col-sm-8">
                     <div id="notify" class="notify overlay">
@@ -80,31 +80,6 @@
                     </div>
                     <div ng-view class="view-frame view-animate"></div>
                 </div>
-                <!-- use ng-include instead of ng-route!!! -->
-                <!-- <div id="body" class="col-sm-offset-4 col-sm-8"
-                ng-if="route && route.controller">
-                    <div id="notify" class="notify overlay">
-                      <alert ng-repeat="alert in notify.alert()" 
-                      type="alert.type" 
-                      close="notify.close(alert.key)"
-                      ><div ng-bind-html="alert.msg"></div></alert>
-                    </div>
-                    <div id="message" class="notify inline">
-                      <alert ng-repeat="alert in notify.message()" 
-                      type="alert.type" 
-                      close="notify.close(alert.key)"
-                      ><div ng-bind-html="alert.msg"></div></alert>
-                    </div>
-                    <div class="view-frame view-animate"
-                    ng-if='route.controller=="SettingsCtrl"'
-                    ng-controller="SettingsCtrl"
-                    ng-include="route.view"
-                    ></div>
-                    <div class="view-frame view-animate"
-                    ng-if='route.controller=="ChallengeCtrl"'
-                    ng-controller="ChallengeCtrl"
-                    ng-include="route.view"
-                    ></div> -->
                 </div>
             </div>
         </div>  
@@ -142,6 +117,7 @@
     <script src="common/services/Sync.js"></script>
     <script src="common/services/Deck.js"></script>
     <script src="common/services/Camera.js"></script>
+    <script src="common/services/LocalNotification.js"></script>
     <script src="models/restangular.js"></script>
     <script src="controllers/apphappi.js"></script>
     <script src="common/data/json.js"></script>
