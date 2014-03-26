@@ -106,8 +106,27 @@ angular.module(
         # console.log "setDrawerOpen, isDrawerOpen="+self.isDrawerOpen
         return
 
+      toggleDrawerOpen: (e, open)->
+        # add .slide class to activate
+        for check in ['frame', 'view']
+          slider = angular.element(document.getElementById(check))
+          break if slider.hasClass('slide')
+
+        if slider.hasClass('slide')
+          if !open?
+            slider.toggleClass('slide-over')
+          else if open==true
+            slider.addClass('slide-over')
+          else if open==false
+            slider.removeClass('slide-over')
+
+        
+        window.scrollTo(0,0) if !slider.hasClass('slide-over') 
+        return
+
       # ng-click handler to discard .fa-bars open click as necessary 
-      handleDrawerOpen: (e)->
+      # deprecate, not used with sliding view
+      XXXhandleDrawerOpen: (e)->
         if !_drawer.drawerWrap
           _drawer.drawerWrap = angular.element(document.getElementById('drawer'))
         if _drawer.drawerWrap.hasClass('force-open')
@@ -134,6 +153,7 @@ angular.module(
           delay += 2000 if sinceLastScroll < 2000
         $timeout ()->
             self.isDrawerOpen = false
+            self.toggleDrawerOpen(null, false)
           , delay  
 
       drawerItemClick : (e, callback)->

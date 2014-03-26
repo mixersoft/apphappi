@@ -13,7 +13,7 @@
 @font-size-mini:         ceil(@font-size-base * 0.75); // ~11px
 
 
-.drawer, .drawer-group {
+.drawer, .XXXdrawer-group {
   /*font-size: @font-size-small;*/
   .item {
     padding: 4px 0;
@@ -41,21 +41,16 @@
 }
 
 .drawer {
-  margin: 0 1px;
-  position: relative;
-  z-index: 100;
   &.inverse, &.inverse .panel-heading {
-    border-color: @snappi-darkblue;
+    border-color: @snappi-darkblue @snappi-darkblue white;
+
   }
-  &.inverse .panel-collapse {
-    border-top: 1px solid #FFF;
-  } 
   input.search {
     width: 100%;
   }
 }
 
-.drawer-group {
+.XXXdrawer-group {
   &.inverse, &.inverse .panel-heading {
     border-color: @snappi-darkblue;
   }

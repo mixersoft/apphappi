@@ -54,18 +54,28 @@
     <div class="device hidden">
         <div class="device-border iphone4 center-block"></div>
     </div>
-
-    <div id="ng-app" >
-        <div class="container">
-            <div class="row">
-                <div class="col-sm-4">
-                    <div id="drawer" 
-                    ng-controller="DrawerCtrl"
-                    responsive-drawer-wrap
-                    ng-include="'/views/drawer/_drawer.html'">
+<div id="ng-app" ng-cloak class="viewport"><div id="frame" class="frame slide">
+    <div class="container"><div class="row">
+        <!-- sliding drawer  -->
+        <div class="col-xs-sidebar col-xs-right-inset col-sm-4">
+          <div id="drawer" class="sidebar"
+          ng-controller="DrawerCtrl" 
+          responsive-drawer-wrap ng-include="'/views/drawer/_drawer.html'">
+          </div>
+        </div>
+        <!-- body content -->
+        <div class="col-xs-sidebar-offset col-xs-12 col-sm-offset-4 col-sm-8">
+            <div id="view" class="view center-block">
+                <div class="view-header drawer inverse panel">
+                    <div class="panel-heading clearfix">
+                      <i id='sidebar-open-btn' class='fa fa-bars fa-lg pull-left visible-xs'
+                      ng-click='drawer.toggleDrawerOpen($event)'
+                      ></i>
+                      <i class="fa fa-plane fa-lg pull-right visible-xs"></i>
+                      <div class="panel-title text-center center-block">{{title}}</div>
                     </div>
                 </div>
-                <div id="body" class="col-sm-offset-4 col-sm-8">
+                <div class="view-body">
                     <div id="notify" class="notify overlay">
                       <alert ng-repeat="alert in notify.alert()" 
                       type="alert.type" 
@@ -78,12 +88,12 @@
                       close="notify.close(alert.key)"
                       ><div ng-bind-html="alert.msg"></div></alert>
                     </div>
-                    <div ng-view class="view-frame view-animate"></div>
-                </div>
+                    <div ng-view class="view-frame view-animate center-block"></div>
                 </div>
             </div>
-        </div>  
-    </div> 
+        </div>
+    </div></div> <!-- /.container .row -->
+</div></div>  <!-- /.viewport .frame -->
 
 
 

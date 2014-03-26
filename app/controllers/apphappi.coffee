@@ -445,6 +445,7 @@ angular.module(
 		_challenges = _moments = _cards = null
 
 		# attributes
+		$rootScope.title = "Challenges"
 		$scope.carousel = {index:0}
 
 		_.each actionService.exports, (key)->
@@ -784,6 +785,7 @@ angular.module(
 		_challenges = _moments = _cards = null
 
 		# attributes
+		$rootScope.title = "Moments"
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
@@ -1004,6 +1006,7 @@ angular.module(
 
 		# attributes
 		$scope.CFG = CFG
+		$rootScope.title = "Timeline"
 		$scope.carousel = {index:0}
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
@@ -1075,6 +1078,10 @@ angular.module(
 
 		CFG.$curtain.find('h3').html('Loading Settings...')
 		notify.clearMessages() 	
+
+		if $location.path() == '/getting-started/check'
+			$rootScope.title = "AppHappi"
+		else $rootScope.title = "Settings"
 
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 

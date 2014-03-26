@@ -80,8 +80,9 @@ body {
 	}
 }
 
+
 /* CSS for col-sm horizontal */
-#drawer > accordion > .panel-group > .panel {
+#drawer > accordion > .panel-group > .panelXXX {
 	min-width: 250px;
 }
 #drawer.force-open {
@@ -102,8 +103,7 @@ body {
 		}
 	}
 }
-#body > * {
-	.center-block();
+.view-body > * {
 	max-width: 500px;
 }
 
@@ -120,7 +120,7 @@ i.fa, .badge, .label {
 		top: 40px;
 		left: 10%;
 		right: 10%;
-		z-index: 100;
+		z-index: 15;
 	}
 	&.inline {
 		margin: 0 auto;
@@ -265,37 +265,117 @@ i.fa, .badge, .label {
 	}
 }
 
+
+/*
+ * CSS for `col-xs-` sliding drawer over bootstrap.css
+ */
+.viewport {
+	.frame {
+		.transition-transform(~"0.35s ease");
+		.sidebar {
+			position: absolute;
+			top: 0;
+		  bottom: 0;
+		  left: 0;
+		  height: 100%;
+		  width: 100%;
+			z-index: 1;
+			.drawer.inverse {
+				background-color: @snappi-darkblue;
+  			min-height: 1000px;									/*	TODO: should be window height */
+			}
+		}
+		.view {
+			position: absolute;
+			top: -1px;
+		  bottom: 0;
+		  right: 0;
+		  height: 100%;
+		  width: 100%;
+			z-index: 10;
+			.transition-transform(~"0.35s ease");
+			.view-header {
+				margin-bottom: 10px;
+				position:relative;
+				z-index: 20;
+			}
+			.view-body {
+
+			}
+		}
+		.drawer.panel > .panel-heading {
+			.pull-left, .pull-right {
+				line-height: 20px;
+			}
+			.panel-title {
+				width: 80%;
+				line-height: 20px;
+				height: 20px;
+				font-size: 1.5em;
+				font-family: "GeoSansLightRegular", "Roboto";
+			}
+		}
+	}
+} 
+
+
+
+/* ipad */
 @media (min-width: @screen-sm) {
-	.col-sm-4, .col-sm-8{
-		float: left;
-		min-height: 1px;
-    padding-left: 15px;
-    padding-right: 15px;
-    position: relative;
-	}
-	.col-sm-4 {
-		width: 33.3333%;
-	}
-	.col-sm-offset-4 {
-		margin-left: 33.3333%;
-	}
-	.col-sm-8 {
-		width: 66.6667%;
-	}
+	
 }
 
+/* mobile */
 @media (max-width: @screen-xs-max) {
-	.col-sm-4, .col-sm-8 {
-		float: none;
-		min-height: 1px;
-		padding-left: 0;
-		padding-right: 0;
-		position: relative;
+	/* right side box shadow for .sidebar */
+	.col-xs-right-inset {
+		-moz-box-shadow:    inset -10px 0 3px -7px rgba(253, 249, 208, .7);
+		-webkit-box-shadow: inset -10px 0 3px -7px rgba(253, 249, 208, .7);
+		box-shadow: inset -10px 0 3px -7px rgba(253, 249, 208, .7);
+		border-right: 0 solid rgba(253, 249, 208, .7);
 	}
-	.drawer {
-		margin: 0;
+
+	.drawer.panel {
+		.panel-heading {
+			border-radius: 0;
+		}
+		.panel-body {
+			padding-left: 4px;
+			padding-right: 8px;
+			.panel-heading {
+				padding-left: 4px;
+				padding-right: 8px;
+			}
+		}
 	}
-	.card-wrap .card {
-	 margin: 10px 4px;
+	
+	
+
+	/* .sidebar slide  */ 
+	@sidebar-slide-distance: 83.3333%;
+	.viewport .frame {
+		.col-xs-sidebar {
+			width: @sidebar-slide-distance;
+		}
+		.col-xs-sidebar-offset{
+			margin-left: @sidebar-slide-distance;
+		}
 	}
+
+	#frame.frame.slide {
+		/* closed: pct == col-xs-10 */
+		.translate3d(-1*@sidebar-slide-distance, 0, 0);
+		&.slide-over {
+			.translate3d(0, 0, 0);
+		}
+	}
+	/* slide .view over to show static .sidebar */
+	/* problem with .view background and position:absolute */;
+	#view.view.slide {
+		.translate3d(-1*@sidebar-slide-distance, 0, 0);
+		&.slide-over {
+			.translate3d(0, 0, 0);
+		}
+	}
+
 }
