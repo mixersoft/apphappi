@@ -15,6 +15,7 @@ angular.module( 'appHappi', [
 	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
 	messageTimeout: 10000
+	longSleepTimeout: 4*3600		# 4 hours
 	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true
 	# NOTE: only dataURLs are persisting between re-scans

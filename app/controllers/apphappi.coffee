@@ -63,11 +63,13 @@ angular.module(
 	'deckService'
 	'syncService'
 	'notifyService'
+	'appConfig'
 	'$q'
 	'$location'
 	'$timeout'
-	(drawerService, deckService, syncService, notify, $q, $location, $timeout)->
-
+	'$rootScope'
+	(drawerService, deckService, syncService, notify, appConfig, $q, $location, $timeout, $rootScope)->
+		CFG = $rootScope.CFG || appConfig
 		self = {
 
 			exports: [
@@ -108,6 +110,10 @@ angular.module(
 
 			_backgroundDeferred: null
 
+			_isLongSleep : (sleep)->
+					LONG_SLEEP = CFG.longSleepTimeout # 60*60 == 1 hour
+					return sleep > LONG_SLEEP
+
 			# set up deferred BEFORE causing app to pause
 			prepareToResumeApp : (e, notification)->
 				return notify.alert "WARNING: already paused, check fake notify..." if self._backgroundDeferred?
@@ -121,6 +127,10 @@ angular.module(
 					o.pauseDuration = (o.resumeTime - (pauseTime || 0))/1000
 					o.notification = notification
 					# notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
+					if self._isLongSleep(o.pauseDuration)
+						$timeout ()->
+								$location.path('/challenges/draw-new')
+							, 100
 					return o
 				.finally ()-> self._backgroundDeferred = null
 				return promise
@@ -478,7 +488,7 @@ angular.module(
 			deckOptions = {control: $scope.carousel}
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
-			if $location.path()=='/challenges/draw-new'
+			if $location.path()=='/challenges/draw-new' || _forceNewChallenge(_challenges)
 				_drawNewChallenge(_challenges)
 				notify.message {
 					title: "Your Challenge Awaits!"
@@ -501,6 +511,20 @@ angular.module(
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
 			return
+
+		_forceNewChallenge = (challenges)->
+			# pause since last challenge, use mostrecent
+			pickFrom = _.where challenges, {status:'active'}
+			return false if !_.isEmpty(pickFrom)
+			pickFrom = _.where challenges, {status:'complete'} if _.isEmpty(pickFrom)
+			return false if _.isEmpty(pickFrom)
+			# find most recent by modified
+			lastModifiedString = _.reduce pickFrom, (result, o)->
+					return if o.modified > result then o.modified else result
+				, ""
+			pauseDuration = (new Date().getTime() - new Date(lastModifiedString).getTime())/1000
+			return actionService._isLongSleep(pauseDuration)
+
 
 		# pick a new challenge to feature
 		_drawNewChallenge = (challenges)->
@@ -1070,7 +1094,7 @@ angular.module(
 		#
 		# redirect to /getting-started if necessary
 		if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
-			$location.path('/challenges') 
+			return $location.path('/challenges') 
 
 		CFG = $rootScope.CFG || appConfig
 		drawer = $rootScope.drawer || drawer
@@ -1106,6 +1130,7 @@ angular.module(
 			{
 				title: "Your 5 Minutes of Happi Starts Now"
 				message: "Spend 5 minutes to find some Happi - a new challenge awaits!"
+				autoCancel: true
 				data: {
 					target: "/challenges/draw-new"
 				}
@@ -1113,6 +1138,7 @@ angular.module(
 			{
 				title: "Get Your Happi for the Day"
 				message: "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another."
+				autoCancel: true
 				data: {
 					target: "/moments/shuffle"	
 				}
