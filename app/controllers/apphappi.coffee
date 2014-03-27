@@ -1094,8 +1094,8 @@ angular.module(
 				notify.message {
 						title: "Note: Reminders Are Emulated"
 						message: """
-							Reminders are emulated for this test configuration because Notifications are <u>not</u> available. 
-							To get actual notifications you will need to install the AppHappi (preview) app.
+							Reminders are emulated in this desktop configuration because Notifications are <u>not</u> available. 
+							To get actual notifications you will need to install the AppHappi app.
 							"""
 					}
 				, null, 20000
@@ -1169,8 +1169,8 @@ angular.module(
 					"""
 					<ul>
 					<li>Find <i class='fa fa-picture-o'></i> and build Happi Moments from your CameraRoll.</li>
-					</li><li>Set <i class='fa fa-bell'></i> to catch you when you have a few minutes to spare.
-					</li><li>Re-live a Moment and brighten your day <i class='fa fa-smile-o'></i> !
+					</li><li>Set an <i class='fa fa-bell fa-lg'></i> to catch you when you on a break.
+					</li><li>Re-live a Moment and <i class='fa fa-smile-o fa-2x'></i> your day!
 					</li><li>Share <i class='fa fa-picture-o'></i> with your <i class='fa fa-users'></i>.
 					</li></ul>
 					"""
@@ -1184,7 +1184,7 @@ angular.module(
 				body:[
 					"We've got fun Challenges that cover every corner of your CameraRoll."
 					"""
-					We'll offer a new Challenge every day, or feel free to pick your own.
+					We'll offer a new Challenge every day — but feel free to pick your own.
 					<i class='fa fa-search'></i> your CameraRoll with a fresh perspective and build a Happi Moment.
 					"""
 					"""
@@ -1241,10 +1241,10 @@ angular.module(
 				title:"Reminders"
 				body:[
 					"""
-					Set a <i class='fa fa-bell'></i> to get your 5 minutes a day — every day. 
-					Pick a <i class='fa fa-clock-o'></i> when you know you'll be playing games on your <i class='fa fa-mobile'></i> anyways.
+					Set a <i class='fa fa-bell fa-lg'></i> to get your 5 minutes a day — every day. 
+					Pick a <i class='fa fa-clock-o fa-lg'></i> when your're on a break with your <i class='fa fa-mobile fa-2x'></i>.
 					"""
-					"Think of all the <i class='fa fa-smile-o'></i><i class='fa fa-smile-o'></i><i class='fa fa-smile-o'></i> you'll have!"
+					"Think of all the <i class='fa fa-smile-o fa-lg'></i><i class='fa fa-smile-o fa-lg'></i><i class='fa fa-smile-o fa-lg'></i> you'll have!"
 					"<br /><div class='title text-center'>That's it, you're ready to go!</div>"
 				]
 				footer:""

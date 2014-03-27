@@ -28,7 +28,7 @@
         bindonce
         ng-repeat="card in deck.cards()">
           <div class="challenge card summary text-center">
-            <span class="page-no pull-right label label-info"
+            <span class="page-no pull-right badge"
             ng-click="challenge_pass()">{{(carousel.index + 1) + "/"  + deck.size()}}</span>
             <div class="header">
               <figure class="icon">
