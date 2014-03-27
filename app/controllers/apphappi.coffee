@@ -1086,13 +1086,6 @@ angular.module(
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		syncService.initLocalStorage() 
-		$q.all( syncService.promises ).then (o)->
-			_.extend($rootScope.route, drawer.getRoute())
-			drawer.init o.challenge, o.moment, $rootScope.route.drawerState
-
-			CFG.$curtain.addClass 'hidden'
-
 
 		# ************************* Reminders ******************************
 		if $location.path()=='/settings/reminders' 
@@ -1257,5 +1250,13 @@ angular.module(
 				footer:""
 			}
 		]
+
+
+		syncService.initLocalStorage() 
+		$q.all( syncService.promises ).then (o)->
+			_.extend($rootScope.route, drawer.getRoute())
+			drawer.init o.challenge, o.moment, $rootScope.route.drawerState
+			CFG.$curtain.addClass 'hidden'
+
 	]	
 )

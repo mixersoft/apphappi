@@ -54,13 +54,14 @@
     <div class="device hidden">
         <div class="device-border iphone4 center-block"></div>
     </div>
-<div id="ng-app" ng-cloak class="viewport"><div id="frame" class="frame slide">
+<div id="ng-app" class="viewport"><div id="frame" class="frame slide">
     <div class="container"><div class="row">
         <!-- sliding drawer  -->
         <div class="col-xs-sidebar col-xs-right-inset col-sm-4">
           <div id="drawer" class="sidebar"
+          drawer-last-scroll
           ng-controller="DrawerCtrl" 
-          responsive-drawer-wrap ng-include="'/views/drawer/_drawer.html'">
+          ng-include="'/views/drawer/_drawer.html'">
           </div>
         </div>
         <!-- body content -->
@@ -72,7 +73,7 @@
                       ng-click='drawer.toggleDrawerOpen($event)'
                       ></i>
                       <i class="fa fa-plane fa-lg pull-right visible-xs"></i>
-                      <div class="panel-title text-center center-block">{{title}}</div>
+                      <div class="panel-title text-center center-block" ng-cloak>{{title}}</div>
                     </div>
                 </div>
                 <div class="view-body">

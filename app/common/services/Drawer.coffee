@@ -20,36 +20,19 @@ angular.module(
       myNgModel: '='     # this is NOT working, scope.mirror is not set
     # link: link 
   }
-).directive('responsiveDrawerWrap', [ 
-  'appConfig'
+).directive('drawerLastScroll', [ 
   'drawerService' 
   '$window'
   (CFG, drawerService, $window)->
     return {
       restrict: 'A'
       link: (scope, element, attrs)->
-        setResponsive = _.debounce (()->
-                  # either $window.innerWidth or $window.outerWidth
-                  isStacked = $window.innerWidth < CFG.drawerOpenBreakpoint
-                  if (isStacked) 
-                    element.removeClass('force-open')
-                  else 
-                    element.addClass('force-open')
-                  # drawerService.setDrawerOpen() 
-                  drawerService.setDrawerOpen()
-          ), 200
-
-        angular.element($window).bind 'resize', ->
-          setResponsive()
-
         if window.Modernizr.touch 
           # drawer will add a delay to the last scroll before closing with touch devices
           angular.element($window).bind 'scroll', _.throttle ()->
-              if element.scope()?.drawer?.isDrawerOpen
-                element.scope()?.drawer.scrolling = now = new Date().getTime()
-
-        scope.drawer = drawerService
-        setResponsive()
+              if drawerService.isDrawerOpen()
+                drawerService.scrolling = now = new Date().getTime()
+            , 200
     }    
 ]).factory('drawerService', [
   'appConfig'
@@ -63,8 +46,15 @@ angular.module(
     # private
     _drawer = {
       url: '/common/data/drawer.json'
-      json: {}    
-      drawerWrap : null     #  #drawer element
+      json: {}
+      slider: null    
+      getSlider : ()->
+        return _drawer.slider if _drawer.slider && _drawer.slider.length
+        for check in ['frame', 'view']
+          slider = angular.element(document.getElementById(check))
+          break if slider.hasClass('slide')
+        return _drawer.slider = if slider.hasClass('slide') then slider else angular.element()
+
       syncService : null    # ref to syncService for counts
 
       # initial defaultDrawerItemState, override on drawer.init() in controller
@@ -94,48 +84,27 @@ angular.module(
     }
 
     self = {
-      isDrawerOpen: false
       scrolling: 0          # unixtime of last scroll event
-
-      setDrawerOpen: ()->
-        # directive responsiveDrawerWrap will add/remove .force-open class to drawerWrap
-        if !(_drawer.drawerWrap?.length)
-          _drawer.drawerWrap = angular.element(document.getElementById('drawer'))  
-        self.isDrawerOpen =  _drawer.drawerWrap.hasClass('force-open') 
-        _drawer.drawerWrap?.scope()?.$apply()
-        # console.log "setDrawerOpen, isDrawerOpen="+self.isDrawerOpen
-        return
+      isDrawerOpen: ()->
+        return _drawer.getSlider().hasClass('slide-over')
 
       toggleDrawerOpen: (e, open)->
         # add .slide class to activate
-        for check in ['frame', 'view']
-          slider = angular.element(document.getElementById(check))
-          break if slider.hasClass('slide')
-
-        if slider.hasClass('slide')
-          if !open?
-            slider.toggleClass('slide-over')
-          else if open==true
-            slider.addClass('slide-over')
-          else if open==false
-            slider.removeClass('slide-over')
-
-        
-        window.scrollTo(0,0) if !slider.hasClass('slide-over') 
+        slider = _drawer.getSlider()
+        if !open?
+          slider.toggleClass('slide-over')
+        else if open==true
+          slider.addClass('slide-over')
+        else if open==false
+           slider.removeClass('slide-over')
+        else throw "ERROR: invalid value"
+        window.scrollTo(0, 0)
+        # if self.isDrawerOpen()
+        #   doc = document.documentElement;
+        #   left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
+        #   # top = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
+        #   window.scrollTo(left, 0)
         return
-
-      # ng-click handler to discard .fa-bars open click as necessary 
-      # deprecate, not used with sliding view
-      XXXhandleDrawerOpen: (e)->
-        if !_drawer.drawerWrap
-          _drawer.drawerWrap = angular.element(document.getElementById('drawer'))
-        if _drawer.drawerWrap.hasClass('force-open')
-          # prevent close on ng-click
-          self.isDrawerOpen = true
-          e.preventDefault()
-          e.stopImmediatePropagation()
-          return false
-        return true # let accordion.ng-click do its work
 
       state: {}           # init with $scope.initalDrawerState if !drawer.state?
       setSyncService: (syncService)->
@@ -145,14 +114,11 @@ angular.module(
         return id == self.state?['activeItemId']
 
       animateClose: (delay=750)->
-        return if !_drawer.drawerWrap?
-        return if _drawer.drawerWrap?.hasClass('force-open')
         # TODO: we really just want to add to delay on touchstart
-        if window.Modernizr.touch 
-          sinceLastScroll = new Date().getTime() - self.scrolling 
-          delay += 2000 if sinceLastScroll < 2000
+        # if window.Modernizr.touch 
+        #   sinceLastScroll = new Date().getTime() - self.scrolling 
+        #   delay += 2000 if sinceLastScroll < 2000
         $timeout ()->
-            self.isDrawerOpen = false
             self.toggleDrawerOpen(null, false)
           , delay  
 

@@ -33,11 +33,14 @@ body {
 }
 
 #curtain {
-	margin-top: 30%;
+	background-color: white;
 	position: absolute;
+	height: 100%;
 	width: 100%; 
-	z-index: 100; 
+	padding-top: 30%;
 	text-align: center;
+	opacity: 0.95;
+	z-index: 100;
 }
 
 .nowrap {
@@ -98,7 +101,6 @@ body {
 			> .panel {
 				height: 100%;
 				background-color: @snappi-darkblue;
-				xwidth: 105%;
 			}
 		}
 	}
@@ -204,10 +206,11 @@ i.fa, .badge, .label {
 .thumb {
 	&.ng-enter,
 	&.ng-leave {
-		-moz-transition:0.5s linear opacity;
+		.transition(0.5s linear opacity);
+/*		-moz-transition:0.5s linear opacity;
 		-webkit-transition:0.5s linear opacity;
 		transition:0.5s linear opacity;
-	}
+*/	}
 	&.ng-enter,
 	&.ng-leave.ng-leave-active {
 		opacity:0;
@@ -220,7 +223,7 @@ i.fa, .badge, .label {
 
 .view-animate {
 	&.ng-enter {
-		display: none;
+		/*display: none;*/								/* is this the android bug??? */
 		-moz-animation: slideInDown 1s;
 		-webkit-animation: slideInDown 1s;
 		animation: slideInDown 1s;
@@ -283,6 +286,9 @@ i.fa, .badge, .label {
 			.drawer.inverse {
 				background-color: @snappi-darkblue;
   			min-height: 1000px;									/*	TODO: should be window height */
+  			.panel-body .panel-body {
+					padding-bottom: 0;
+				}
 			}
 		}
 		.view {
