@@ -309,16 +309,24 @@ i.fa, .badge, .label {
 
 			}
 		}
-		.drawer.panel > .panel-heading {
-			.pull-left, .pull-right {
-				line-height: 20px;
+		.drawer.panel {
+			& > .panel-heading {
+				.pull-left, .pull-right {
+					line-height: 20px;
+				}
+				.panel-title {
+					width: 80%;
+					line-height: 20px;
+					height: 20px;
+					font-size: 1.5em;
+					font-family: "GeoSansLightRegular", "Roboto";
+				}
 			}
-			.panel-title {
-				width: 80%;
-				line-height: 20px;
-				height: 20px;
-				font-size: 1.5em;
-				font-family: "GeoSansLightRegular", "Roboto";
+			& >.panel-body {
+				.panel-title .styled {
+					font-size: 1.2em;
+					font-family: "GeoSansLightRegular", "Roboto";
+				}
 			}
 		}
 	}
@@ -328,6 +336,27 @@ i.fa, .badge, .label {
 
 /* ipad */
 @media (min-width: @screen-sm) {
+	.drawer.panel {
+		.panel-heading {
+			border-radius: 0;
+		}
+		.panel-body {
+			.panel-heading {
+				padding-left: 4px;
+				padding-right: 8px;
+			}
+		}
+	}
+	@sidebar-width: 36%;
+	.col-sm-4 {
+		width: @sidebar-width;
+	}
+	.col-sm-8 {
+		width: 100-@sidebar-width;
+	}
+	.col-sm-offset-4 {
+		margin-left: @sidebar-width;
+	}
 	
 }
 
