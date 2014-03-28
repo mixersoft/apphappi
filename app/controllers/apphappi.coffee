@@ -305,9 +305,9 @@ angular.module(
 
 			markPhotoForRemoval : (card, e, i, action)->
 				# e.type = {dblclick:remove, click:undo} for desktop, 'touchend' for touch
-				notify.alert "markPhotoForRemoval, e.target="+e.target.tagName, 'info', 4000
 				return if !(card && card.status=='active')
 				return false if e.type=='click' && action=="remove" # discard
+				notify.alert "markPhotoForRemoval, e.target="+e.target.tagName, 'info', 4000
 				# return if window.Modernizr?.touch && e.type == 'click'  # ng-swipe -> touchend
 				notify.alert ".thumb action detected, type="+e.type+", action="+action, 'success'
 
