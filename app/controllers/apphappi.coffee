@@ -865,10 +865,12 @@ angular.module(
 			m = $scope.deck.topCard()
 			if id? && m?.status=='active'
 				$scope.set_editMode(m) 
+			else 
+				_collapseCardOnChange()	
 
 			# check if user just completed first challenge of the day
 			_showSupportAfterFirstChallenge(m) if drawer.state['item']=='mostrecent' 
-			_collapseCardOnChange()	
+			
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
 			return  
