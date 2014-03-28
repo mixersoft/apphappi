@@ -72,7 +72,8 @@ angular.module(
 		CFG = $rootScope.CFG || appConfig
 		self = {
 
-			exports: [
+			# export to $scope
+			exports: [					
 				'persistRating'
 				'galleryGlow'
 				'glowOnClick'
@@ -82,6 +83,7 @@ angular.module(
 				'markPhotoForRemoval'
 				'isMarkedForRemoval'
 				'shuffleDeck'
+				'nextReminder'
 			]
 
 			_preventDefault : (e)->
@@ -111,8 +113,11 @@ angular.module(
 			_backgroundDeferred: null
 
 			_isLongSleep : (sleep)->
-					LONG_SLEEP = CFG.longSleepTimeout # 60*60 == 1 hour
-					return sleep > LONG_SLEEP
+				LONG_SLEEP = CFG.longSleepTimeout # 60*60 == 1 hour
+				return sleep > LONG_SLEEP
+
+			_getNotificationMessage : ()->
+				return _.sample CFG.notifications		
 
 			# set up deferred BEFORE causing app to pause
 			prepareToResumeApp : (e, notification)->
@@ -299,7 +304,6 @@ angular.module(
 						shareViaAny()
 						return
 				)
-						
 
 
 
@@ -412,6 +416,12 @@ angular.module(
 				scope.deck.shuffle()
 				drawerService.animateClose(500)
 				return 
+
+			nextReminder : (format)->
+				reminder = syncService.reminder()
+				return null if !reminder
+				return moment(reminder).format(format) if format
+				return reminder
 		}
 
 		# send App to background
@@ -1119,6 +1129,12 @@ angular.module(
 		notify.clearMessages() 	
 
 		if $location.path() == '/getting-started/check'
+			try 
+				# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
+				window.plugin.notification.badge.clear()
+			catch error
+				notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
+
 			$rootScope.title = "AppHappi"
 		else $rootScope.title = "Settings"
 
@@ -1127,6 +1143,7 @@ angular.module(
 
 
 		# ************************* Reminders ******************************
+		now  = new Date()
 		if $location.path()=='/settings/reminders' 
 			# localNotify = new LocalNotify()
 			if !localNotify.isReady()
@@ -1137,36 +1154,37 @@ angular.module(
 							To get actual notifications you will need to install the AppHappi app.
 							"""
 					}
-				, null, 20000
+				, null, 10000
 
+		_roundToQuarterHour = (date, today)->
+			date = new Date() if !date?
+			minutes = date.getMinutes()
+			hours = date.getHours()
+			m = (((minutes + 7.5)/15 | 0) * 15) % 60
+			h = (((minutes/105 + .5) | 0) + hours) % 24
+			if today		# convert future datetime to today at same time
+				now = new Date()
+				return new Date now.getFullYear(), now.getMonth(), now.getDate(), h, m
+			return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
 
-		# need more copy for notifications
-		notifications = [
-			{
-				title: "Your 5 Minutes of Happi Starts Now"
-				message: "Spend 5 minutes to find some Happi - a new challenge awaits!"
-				autoCancel: true
-				data: {
-					target: "/challenges/draw-new"
-				}
-			},
-			{
-				title: "Get Your Happi for the Day"
-				message: "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another."
-				autoCancel: true
-				data: {
-					target: "/moments/shuffle"	
-				}
-				
-			}
-		]
+		syncService.reminder(false) if actionService.nextReminder() < now
+		$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
 
-
-		$scope.localNotification = (sec)->
+		# repeat:  ['secondly', 'minutely', 'hourly', 'daily', 'weekly', 'monthly' or 'yearly']
+		$scope.localNotificationTime = (date, repeat)->
 			localNotify.loadPlugin() if !localNotify.isReady()
-			message = _.sample notifications
+			# sample message from ontrigger()
+			date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
+			message = actionService._getNotificationMessage()
+			repeat = "daily"
+			message['repeat'] = repeat if repeat?
+			notify.alert "$scope.localNotification(): message="+JSON.stringify message
+			localNotify.addByDate date, message
+
+		$scope.localNotificationDelay = (sec)->
+			localNotify.loadPlugin() if !localNotify.isReady()
 			# notify.alert "$scope.localNotification(): message="+JSON.stringify message
-			localNotify.add sec, message
+			localNotify.addByDelay sec, actionService._getNotificationMessage()
 			
 
 

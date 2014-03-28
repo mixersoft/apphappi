@@ -9,17 +9,22 @@
 	  </div>  
 	  <div class="body">
 	    <h3 class="title">Just 5 Minutes a Day</h3>
-	    <p>Set a reminder to find your Happi. Just 5 minutes a day is all it takes. And before you know it, you'll have all your Happi at the tip of your fingers.</p>
-	    <h4>When would you like to <span class="nowrap">put in your 5 minutes a day?</span></h4>
-	    <div id="set-reminder">
-	    	<div class='btn-group'>
-		    	<button type="button" class="btn btn-primary" 
-		      ng-click="localNotification(0)" >now</button>
-		      <button type="button" class="btn btn-primary" 
-		      ng-click="localNotification(5)" >5 sec</button>
-		      <button type="button" class="btn btn-primary" 
-		      ng-click="localNotification(30)">30 sec</button>
-		    </div>
+	    <p>Set a daily reminder to find some Happi. Pick a time when you can take a break.</p>
+	    <div id="set-reminder" class="timepicker-wrap" ng-model="reminderTime">
+	    	<div ng-hide="!nextReminder()">Next reminder: <span>{{nextReminder() | amCalendar}}</span></div>
+	    	<div class="center-block">
+					<timepicker class="timepicker" hour-step="1" minute-step="15" show-meridian="true"></timepicker>
+				</div>
+				<div class="center-block">
+		    	<div class='btn-group '>
+			      <button type="button" class="btn btn-primary" 
+			      ng-click="localNotificationDelay(5)" >5 sec</button>
+			      <button type="button" class="btn btn-primary" 
+			      ng-click="localNotificationDelay(30)">30 sec</button>
+			      <button type="button" class="btn btn-success" 
+							ng-click="localNotificationTime(reminderTime, 'daily')" >Set</button>
+			    </div>
+			  </div>
 	    </div>
 	    <br />
 	    <p class="text-left hidden"><i>Note: we offer short reminders to simulate the experience during testing. Close the app after you set a reminder to see the notifcation.</i></p>

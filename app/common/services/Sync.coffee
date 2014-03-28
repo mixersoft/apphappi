@@ -127,6 +127,12 @@ angular.module(
 								
 						#TODO: check if we are wasting cycles by saving entire array to localStorageService
 						localStorageService.set(key, localData)
+
+						# restore FKs ['challenge', 'moment', 'photos']
+						# INCOMPLETE!!!
+						# _.each localData (o)->
+						# 	check = collection[o.id]?.id == o.id
+
 						syncService.localData[key] = localData
 						msg =  "syncService.set("+key+") elapsed="+(new Date().getTime() - now.getTime())+"ms"
 						console.log msg
@@ -150,6 +156,22 @@ angular.module(
 				syncService.localData['drawer']= null
 				localStorageService.set('drawer', syncService.localData['drawer'])
 				return syncService.lastModified['drawer'] = false
+
+			# @return Date object or null
+			reminder: (date=null)->
+				settings = syncService.get('settings')
+				
+				if (date==null) 
+					return if settings['reminder'] then new Date(settings['reminder']) else null
+				else if _.isDate(date)
+					settings['reminder'] = date
+				else if date==false
+					delete settings['reminder']
+				else
+					return throw "Error: actionService.reminder() expecting a Date object"
+  			
+				syncService.set('settings', settings)
+				return settings['reminder']
 
 			initLocalStorage: (models=[])->
 				if !CFG.userId?

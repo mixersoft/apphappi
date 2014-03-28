@@ -7,7 +7,8 @@ angular.module(
 	'$timeout'
 	'actionService'
 	'notifyService'
-	($location, $timeout, actionService, notify)->
+	'syncService'
+	($location, $timeout, actionService, notify, syncService)->
 		# wrapper class for working with the localNotification plugin
 		# includes 'emulated' mode for desktop browser testing without the plugin
 		class LocalNotify 
@@ -27,6 +28,8 @@ angular.module(
 			loadPlugin: ()->
 				if window.plugin?.notification?.local? 
 					this._notify = window.plugin.notification.local
+					this._notify.setDefaults({ autoCancel: true })
+
 				if this.isReady()
 					this._notify.onadd = this.onadd
 					this._notify.ontrigger = this.ontrigger
@@ -42,34 +45,51 @@ angular.module(
 				return false if !this._notify
 				notify.alert JSON.stringify(this._notify.getDefaults()), "warning", 40000
 
-			add: (delay=5, notification={})->
+			addByDelay: (delay=5, notification={})->
 				# notify.alert "window.plugin.notification.local"+ JSON.stringify (window.plugin.notification.local ), "info", 60000
 				# notify.alert "LocalNotify._notify="+ JSON.stringify (this._notify ), "warning"
 
 				now = new Date().getTime()
 				target = new Date( now + delay*1000)
+				this.addByDate target, notification
+
+			addByDate: (date, notification={})->
 				msg = {
-						id: now 				# seems to crash on id:0 (?)
-					date: target
+						id: date.getTime() 				# seems to crash on id:0 (?)
+					date: date
 				}
 				msg['title'] = notification.title if notification.title?
 				msg['message'] = notification.message if notification.message?
-				msg['repeat'] = notification.repeat if notification.repeat?
 				msg['badge'] = notification.badge || 1
-				msg['autoCancel'] = true
-				msg['json'] = JSON.stringify(notification.data) if notification.data?
+				msg['autoCancel'] = true 								# set as Default, doesn't clear badge
+				jsonData = notification.data || {}
+
+				if notification.repeat?			# add repeat to JSON to manually reset
+					msg['repeat'] = notification.repeat 		
+					_.extend  jsonData, _.pick(msg, ['repeat', 'date']) 
+					delete msg['repeat']			# don't use 'repeat', set manually in onclick
+				msg['json'] = JSON.stringify(jsonData) if !_.isEmpty(jsonData)
+
 
 				# notify.alert "localNotify.add() BEFORE message="+JSON.stringify( msg ), null, 30000
 				self = this
+				delay = Math.round((date.getTime() - new Date().getTime())/1000)
+
 				try 
 					if this.isReady()
+						# only 1 reminder at a time
+						this._notify.cancelAll()
+						syncService.reminder(msg.date)		# save for display in Settings
+
 						this._notify.add(msg)
 						notify.alert "localNotify.add()  AFTER message="+JSON.stringify( msg ), "danger", 30000
-						notify.message({
-							title: "A reminder was set to fire in "+ delay+" seconds"
-							message: "To see the notification, press the 'Home' button and close this app." 
-							}, null, 4500)
+						if delay < 60
+							notify.message({
+								title: "A reminder was set to fire in "+ delay+" seconds"
+								message: "To see the notification, press the 'Home' button and close this app." 
+								}, null, 4500)
 					else 
+						syncService.reminder(msg.date)		# save for display in Settings
 						msg.message = "EMULATED: "+msg.message
 						notify.alert "localNotification EMULATED, delay="+delay
 						if "emulate"
@@ -78,6 +98,8 @@ angular.module(
 							$timeout (()->
 								notify.message(msg)
 							), delay*1000
+
+					syncService.set('')
 				catch error
 					notify.alert "EXCEPTION: notification.local.add(), error="+JSON.stringify error, "danger", 60000
 		
@@ -90,6 +112,35 @@ angular.module(
 						return if except.indexOf(id) > -1
 						notify.alert "_cancelScheduled, id="+id, "warning", 30000
 						self._notify.cancel(id)
+
+			_setRepeat : (json)->
+				_getDateFromRepeat = (date, repeat)->
+					now = if date.getTime? then date.getTime() else new Date().getTime()
+					if _.isArray repeat
+						# check day of week
+						delay = 10
+					else 	
+						switch repeat
+							when 'weekly'
+								delay = 2600 * 24 * 7
+							when 'daily'
+								delay = 3600 * 24
+								# delay = 10
+							else
+								delay = 10
+					return target = new Date( now + delay*1000)
+
+				data = JSON.parse(json)
+				if data.repeat
+						# set new reminder
+						actionService._getNotificationMessage()
+						nextReminderDate = _getDateFromRepeat(data.date, data.repeat)
+						message = actionService._getNotificationMessage()
+						message['repeat'] = data.repeat
+						this.addByDate nextReminderDate, message
+						# notify.alert "faking repeat by setting new reminder in 10 secs", null, 30000	
+						return nextReminderDate
+				else return false		
 
 			# @params state = [foreground | background]
 			onadd :(id,state,json)=>
@@ -104,19 +155,31 @@ angular.module(
 					notify.alert "ontrigger state="+state+", json="+json, "success"
 					# Note: The ontrigger callback is only invoked in background if the app is not suspended!
 					this._notify.cancel(id)
-				else this.onclick.apply(this, arguments)
+					repeating = this._setRepeat(json)
+					notify.alert "repeat set for "+repeating
+				else 
+					# can we sample the message here?
+					check = this
+
 				return true
 
 			onclick :(id,state,json)=>
 				# state=background
+
 				try 
 					notify.alert "onclick state="+state+", json="+json, "success"
+					# ???: how does cancel affect "repeat" 
 					# this._notify.cancel(id)
 					this._notify.cancelAll()
-					target = JSON.parse(json).target
-					$location.path(target)
+					repeating = this._setRepeat(json)
+					$location.path(data.target)
 				catch error
 					notify.alert "EXCEPTION: localNotify.onclick(), error="+JSON.stringify error, "danger", 60000
+				try 
+					# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
+					window.plugin.notification.badge.clear()
+				catch error
+					notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
 				return true
 
 			oncancel :(id,state,json)=>
@@ -187,7 +250,7 @@ angular.module(
 				), delay*1000
 				notify.message({message: "LocalNotify set to fire, delay="+delay}, "warning", 2000)
 				return	
-		return 	new LocalNotify()	
+		return 	new LocalNotify()
 		#
 		# end Class Notify
 		#
