@@ -310,6 +310,9 @@ i.fa, .badge, .label {
 			}
 		}
 		.drawer.panel {
+			.glow { 
+				color: @gray-light;
+			}
 			& > .panel-heading {
 				.pull-left, .pull-right {
 					line-height: 20px;
@@ -332,7 +335,23 @@ i.fa, .badge, .label {
 	}
 } 
 
-
+.search-wrap {
+	position: relative;
+	padding: 4px 0;
+	input.search {
+		padding-left: 4px;
+		padding-right: 30px;
+		width: 100%;
+	}
+	i.fa-times-circle {
+		color: @gray-light;
+		line-height: 31px;
+    padding-left: 8px;
+    position: absolute;
+    right: 4px;
+    top: 0;
+	}
+}
 
 /* ipad */
 @media (min-width: @screen-sm) {
@@ -373,6 +392,12 @@ i.fa, .badge, .label {
 	.drawer.panel {
 		.panel-heading {
 			border-radius: 0;
+			i.pull-left {
+				padding-right: 8px;
+			}
+			i.pull-right {
+				padding-left: 8px;
+			}
 		}
 		.panel-body {
 			padding-left: 4px;
@@ -383,7 +408,16 @@ i.fa, .badge, .label {
 			}
 		}
 	}
-	
+	.view .search-wrap.visible-xs {
+		padding-left: 10px;
+		padding-right: 10px;
+		margin: 0 10px;
+		input.search {
+		}
+		i.fa-times-circle {
+			margin-right: 10px;
+		}
+	}
 	
 
 	/* .sidebar slide  */ 

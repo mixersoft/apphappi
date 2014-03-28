@@ -3,8 +3,10 @@ return if !angular?
 angular.module(
 	'appHappi'
 ).factory( 'localNotificationService', [ 
-	'$location', '$timeout'
-	'actionService', 'notifyService'
+	'$location'
+	'$timeout'
+	'actionService'
+	'notifyService'
 	($location, $timeout, actionService, notify)->
 		# wrapper class for working with the localNotification plugin
 		# includes 'emulated' mode for desktop browser testing without the plugin

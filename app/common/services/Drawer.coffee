@@ -89,6 +89,12 @@ angular.module(
         return _drawer.getSlider().hasClass('slide-over')
 
       toggleDrawerOpen: (e, open)->
+        if e?.target
+          $target = angular.element( e.target )
+          $target.addClass('glow')
+          setTimeout( (()->$target.removeClass 'glow')
+              , 500)
+          
         # add .slide class to activate
         slider = _drawer.getSlider()
         if !open?
@@ -99,11 +105,6 @@ angular.module(
            slider.removeClass('slide-over')
         else throw "ERROR: invalid value"
         window.scrollTo(0, 0)
-        # if self.isDrawerOpen()
-        #   doc = document.documentElement;
-        #   left = (window.pageXOffset || doc.scrollLeft) - (doc.clientLeft || 0);
-        #   # top = (window.pageYOffset || doc.scrollTop)  - (doc.clientTop || 0);
-        #   window.scrollTo(left, 0)
         return
 
       state: {}           # init with $scope.initalDrawerState if !drawer.state?

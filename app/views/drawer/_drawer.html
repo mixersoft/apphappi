@@ -3,23 +3,25 @@
   <div class='drawer inverse panel col-xs-right-inset'>
     <div class="panel-heading clearfix col-xs-right-inset">
       <i id='drawer-open-btn' class='fa fa-bars fa-lg pull-left hidden-xs'
-      ng-click='drawer.toggleDrawerOpen($event)'
       ></i>
-      <i class="fa fa-plane fa-lg pull-right hidden-xs"></i>
+      <i class="fa fa-question-circle fa-lg pull-right hidden-xs"></i>
       <div class="panel-title text-center center-block">Menu</div>
     </div>
     <div class="panel-body col-xs-right-inset">
-      <div class='item'><input class="search" 
-      ng-model="drawer.state.query" 
-      ng-change="deck.cards()"
-      placeholder="Search"></div>
+      <div class='item search-wrap'>
+        <input class="search" 
+        ng-model="drawer.state.query" 
+        ng-change="deck.cards()"
+        placeholder="Search">
+        <i class="fa fa-times-circle fa-lg" ng-hide="!drawer.state.query" ng-click="drawer.state.query=''"></i>
+      </div>
       <div class='item'>
         <button type="button" ng-click="shuffleDeck()"  class="shuffle btn btn-xs btn-default">Shuffle</button>
       </div>
 
       <div class="panel" name="gethappi">
         <div class="panel-heading">
-          <h4 class="panel-title">
+          <h4 class="panel-title" ng-click="drawer.drawerItemClick('drawer-gethappi-mostrecent')">
             <i class="fa fa-smile-o"> </i> <span class='styled'>GetHappi</span> Moments
             <span ng-bind="drawer.state.counts['gethappi']" class="badge badge-default"></span>
           </h4>
@@ -54,7 +56,7 @@
       </div>
       <div class="panel" name='findhappi'>
         <div class="panel-heading">
-          <h4 class="panel-title">
+          <h4 class="panel-title" ng-click="drawer.drawerItemClick('drawer-findhappi-current')">
             <i class="fa fa-search"></i> <span class='styled'>FindHappi</span> Challenges
             <span ng-bind="drawer.state.counts['findhappi']" class="badge badge-default"></span>
           </h4>
@@ -94,7 +96,7 @@
       </div>
       <div class="panel" name='timeline'>
         <div class="panel-heading">
-          <h4 class="panel-title">
+          <h4 class="panel-title" ng-click="drawer.drawerItemClick('drawer-timeline-toprated')">
             <i class="fa fa-calendar"></i> <span class='styled'>BeHappi</span> Timeline
             <span ng-bind="drawer.state.counts['timeline']" class="badge badge-default"></span>
           </h4>
@@ -126,7 +128,7 @@
       </div>
       <div class="panel" name='settings'>
         <div class="panel-heading">
-          <h4 class="panel-title">
+          <h4 class="panel-title" ng-click="drawer.drawerItemClick('drawer-settings-reminder')">
             <i class="fa fa-cog fa-spin"></i> Settings
             <span ng-bind="drawer.state.counts['settings']" class="badge badge-default"></span>
           </h4>

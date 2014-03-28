@@ -617,6 +617,12 @@ angular.module(
 					else 
 						notify.alert "That photo was already added", "warning"
 					icon.removeClass('fa-spin')
+					# check if this is the first photo
+					if drawer.state.counts.challenge.complete==0 && m.photoIds.length == 1
+						notify.message {
+								title: "You Found Your First Photo!"
+								message: "Good job. You can continue to add more photos, or just be done with this Challenge."
+							}
 				return
 
 
@@ -1195,7 +1201,7 @@ angular.module(
 					"""
 					<ul>
 					<li>Find <i class='fa fa-picture-o'></i> and build Happi Moments from your CameraRoll.</li>
-					</li><li>Set an <i class='fa fa-bell fa-lg'></i> to catch you when you on a break.
+					</li><li>Set an <i class='fa fa-bell fa-lg'></i> to catch you when you are on a break.
 					</li><li>Re-live a Moment and <i class='fa fa-smile-o fa-2x'></i> your day!
 					</li><li>Share <i class='fa fa-picture-o'></i> with your <i class='fa fa-users'></i>.
 					</li></ul>
