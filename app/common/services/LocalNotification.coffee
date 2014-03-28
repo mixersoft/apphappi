@@ -66,7 +66,7 @@ angular.module(
 
 				if notification.repeat?			# add repeat to JSON to manually reset
 					msg['repeat'] = notification.repeat 		
-					_.extend  jsonData, _.pick(msg, ['repeat', 'date']) 
+					jsonData = _.extend  jsonData, _.pick(msg, ['repeat', 'date']) 
 					delete msg['repeat']			# don't use 'repeat', set manually in onclick
 				msg['json'] = JSON.stringify(jsonData) if !_.isEmpty(jsonData)
 
@@ -113,7 +113,7 @@ angular.module(
 						notify.alert "_cancelScheduled, id="+id, "warning", 30000
 						self._notify.cancel(id)
 
-			_setRepeat : (json)->
+			_setRepeat : (options)->
 				_getDateFromRepeat = (date, repeat)->
 					now = if date.getTime? then date.getTime() else new Date().getTime()
 					if _.isArray repeat
@@ -128,15 +128,15 @@ angular.module(
 								# delay = 10
 							else
 								delay = 10
-					return target = new Date( now + delay*1000)
+					return reminder = new Date( now + delay*1000)
 
-				data = JSON.parse(json)
-				if data.repeat
+				options = JSON.parse(options) if _.isString(options)
+				if !_.isEmpty(options.repeat)
 						# set new reminder
 						actionService._getNotificationMessage()
-						nextReminderDate = _getDateFromRepeat(data.date, data.repeat)
+						nextReminderDate = _getDateFromRepeat(options.date, options.repeat)
 						message = actionService._getNotificationMessage()
-						message['repeat'] = data.repeat
+						message['repeat'] = options.repeat
 						this.addByDate nextReminderDate, message
 						# notify.alert "faking repeat by setting new reminder in 10 secs", null, 30000	
 						return nextReminderDate
@@ -165,14 +165,14 @@ angular.module(
 
 			onclick :(id,state,json)=>
 				# state=background
-
 				try 
 					notify.alert "onclick state="+state+", json="+json, "success"
 					# ???: how does cancel affect "repeat" 
 					# this._notify.cancel(id)
 					this._notify.cancelAll()
-					repeating = this._setRepeat(json)
-					$location.path(data.target)
+					options = JSON.parse(json)
+					repeating = this._setRepeat(options)
+					$location.path(options.target)
 				catch error
 					notify.alert "EXCEPTION: localNotify.onclick(), error="+JSON.stringify error, "danger", 60000
 				try 

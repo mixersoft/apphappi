@@ -1176,7 +1176,6 @@ angular.module(
 			# sample message from ontrigger()
 			date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
 			message = actionService._getNotificationMessage()
-			repeat = "daily"
 			message['repeat'] = repeat if repeat?
 			notify.alert "$scope.localNotification(): message="+JSON.stringify message
 			localNotify.addByDate date, message
