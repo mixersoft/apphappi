@@ -868,7 +868,7 @@ angular.module(
 
 			# check if user just completed first challenge of the day
 			_showSupportAfterFirstChallenge(m) if drawer.state['item']=='mostrecent' 
-				
+			_collapseCardOnChange()	
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
 			return  
@@ -896,6 +896,13 @@ angular.module(
 				# ask to set reminder if first challenge of the day
 				_showReminder() if _wasYesterday(last2)
 			return
+
+		# return card to default on carousel change
+		_collapseCardOnChange = ()->
+			$scope.$watch 'carousel.index', (newVal, prevVal)->
+				try 
+					delete $scope.deck.cards()[prevVal].isCardExpanded = false
+				catch error
 			    
 
 		$scope.drawerShowAll = ()->
