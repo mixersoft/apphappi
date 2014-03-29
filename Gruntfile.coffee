@@ -301,7 +301,7 @@ module.exports = (grunt)->
             '.tmp/uglify/common/services/Deck.js',
             '.tmp/uglify/common/services/Camera.js',
             '.tmp/uglify/common/services/LocalNotification.js',
-            '.tmp/uglify/models/restangular.js',
+            # '.tmp/uglify/models/restangular.js',
             '.tmp/uglify/controllers/apphappi.js'
             '.tmp/uglify/common/data/json.js'
           ]
@@ -340,7 +340,7 @@ module.exports = (grunt)->
       #       '<%= BUILD_DIR %>/common/services/Deck.js',
       #       '<%= BUILD_DIR %>/common/services/Camera.js',
       #       '<%= BUILD_DIR %>/common/services/LocalNotification.js',
-      #       '<%= BUILD_DIR %>/models/restangular.js',
+      #       # '<%= BUILD_DIR %>/models/restangular.js',
       #       '<%= BUILD_DIR %>/controllers/apphappi.js' 
       #       '<%= BUILD_DIR %>/common/data/json.js' 
       #     ]

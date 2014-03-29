@@ -5,7 +5,6 @@ angular.module( 'appHappi', [
 	'ui.bootstrap'
 	'angularMoment'
 	'LocalStorageModule'
-	# 'restangular'
 	'pasvaz.bindonce'
 	'angular-carousel'
 ]

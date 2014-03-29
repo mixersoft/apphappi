@@ -72,7 +72,7 @@
                       <i id='sidebar-open-btn' class='fa fa-bars fa-lg pull-left visible-xs'
                       ng-click="drawer.toggleDrawerOpen($event)"
                       ></i>
-                      <i class="fa fa-question-circle fa-lg pull-right visible-xs"></i>
+                      <i class="fa fa-question-circle fa-lg pull-right visible-xs hidden"></i>
                       <div class="panel-title text-center center-block" ng-cloak>{{title}}</div>
                     </div>
                 </div>
@@ -101,7 +101,7 @@
     <!-- build:js javascripts/vendor-BODY.min.js -->
     <script src="components/modernizr/modernizr.js"></script>
     <script src="components/lodash/dist/lodash.min.js"></script>
-    <script src="components/angular/angular.js"></script>
+    <script src="components/angular/angular.min.js"></script>
     <script src="components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
     <script src="components/angular-animate/angular-animate.min.js"></script>
     <script src="components/angular-route/angular-route.min.js"></script>
@@ -129,7 +129,6 @@
     <script src="common/services/Deck.js"></script>
     <script src="common/services/Camera.js"></script>
     <script src="common/services/LocalNotification.js"></script>
-    <script src="models/restangular.js"></script>
     <script src="controllers/apphappi.js"></script>
     <script src="common/data/json.js"></script>
     <!-- endbuild -->
