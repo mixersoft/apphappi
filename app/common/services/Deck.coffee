@@ -81,6 +81,14 @@ angular.module(
 					, this
 				return this.shuffledCards
 
+			removeFromDeck : (card)->
+				for i in [0...this.allCards.length]
+					if this.allCards[i] == card 
+						this.allCards.splice(i,1)
+						this.cards(this.allCards)
+						break
+				return
+
 			paginatedCards : (perpage)->
 				# initialize with perpage value
 				if !_.isNaN parseInt perpage

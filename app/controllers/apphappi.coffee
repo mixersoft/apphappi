@@ -404,6 +404,7 @@ angular.module(
 						photo = syncService.get('photo', id)
 						photo.remove = photo.stale = true
 						syncService.set('photo', photo)
+						# TODO: remove photo.fileURL from filesystem
 
 
 				catch error
@@ -913,7 +914,7 @@ angular.module(
 		_collapseCardOnChange = ()->
 			$scope.$watch 'carousel.index', (newVal, prevVal)->
 				try 
-					delete $scope.deck.cards()[prevVal].isCardExpanded = false
+					delete $scope.deck.cards()[prevVal].isCardExpanded = false if !!prevVal
 				catch error
 			    
 
@@ -985,6 +986,62 @@ angular.module(
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
 			m.isCardExpanded = true
+
+		$scope.moment_delete = (id)->	
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+			throw "warning: moment.status == active in $scope.moment_delete()" if m.status == 'active'
+
+			# delete moment & photos as necessary
+			_deleteCb = ()->
+				moment = syncService.get('moment', id)
+
+				# remove moment photos
+				markPhotoForRemoval = {}
+				_.each moment.photoIds, (v,i,l)->
+						markPhotoForRemoval[i] = v
+				moment.markPhotoForRemoval = markPhotoForRemoval
+				moment.status = 'active'
+				actionService.removeMarkedPhotos moment
+
+				# remove belongsTo Challenge
+				c = moment.challenge
+				found = c.momentIds.indexOf(moment.id)
+				if found >  -1
+					c.momentIds.splice(found, 1)
+					if c.momentIds.length == 0 
+						actionService.setCardStatus(c, 'pass')
+				else 
+					return throw "Error: moment does not belongTo challenge" 
+
+				# remove moment
+				moment.remove = moment.stale = true
+				syncService.set('moment', moment)
+				syncService.set('challenge', c)
+				drawer.updateCounts()
+
+				# reload
+				$scope.deck.removeFromDeck(moment)
+				$location.path('/moments')
+				# window.location.reload()
+				return	# end remove Callback
+
+			# confirm delete
+			if navigator.notification
+			  _onConfirm = (index)->
+			    _deleteCb() if index==2
+			    return
+			  navigator.notification.confirm(
+			          "You are about to delete everything and reset the App.", # message
+			          _onConfirm,
+			          "Are you sure?", # title 
+			          ['Cancel', 'OK']
+			        )
+			else
+			  resp = window.confirm('Are you sure you want to delete this moment?')
+			  _deleteCb() if resp
+			  return
+
 
 		$scope.moment_getPhoto = (id, $event)->
 			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
