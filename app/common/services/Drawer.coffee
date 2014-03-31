@@ -4,21 +4,27 @@ angular.module(
   'appHappi'
 ).directive('onOffSwitch', ()->
   link = (scope, element, attrs)->
-    ngModel = scope.$parent?.options?.switch
-    if ngModel?
-      element.attr('my-ng-model', ngModel)
-      # _.each(element.children().children(), ((o)->o.setAttribute 'ng-model', ngModel) )
+    scope.toggle = (e)->
+      scope.myNgModel = !scope.myNgModel
+      e.preventDefault()
+      e.stopImmediatePropagation() if scope.myNgModel == true
     return
 
   return {
-    template: '<div class="btn-group">
-    <button type="button" class="btn btn-primary btn-xs" ng-model="myNgModel" btn-radio="false">Off</button>
-    <button type="button" class="btn btn-primary btn-xs" ng-model="myNgModel" btn-radio="true">On</button>
-</div>'
+    template: """
+    <label class="switch-light well" ng-click='toggle($event)'>
+      <input type="checkbox" ng-checked="myNgModel" >
+      <span>
+        <span>Off</span>
+        <span>On</span>
+      </span>
+      <a class="btn btn-primary"></a>
+    </label>
+    """
     restrict: 'AE'
     scope: 
       myNgModel: '='     # this is NOT working, scope.mirror is not set
-    # link: link 
+    link: link 
   }
 ).directive('drawerLastScroll', [ 
   'drawerService' 
@@ -194,8 +200,8 @@ angular.module(
                 resp = window.confirm('Are you sure you want to delete everything?')
                 return _resetCb(resp)
             when 'debug'
-              CFG.debug = !CFG.debug
-              return
+              # CFG.debug = !CFG.debug    # toggle in on-off-switch
+              null
             when 'drawer'
               _drawer.syncService?.clearDrawer()  
               return $location.path('/')
