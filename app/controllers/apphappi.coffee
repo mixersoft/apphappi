@@ -133,9 +133,8 @@ angular.module(
 					o.notification = notification
 					# notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
 					if self._isLongSleep(o.pauseDuration)
-						$timeout ()->
-								$location.path('/challenges/draw-new')
-							, 100
+						CFG.$curtain.removeClass('hidden')
+						$location.path('/challenges/draw-new')
 					return o
 				.finally ()-> self._backgroundDeferred = null
 				return promise
@@ -1183,7 +1182,7 @@ angular.module(
 		notify = $rootScope.notify || notify
 
 		CFG.$curtain.find('h3').html('Loading Settings...')
-		notify.clearMessages() 	
+		# notify.clearMessages() 	
 
 		if $location.path() == '/getting-started/check'
 			try 
@@ -1224,8 +1223,12 @@ angular.module(
 				return new Date now.getFullYear(), now.getMonth(), now.getDate(), h, m
 			return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
 
-		syncService.reminder(false) if actionService.nextReminder() < now
+		if actionService.nextReminder() < now
+			notify.alert "nextReminder has ALREADY passed!!!! clear reminder, value="+actionService.nextReminder(), "danger", 30000
+			syncService.reminder(false) 
+
 		$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
+		notify.alert "Timepicker time= " + $scope.reminderTime + ", next reminder="+actionService.nextReminder(), 'info', 30000
 
 		# repeat:  ['secondly', 'minutely', 'hourly', 'daily', 'weekly', 'monthly' or 'yearly']
 		$scope.localNotificationTime = (date, repeat)->

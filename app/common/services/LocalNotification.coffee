@@ -98,10 +98,9 @@ angular.module(
 							$timeout (()->
 								notify.message(msg)
 							), delay*1000
-
-					syncService.set('')
+					return
 				catch error
-					notify.alert "EXCEPTION: notification.local.add(), error="+JSON.stringify error, "danger", 60000
+					notify.alert "EXCEPTION: notification.local.add(), error="+JSON.stringify error, "danger", 600000
 		
 			# @param except string or array of Strings
 			_cancelScheduled : (except)->
@@ -115,7 +114,15 @@ angular.module(
 
 			_setRepeat : (options)->
 				_getDateFromRepeat = (date, repeat)->
-					now = if date.getTime? then date.getTime() else new Date().getTime()
+					# now = if _.isDate( date ) then date.getTime() else new Date().getTime()
+					if _.isDate( date )
+						now = date.getTime()
+						# notify.alert "*** _getDateFromRepeat DATE, raw date="+date+", CONVERT TO now="+now , 'success', 200000
+					else 
+						# notify.alert "*** _getDateFromRepeat DATE, raw date="+date, 'danger', 200000
+						date = new Date(date) 
+						now = if isNaN(date.getTime()) then new Date().getTime() else date.getTime()
+						# notify.alert ">>> last reminder= " + new Date(now) + ", repeat="+repeat+", now="+now, 'success', 200000
 					if _.isArray repeat
 						# check day of week
 						delay = 10
@@ -132,14 +139,15 @@ angular.module(
 
 				options = JSON.parse(options) if _.isString(options)
 				if !_.isEmpty(options.repeat)
-						# set new reminder
-						actionService._getNotificationMessage()
-						nextReminderDate = _getDateFromRepeat(options.date, options.repeat)
-						message = actionService._getNotificationMessage()
-						message['repeat'] = options.repeat
-						this.addByDate nextReminderDate, message
-						# notify.alert "faking repeat by setting new reminder in 10 secs", null, 30000	
-						return nextReminderDate
+					# set new reminder
+					# options.date = new Date(options.date) if options.date
+					# notify.alert "*** OPTIONS.DATE, isDate="+_.isDate(options.date)+", value="+options.date, 'danger', 20000
+					nextReminderDate = _getDateFromRepeat(options.date, options.repeat)
+					message = actionService._getNotificationMessage()
+					message['repeat'] = options.repeat
+					this.addByDate nextReminderDate, message
+					# notify.alert "faking repeat by setting new reminder in 10 secs", null, 30000	
+					return nextReminderDate
 				else return false		
 
 			# @params state = [foreground | background]
@@ -156,7 +164,8 @@ angular.module(
 					# Note: The ontrigger callback is only invoked in background if the app is not suspended!
 					this._notify.cancel(id)
 					repeating = this._setRepeat(json)
-					notify.alert "repeat set for "+repeating
+					if repeating
+						notify.alert "setting NEXT reminder. repeat="+json.repeat+", next reminder at "+repeating, "success", 60000
 				else 
 					# can we sample the message here?
 					check = this
@@ -167,19 +176,22 @@ angular.module(
 				# state=background
 				try 
 					notify.alert "onclick state="+state+", json="+json, "success"
-					# ???: how does cancel affect "repeat" 
-					# this._notify.cancel(id)
 					this._notify.cancelAll()
 					options = JSON.parse(json)
 					repeating = this._setRepeat(options)
+					if repeating
+						# WARNING: make sure next controller does not call notify.clearMessage()
+						notify.alert "setting NEXT reminder. repeat="+json.repeat+", next reminder at "+actionService.nextReminder(), "success", 60000
+					# prepare for transitions
+					# CFG.$curtain.removeClass 'hidden'
 					$location.path(options.target)
 				catch error
-					notify.alert "EXCEPTION: localNotify.onclick(), error="+JSON.stringify error, "danger", 60000
+					notify.alert "EXCEPTION: localNotify.onclick(), error="+JSON.stringify error, "danger", 600000
 				try 
 					# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
 					window.plugin.notification.badge.clear()
 				catch error
-					notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
+					notify.alert "EXCEPTION: localNotify.onclick(), BADGE CLEAR error="+JSON.stringify error, "danger", 600000
 				return true
 
 			oncancel :(id,state,json)=>
