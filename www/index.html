@@ -88,7 +88,10 @@
                       <alert ng-repeat="alert in notify.message()" 
                       type="alert.type" 
                       close="notify.close(alert.key)"
-                      ><div ng-bind-html="alert.msg"></div></alert>
+                      >
+                        <div ng-if="!alert.template" ng-bind-html="alert.msg"></div>
+                        <ng-include ng-if="alert.template" src="alert.template || null"></ng-include>
+                      </alert>
                     </div>
                     <div ng-view class="view-frame view-animate center-block"></div>
                 </div>

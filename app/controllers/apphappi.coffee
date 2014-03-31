@@ -31,14 +31,16 @@ angular.module(
 				`while (this.alerts[now]) {
 					now += 0.1;
 				}`
+				notification = {type:type, key:now} 
 				if _.isObject(msg)
-					# force notify.alert
-					if msg.title?
-						msg = "<h4>"+msg.title+"</h4><p>"+msg.message+"</p>"
+					if msg.template?
+						notification['template'] = msg.template
+					else if msg.title?
+						notification['msg'] = "<h4>"+msg.title+"</h4><p>"+msg.message+"</p>"
 					else 
-						msg = msg.message
+						notification['msg'] = msg.message
 
-				this.messages[now] = {msg: msg, type:type, key:now} if msg?
+				this.messages[now] = notification
 				this.timeouts.push({key: now, value: timeout})
 			else 
 				# start timeouts on ng-repeat
@@ -899,8 +901,9 @@ angular.module(
 			_showReminder = ()->
 				# show reminder after loading MomentCtrl
 				notify.message {
-					title: "Congratulations!"
-					message: "You got your 5 minutes in for the day. Enjoy this Moment of Happi and remember to pace yourself by setting a Reminder for the next time."
+					template: '/common/templates/notify/_setAReminder.html'
+					# title: "Congratulations!"
+					# message: "You got your 5 minutes in for the day. Enjoy this Moment of Happi and remember to pace yourself by setting a Reminder for the next time."
 				}, null, 30000
 				return true
 			if _wasJustNow(m)
@@ -1258,7 +1261,7 @@ angular.module(
 			syncService.set('settings', settings)
 			drawer.drawerItemClick('drawer-findhappi-current')
 				
-		
+
 		syncService.initLocalStorage() 
 		$q.all( syncService.promises ).then (o)->
 			_.extend($rootScope.route, drawer.getRoute())
