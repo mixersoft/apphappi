@@ -1257,9 +1257,9 @@ angular.module(
 			return "<p>"+body+"</p>"
 		$scope.gettingStartedDone = ()->
 			settings = syncService.get('settings')
-			settings['hideGettingStarted']=true
+			settings['hideGettingStarted'] = true
 			syncService.set('settings', settings)
-			drawer.drawerItemClick('drawer-findhappi-current')
+			$location.path('/challenges/draw-new')
 				
 
 		syncService.initLocalStorage() 
