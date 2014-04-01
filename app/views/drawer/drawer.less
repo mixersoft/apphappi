@@ -48,13 +48,20 @@
   input.search {
     width: 100%;
   }
+  @switch-light-width: 80px;
   .switch-light {
     color: @snappi-darkblue;
     display: inline-block;
-    width: 100px;
+    width: @switch-light-width;
+    margin-left: 0;
     height: 20px;
     > span, label {
+      left: 0;
       line-height: inherit;
+      padding-right: 0;
+    }
+    > span span {
+      margin-left: 0;
     }
   }
 }
