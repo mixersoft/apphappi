@@ -64,13 +64,13 @@ angular.module(
 	'drawerService'
 	'deckService'
 	'syncService'
+	'localNotificationService'
 	'notifyService'
 	'appConfig'
-	'$q'
 	'$location'
 	'$timeout'
 	'$rootScope'
-	(drawerService, deckService, syncService, notify, appConfig, $q, $location, $timeout, $rootScope)->
+	(drawerService, deckService, syncService, localNotify, notify, appConfig, $location, $timeout, $rootScope)->
 		CFG = $rootScope.CFG || appConfig
 		self = {
 
@@ -112,50 +112,6 @@ angular.module(
 						, []
 				return _.unique(found)
 
-			_backgroundDeferred: null
-
-			_isLongSleep : (sleep)->
-				LONG_SLEEP = CFG.longSleepTimeout # 60*60 == 1 hour
-				return sleep > LONG_SLEEP
-
-			_getNotificationMessage : ()->
-				return _.sample CFG.notifications		
-
-			# set up deferred BEFORE causing app to pause
-			prepareToResumeApp : (e, notification)->
-				return notify.alert "WARNING: already paused, check fake notify..." if self._backgroundDeferred?
-
-				pauseTime = new Date().getTime()
-				# return if !window.deviceReady
-				notify.alert "Preparing to send App to background..." 
-				self._backgroundDeferred = $q.defer()
-				promise = self._backgroundDeferred.promise
-				.then (o)->
-					o.pauseDuration = (o.resumeTime - (pauseTime || 0))/1000
-					o.notification = notification
-					# notify.alert "App was prepared to resume, then sent to background, pauseDuration=" +o.pauseDuration
-					if self._isLongSleep(o.pauseDuration)
-						CFG.$curtain.removeClass('hidden')
-						$location.path('/challenges/draw-new')
-					return o
-				.finally ()-> self._backgroundDeferred = null
-				return promise
-			
-			resumeApp	 : (e)->
-				return if !window.deviceReady
-				$timeout (()=>
-					if e == "LocalNotify" 
-						notify.alert "App was resumed from FAKE LocalNotify", "success"
-					else 	
-						notify.alert "App was resumed from background"
-					o = {
-						event: e
-						resumeTime: new Date().getTime() 
-					}
-					self._backgroundDeferred?.resolve( o )
-				), 0
-				
-			
 			# do housekeeping when changing status of challenge, moment
 			setCardStatus : (card, status, now)->
 				now = new Date() if !now?
@@ -420,19 +376,20 @@ angular.module(
 				return 
 
 			nextReminder : (format)->
-				reminder = syncService.reminder()
+				reminder = syncService.notification()['date']
 				return null if !reminder
 				return moment(reminder).format(format) if format
 				return reminder
+
+			getNotificationMessage : ()->
+				return _.sample CFG.notifications	
+
+			isLongSleep : localNotify.isLongSleep
 		}
 
-		# send App to background
-		document.addEventListener("pause", self.prepareToResumeApp, false);
-
-		# resume from pause (background)
-		document.addEventListener("resume", self.resumeApp, false);
 
 		# for element.ondragstart handler outside angular
+		# used by thumbnail.html, deprecate(?)
 		window._preventDefault = self._preventDefault
 
 		return self
@@ -500,13 +457,15 @@ angular.module(
 			deckOptions = {control: $scope.carousel}
 			$scope.deck = deckService.setupDeck(_cards, deckOptions )
 
-			if $location.path()=='/challenges/draw-new' || _forceNewChallenge(_challenges)
+			welcomeBack = _forceNewChallenge(_challenges)
+			if $location.path()=='/challenges/draw-new' || welcomeBack
 				_drawNewChallenge(_challenges)
-				notify.message {
+				msg = {
 					title: "Your Challenge Awaits!"
-					message: "Welcome back. We dare you to take on this Challenge! <span class='nowrap'>(But feel free to choose another.)</span>"
-				}, null
-				# 'drawer-findhappi-current'
+					message: "We dare you to take on this Challenge! <span class='nowrap'>(But feel free to choose another.)</span>"
+				}
+				msg.message = "Welcome back. " + msg.message if welcomeBack
+				notify.message msg, null
 
 			# redirect to all if no active challenge
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
@@ -524,6 +483,7 @@ angular.module(
 			CFG.$curtain.addClass 'hidden'
 			return
 
+		# forceNewChallenge on longSleep...
 		_forceNewChallenge = (challenges)->
 			# pause since last challenge, use mostrecent
 			pickFrom = _.where challenges, {status:'active'}
@@ -534,8 +494,8 @@ angular.module(
 			lastModifiedString = _.reduce pickFrom, (result, o)->
 					return if o.modified > result then o.modified else result
 				, ""
-			pauseDuration = (new Date().getTime() - new Date(lastModifiedString).getTime())/1000
-			return actionService._isLongSleep(pauseDuration)
+			sinceLastChallenge = (new Date().getTime() - new Date(lastModifiedString).getTime())/1000
+			return actionService.isLongSleep(sinceLastChallenge)
 
 
 		# pick a new challenge to feature
@@ -1190,8 +1150,9 @@ angular.module(
 		if $location.path() == '/getting-started/check'
 			try 
 				# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
-				window.plugin.notification.badge.clear()
+				localNotify.clearBadge()
 			catch error
+				CFG.$curtain.addClass 'hidden'
 				notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
 
 			$rootScope.title = "AppHappi"
@@ -1226,10 +1187,6 @@ angular.module(
 				return new Date now.getFullYear(), now.getMonth(), now.getDate(), h, m
 			return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
 
-		if actionService.nextReminder() < now
-			notify.alert "nextReminder has ALREADY passed!!!! clear reminder, value="+actionService.nextReminder(), "danger", 30000
-			syncService.reminder(false) 
-
 		$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
 		notify.alert "Timepicker time= " + $scope.reminderTime + ", next reminder="+actionService.nextReminder(), 'info', 30000
 
@@ -1238,7 +1195,7 @@ angular.module(
 			localNotify.loadPlugin() if !localNotify.isReady()
 			# sample message from ontrigger()
 			date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
-			message = actionService._getNotificationMessage()
+			message = actionService.getNotificationMessage()
 			message['repeat'] = repeat if repeat?
 			notify.alert "$scope.localNotification(): message="+JSON.stringify message
 			localNotify.addByDate date, message
@@ -1246,7 +1203,7 @@ angular.module(
 		$scope.localNotificationDelay = (sec)->
 			localNotify.loadPlugin() if !localNotify.isReady()
 			# notify.alert "$scope.localNotification(): message="+JSON.stringify message
-			localNotify.addByDelay sec, actionService._getNotificationMessage()
+			localNotify.addByDelay sec, actionService.getNotificationMessage()
 			
 
 

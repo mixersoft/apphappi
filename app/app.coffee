@@ -27,6 +27,7 @@ angular.module( 'appHappi', [
 	$curtain: angular.element(document.getElementById('curtain'))
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
 	challengeUrl: if window.location.protocol=='file:' then 'common/data/challenge.json' else '/common/data/challenge.json'
+	# TODO: title/message is set in ChallgenCtrl/MomentCtrl, must duplicate message sent to Notification Center
 	notifications: [
 			{
 				title: "Your 5 Minutes of Happi Starts Now"

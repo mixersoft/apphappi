@@ -157,21 +157,35 @@ angular.module(
 				localStorageService.set('drawer', syncService.localData['drawer'])
 				return syncService.lastModified['drawer'] = false
 
-			# @return Date object or null
-			reminder: (date=null)->
+
+			# @param o Object, notification payload, looking for these keys
+			#	o.date as DATE.toJSON() string
+			#	o.target
+			#	o.message
+			# 	o.data.repeat (optional)
+			# 	o.data.date == o.date
+			# 		false to clear notification trigger, handled
+			# 		null to read last notification trigger
+			# @return notification payload as object of last notification ontrigger
+			# 	notification.date is Date object
+			notification: (o = null)->
 				settings = syncService.get('settings')
-				
-				if (date==null) 
-					return if settings['reminder'] then new Date(settings['reminder']) else null
-				else if _.isDate(date)
-					settings['reminder'] = date
-				else if date==false
-					delete settings['reminder']
+				if o == null 
+					notification = settings['notification']
+					notification.date = new Date(notification.date) if notification.date
+					notification.data.date == notification.date if notification.data?
+					# steroids.logger.log "A - READ last notification, date=" + (notification.date || null)
+					return notification || {}
+				else if o == false
+					settings['notification'] = {}
+					return 	syncService.set('settings', settings)?['notification']
+				else if _.isObject(o)
+					settings['notification'] = o
+					written = syncService.set('settings', settings)
+					# steroids.logger.log "E1 - WRITTEN last notification, o=" + JSON.stringify( written['notification'])
+					return 	written['notification']
 				else
-					return throw "Error: actionService.reminder() expecting a Date object"
-  			
-				syncService.set('settings', settings)
-				return settings['reminder']
+					return throw "Error: syncService.notification() expecting an object or falsey"
 
 			initLocalStorage: (models=[])->
 				if !CFG.userId?
