@@ -106,7 +106,7 @@ angular.module(
 						else 
 							
 							nextReminder = moment(msg['data'].date)
-							steroids.logger.log " msg.data.date="+ msg['data'].date+", nextReminder="+nextReminder+", nextReminder.calendar()="+nextReminder.calendar()
+							# steroids.logger.log " msg.data.date="+ msg['data'].date+", nextReminder="+nextReminder+", nextReminder.calendar()="+nextReminder.calendar()
 							return if !nextReminder.isValid()
 
 							# steroids.logger.log ("reminder at "+nextReminder.toDate()+", moment format="+nextReminder.calendar())
