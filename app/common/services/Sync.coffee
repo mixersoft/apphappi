@@ -170,7 +170,7 @@ angular.module(
 			# 	notification.date is Date object
 			notification : (o = null)->
 				settings = syncService.get('settings')
-				if o == null 
+				if o == null # getter
 					notification = settings['notification'] || {}
 					notification.date = new Date(notification.date) if notification.date?
 					notification.data.date == notification.date if notification.data?

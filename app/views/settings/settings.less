@@ -37,9 +37,29 @@
 	}
 }
 
-
-.timepicker-wrap {
-	.timepicker {
-		display: inline-block;
+.card.setting.reminder {
+	.timepicker-wrap {
+		position: relative;
+		.timepicker {
+			display: inline-block;
+		}
+		.btn.set {
+			position: relative;
+			top: -50px;
+		}
+	}
+	.days-of-week {
+		margin-bottom: 10px;
+		.btn {
+			color: white;
+			text-decoration: line-through;
+			> span {
+				color: @gray-dark;
+			}
+			&.active, &.active > span {
+				color: white;
+				text-decoration: none;
+			}
+		}
 	}
 }

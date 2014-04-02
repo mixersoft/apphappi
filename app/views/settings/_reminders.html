@@ -1,6 +1,6 @@
 <!--Body content-->
 <div class="card-wrap" >
-	<div class="setting card list-unstyled text-center">
+	<div class="setting reminder card list-unstyled text-center">
 	  <div class="header">
 	    <figure class="icon">
 	      <i class="icon fa fa-bell fa-3x"></i>
@@ -10,21 +10,38 @@
 	  <div class="body">
 	    <h3 class="title">Just 5 Minutes a Day</h3>
 	    <p>Set a daily reminder to find some Happi. Pick a time when you can take a break.</p>
-	    <div id="set-reminder" class="timepicker-wrap" ng-model="reminderTime">
+	    <div id="set-reminder" class="reminder" ng-model="reminderTime">
 	    	<div ng-hide="!nextReminder()">Next reminder: <span>{{nextReminder() | amCalendar}}</span></div>
 	    	<div class="center-block">
+	    		<div class="timepicker-wrap">
 					<timepicker class="timepicker" hour-step="1" minute-step="15" show-meridian="true"></timepicker>
+					<button type="button" class="set btn btn-success" 
+						ng-click="localNotificationTime(reminderTime, reminderDays)" >Set
+					</button>
 				</div>
-				<div class="center-block">
-		    	<div class='btn-group '>
-			      <button type="button" class="btn btn-primary" 
-			      ng-click="localNotificationDelay(5)" >5 sec</button>
-			      <button type="button" class="btn btn-primary" 
-			      ng-click="localNotificationDelay(30)">30 sec</button>
-			      <button type="button" class="btn btn-success" 
-							ng-click="localNotificationTime(reminderTime, 'daily')" >Set</button>
-			    </div>
-			  </div>
+			</div>
+			<div class="center-block ">
+				<div id="days-of-week" class="days-of-week btn-group">
+					<button type="button" class="btn btn-xs btn-info" ng-model="reminderDays.1" btn-checkbox><span>Mon</span></button>
+					<button type="button" class="btn btn-xs btn-info" ng-model="reminderDays.2" btn-checkbox><span>Tue</span></button>
+					<button type="button" class="btn btn-xs btn-info" ng-model="reminderDays.3" btn-checkbox><span>Wed</span></button>
+					<button type="button" class="btn btn-xs btn-info" ng-model="reminderDays.4" btn-checkbox><span>Thu</span></button>
+					<button type="button" class="btn btn-xs btn-info" ng-model="reminderDays.5" btn-checkbox><span>Fri</span></button>
+					<button type="button" class="btn btn-xs btn-primary" ng-model="reminderDays.6" btn-checkbox><span>Sat</span></button>
+					<button type="button" class="btn btn-xs btn-primary" ng-model="reminderDays.7" btn-checkbox><span>Sun</span></button>
+				</div>
+			</div>
+			<div class="center-block hidden">
+				<div class='btn-group '>
+				  <button type="button" class="btn btn-primary" 
+				  ng-click="localNotificationDelay(5)" >5 sec</button>
+				  <button type="button" class="btn btn-primary" 
+				  ng-click="localNotificationDelay(30)">30 sec</button>
+					<button type="button" class="btn btn-success" 
+							ng-click="localNotificationTime(reminderTime, reminderDays)" >Set
+					</button>
+				</div>
+			</div>
 	    </div>
 	    <br />
 	    <p class="text-left hidden"><i>Note: we offer short reminders to simulate the experience during testing. Close the app after you set a reminder to see the notifcation.</i></p>

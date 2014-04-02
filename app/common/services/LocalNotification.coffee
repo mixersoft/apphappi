@@ -65,26 +65,27 @@ angular.module(
 
 			addByDate: (date, notification={})->
 				msg = {
-						id: date.getTime() 				# seems to crash on id:0 (?)
+					id: date.getTime() 				# seems to crash on id:0 (?)
 					date: date
 				}
 				msg['title'] = notification.title if notification.title?
 				msg['message'] = notification.message if notification.message?
 				msg['badge'] = notification.badge || 1
-				msg['autoCancel'] = true 								# set as Default, doesn't clear badge
-				jsonData = notification.data || {}
+				msg['autoCancel'] = true 
+				msg['data'] = _.extend {}, notification.data || {}								# set as Default, doesn't clear badge
 
 				if notification.repeat?			# add repeat to JSON to manually reset
-					msg['repeat'] = notification.repeat 		
-					jsonData = _.extend  jsonData, _.pick(msg, ['repeat', 'date']) 
-					delete msg['repeat']			# don't use 'repeat', set manually in onclick
-				# msg['jsonString'] = JSON.stringify(jsonData) if !_.isEmpty(jsonData)
-				msg['data'] = jsonData
-
+					if _.isObject(notification.repeat)
+						msg['date'] = this._getDateFromRepeat(msg.date, notification.repeat)
+						if msg['date'] == false
+							notify.message "I can't set a reminder because you have not selected any days of the week."
+							return
+					msg['data'].repeat = notification.repeat if notification.repeat?
+					msg['data'].date = msg['date']
 
 				# notify.alert "localNotify.add() BEFORE message="+JSON.stringify( msg ), null, 30000
 				self = this
-				delay = Math.round((date.getTime() - new Date().getTime())/1000)
+				delay = Math.round((msg.date.getTime() - new Date().getTime())/1000)
 
 				try 
 					if this.isReady()
@@ -102,6 +103,18 @@ angular.module(
 								title: "A reminder was set to fire in "+ delay+" seconds"
 								message: "To see the notification, press the 'Home' button and close this app." 
 								}, null, 4500)
+						else 
+							
+							nextReminder = moment(msg['data'].date)
+							steroids.logger.log " msg.data.date="+ msg['data'].date+", nextReminder="+nextReminder+", nextReminder.calendar()="+nextReminder.calendar()
+							return if !nextReminder.isValid()
+
+							# steroids.logger.log ("reminder at "+nextReminder.toDate()+", moment format="+nextReminder.calendar())
+							notify.message( {
+									title: "A Reminder was Set"
+									message: "Your next reminder will be at " + nextReminder.calendar() + "."
+								})
+								
 					else 
 						syncService.notification(msg)
 						msg.message = "EMULATED: "+msg.message
@@ -137,41 +150,60 @@ angular.module(
 						return if except.indexOf(id) > -1
 						notify.alert "_cancelScheduled, id="+id, "warning", 30000
 						self._notify.cancel(id)
+
+			# @return Date object or false if repeat == object and no days of week are enabled
+			_getDateFromRepeat : (date, repeat)->
+				# # now = if _.isDate( date ) then date.getTime() else new Date().getTime()
+				# if _.isDate( date )
+				# 	now = date.getTime()
+				# 	# notify.alert "*** _getDateFromRepeat DATE, raw date="+date+", CONVERT TO now="+now , 'success', 200000
+				# else 
+				# 	# notify.alert "*** _getDateFromRepeat DATE, raw date="+date, 'danger', 200000
+				# 	date = new Date(date) 
+				# 	now = if isNaN(date.getTime()) then new Date().getTime() else date.getTime()
+				# 	# notify.alert ">>> last reminder= " + new Date(now) + ", repeat="+repeat+", now="+now, 'success', 200000
+
+				reminder = moment(date)	# parse date with moment.js
+				reminder = moment() if !reminder.isValid()
+				reminderTime = reminder.toDate().getTime()
+				now = new Date()
+
+				if _.isObject( repeat )
+					# check day of week
+					dayOfWeek = reminder.day()
+					nextDayOfWeek = _.reduce repeat, (result, set, day)->
+							if set
+								day = parseInt(day)
+								# 
+								day += 7 if day<dayOfWeek
+								day += 7 if day==dayOfWeek && reminder < now
+								result = if result!=false then Math.min(result, day) else day
+							return result
+						, false
+					return false if nextDayOfWeek == 0
+					return reminder = reminder.day(nextDayOfWeek).toDate()	
+				else 	
+					switch repeat
+						when 'weekly'
+							delay = 2600 * 24 * 7
+						when 'daily'
+							delay = 3600 * 24
+							# delay = 10
+						else
+							delay = 10
+					return reminder = new Date( reminderTime + delay*1000)
+								
 			# expecting options.repeat, options.date, options.target
 			_setRepeat : (options)->
-				_getDateFromRepeat = (date, repeat)->
-					# now = if _.isDate( date ) then date.getTime() else new Date().getTime()
-					if _.isDate( date )
-						now = date.getTime()
-						# notify.alert "*** _getDateFromRepeat DATE, raw date="+date+", CONVERT TO now="+now , 'success', 200000
-					else 
-						# notify.alert "*** _getDateFromRepeat DATE, raw date="+date, 'danger', 200000
-						date = new Date(date) 
-						now = if isNaN(date.getTime()) then new Date().getTime() else date.getTime()
-						# notify.alert ">>> last reminder= " + new Date(now) + ", repeat="+repeat+", now="+now, 'success', 200000
-					if _.isArray repeat
-						# check day of week
-						delay = 10
-					else 	
-						switch repeat
-							when 'weekly'
-								delay = 2600 * 24 * 7
-							when 'daily'
-								delay = 3600 * 24
-								# delay = 10
-							else
-								delay = 10
-					return reminder = new Date( now + delay*1000)
-
 				options = JSON.parse(options) if _.isString(options)
 				if !_.isEmpty(options.repeat)
 					# set new reminder
 					# options.date = new Date(options.date) if options.date
 					# notify.alert "*** OPTIONS.DATE, isDate="+_.isDate(options.date)+", value="+options.date, 'danger', 20000
-					nextReminderDate = _getDateFromRepeat(options.date, options.repeat)
+					# nextReminderDate = this._getDateFromRepeat(options.date, options.repeat)
 					message = this.getNotificationMessage()
 					message['repeat'] = options.repeat
-					this.addByDate nextReminderDate, message
+					this.addByDate options.date, message
 					# notify.alert "faking repeat by setting new reminder in 10 secs", null, 30000	
 					return nextReminderDate
 				else return false

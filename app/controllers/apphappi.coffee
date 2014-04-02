@@ -85,7 +85,8 @@ angular.module(
 				'markPhotoForRemoval'
 				'isMarkedForRemoval'
 				'shuffleDeck'
-				'nextReminder'
+				'nextReminder'	# SettingsCtrl only
+				# 'reminderDays'	# SettingsCtrl only
 			]
 
 			_preventDefault : (e)->
@@ -380,6 +381,12 @@ angular.module(
 				return null if !reminder
 				return moment(reminder).format(format) if format
 				return reminder
+
+			reminderDays : ()->
+				days = syncService.notification().data?.repeat
+				return days if days?
+				# init to everyDay
+				return _everyDay = {1:true,2:true,3:true,4:true,5:true,6:true,7:true} 
 
 			getNotificationMessage : ()->
 				return _.sample CFG.notifications	
@@ -1188,13 +1195,14 @@ angular.module(
 			return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
 
 		$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
+		$scope.reminderDays = actionService.reminderDays()
 		notify.alert "Timepicker time= " + $scope.reminderTime + ", next reminder="+actionService.nextReminder(), 'info', 30000
 
 		# repeat:  ['secondly', 'minutely', 'hourly', 'daily', 'weekly', 'monthly' or 'yearly']
 		$scope.localNotificationTime = (date, repeat)->
 			localNotify.loadPlugin() if !localNotify.isReady()
 			# sample message from ontrigger()
-			date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
+			# date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
 			message = actionService.getNotificationMessage()
 			message['repeat'] = repeat if repeat?
 			notify.alert "$scope.localNotification(): message="+JSON.stringify message
