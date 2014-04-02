@@ -168,11 +168,11 @@ angular.module(
 			# 		null to read last notification trigger
 			# @return notification payload as object of last notification ontrigger
 			# 	notification.date is Date object
-			notification: (o = null)->
+			notification : (o = null)->
 				settings = syncService.get('settings')
 				if o == null 
-					notification = settings['notification']
-					notification.date = new Date(notification.date) if notification.date
+					notification = settings['notification'] || {}
+					notification.date = new Date(notification.date) if notification.date?
 					notification.data.date == notification.date if notification.data?
 					# steroids.logger.log "A - READ last notification, date=" + (notification.date || null)
 					return notification || {}
