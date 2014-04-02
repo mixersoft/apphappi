@@ -52,13 +52,15 @@
 		margin-bottom: 10px;
 		.btn {
 			color: white;
-			text-decoration: line-through;
+			position: relative;
+			padding-bottom: 4px;
 			> span {
 				color: @gray-dark;
+				border-bottom: 2px solid transparent;
 			}
-			&.active, &.active > span {
+			&.active > span {
 				color: white;
-				text-decoration: none;
+				border-bottom-color: white;
 			}
 		}
 	}
