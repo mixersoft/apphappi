@@ -216,6 +216,7 @@ angular.module(
 		_fileErrorComment = ""
 
 		self = {
+			type : "cordovaCameraService"
 			# Camera options
 			cameraOptions :
 				fromPhotoLibrary:

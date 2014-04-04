@@ -98,7 +98,8 @@ angular.module(
 			else 
 				use_fallback()
 		else 
-			cancel = $timeout use_fallback, 2000	
+			CAMERA_ROLL_TIMEOUT = 500
+			cancel = $timeout use_fallback, CAMERA_ROLL_TIMEOUT	
 			document.addEventListener "deviceready", ()->
 				$timeout.cancel cancel
 				if ($window.cordova) 
@@ -116,7 +117,6 @@ angular.module(
 
 		self.promise = dfd.promise.then (o)->
 			self.isReady = true
-			self.type = o.type
 			_.extend self, o.cameraRoll
 			return self
 
@@ -626,10 +626,11 @@ angular.module(
 
 
 		$scope.challenge_getPhoto = ($event)->
+			icon = angular.element($event.currentTarget).find('i')
+			icon.addClass('fa-spin')
+
 			c = $scope.deck.topCard()
 			m = $scope.moment || _.findWhere actionService._getMoments( c ), {status:'active'} 
-			icon = angular.element($event.currentTarget.parentNode).find('i')
-			icon.addClass('fa-spin')
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
@@ -657,7 +658,7 @@ angular.module(
 						# notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
 					else 
 						notify.alert "That photo was already added", "warning"
-					icon.removeClass('fa-spin')
+					
 					# check if this is the first photo
 					if drawer.state.counts.challenge.complete==0 && m.photoIds.length == 1
 						notify.message {
@@ -667,14 +668,32 @@ angular.module(
 				return
 
 
-			if !navigator.camera
-				promise = cameraRoll.getPicture($event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 10000 )
+			if cameraRoll.type == 'html5CameraService' 
+				console.log "get photos at time=" + moment().format("ss.sss")
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+
+				cameraRoll.setDeferred(dfd).then( (promises)->
+					console.log "count of promises=" + promises.length
+					_.each promises, (promise)->
+						promise.then( saveToMoment, (message)->
+								notify.alert message, "danger", 10000 
+						)	
+				).finally ()->
+					return icon.removeClass('fa-spin')		
+				
 				return true	# continue to input[type=file] handler
-			else
+			else if cameraRoll.type == 'cordovaCameraService' 
 				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 15000 )
-			return;
+				promise.then( saveToMoment ).catch( (message)->
+					notify.alert message, "danger", 15000 
+				).finally ()->
+					return icon.removeClass('fa-spin')	
+				return true
+			else 
+				console.warn "Error: Invalid cameraRoll."	
+				return false;
 
 		$scope.challenge_pass = ()->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())

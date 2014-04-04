@@ -72,14 +72,10 @@
               <div class="btn-group status-active"
               ng-if="['active'].indexOf(card.status)>=0">
                 <button type="button" class="btn btn-default" ng-click="challenge_pass()">Pass</button>
-                <span class='no-camera-hack'>
-                  <button type="button" class="btn btn-primary" ng-click="challenge_getPhoto($event)">
+                  <button type="button" id="html5-get-file" class="btn btn-primary" 
+                  ng-click="challenge_getPhoto($event)">
                     <i class="fa fa-picture-o"></i> Camera Roll
                   </button>
-                  <input id="html5-get-file" class="transparent-overlay"  type="file" accept="image/jpeg"
-                   ng-click="challenge_getPhoto($event)"
-                   bo-if="!window.navigator.camera"/>  
-                </span>
                 <button type="button" class="btn btn-success" ng-disabled="card.challengePhotos.length==0" ng-click="challenge_done()">Done</button>
               </div> 
               <div class="btn-group status-complete"

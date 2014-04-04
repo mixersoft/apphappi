@@ -4,13 +4,82 @@ angular.module(
 	'appHappi'
 ).service('cordovaImpl', [()->
 		# use cameraService from Camera.coffee for now
-
+		return false
 	]
 ).service('html5CameraService', [
 	'$q'
 	'notifyService'
 	'appConfig'
 	($q, notify, CFG)->
+		#
+		# private
+		#
+		_deferred = {}
+		_fsRoot = null
+
+		# pluploader
+		_plupload = new plupload.Uploader {
+			runtimes : 'html5'
+			# TODO: need to let challenge_getPhoto() invoke uploader
+			browse_button: 'html5-get-file'
+			drop_element: 'html5-get-file'
+			multi_selection: true
+			url: 'nothing'
+			filters :
+				max_file_size: '10mb'
+				mime_types: [{
+						title : "Photos"
+						extensions : "jpg,jpeg"
+					}]
+					prevent_duplicates: true
+			resize: 
+				width: 320
+				height: 320
+				quality: 85
+				crop: false		
+				preserve_headers : true
+			init: 
+				PostInit: ()->
+					document.getElementById('uploadfiles')?.onclick = ()->
+						_plupload.start();
+						return false;
+
+				# up plupload.Uploader
+				# files array of PluploadFile
+				FilesAdded: (up, files)->
+					# confirm same as below
+					$target = angular.element(up.settings.browse_button[0])
+					scope = $target.scope()
+
+					multi_select_promises = []
+					_.each files, (plFile)->
+							console.log "plupload file="+ plFile.name + ", properties=" + _.keys file 
+							steroids.logger.log "plupload file="+ plFile.name + ", properties=" + _.keys file 
+
+							# PluploadFile attributes
+							# plFile: ["id", "name", "type", "size", "origSize", "loaded", "percent", "status", "lastModifiedDate", "getNative", "getSource", "destroy"]
+							# plFile.getNative(): ["webkitRelativePath", "lastModifiedDate", "name", "type", "size"]
+							# plFile.getSource(): ["connectRuntime", "getRuntime", "disconnectRuntime", "uid", "ruid", "size", "type", "slice", "getSource", "detach", "isDetached", "destroy", "name", "lastModifiedDate"]
+
+							file = plFile.getNative()
+							name = plFile.name
+							modified = plFile.lastModifiedDate
+
+							dfd = $q.defer()
+							_processImageFile(file, dfd)
+							# _fileReader.readAsDataURL(file)
+							multi_select_promises.push dfd.promise
+							
+					done = _deferred[$target.attr('upload-id')] 
+					throw "ERROR: cannot find deferred to resolve" if !done
+					done.resolve(multi_select_promises)
+					delete _deferred[done.id]
+					return
+		}
+		_plupload.init()
+		console.log "*** Plupload ready"
+
+
 		class Downsizer
 			constructor: (options)->
 				defaults = {
@@ -21,7 +90,7 @@ angular.module(
 				}
 				self = this
 
-				this.cfg = _.defaults(options, defaults)
+				this.cfg = _.defaults(options||{}, defaults)
 
 				this._canvasElement = document.createElement('canvas')
 				this._imageElement = new Image()
@@ -29,6 +98,7 @@ angular.module(
 					img = this
 					self._downsize(img, self.cfg.deferred)
 					# self._handleImgOnLoad(self, this)
+
 				
 			_downsize: (img, dfd, targetWidth)=>
 				_.defer (self)->
@@ -61,19 +131,25 @@ angular.module(
 				return 
 
 			downsizeImage : (src, dfd, targetWidth)=>
-				this.cfg.deferred = dfd if dfd?
+				throw "Error: downsizeImage() Expecting deferred" if !dfd
+
+				this.cfg.deferred = dfd
 				this.cfg.targetWidth = targetWidth if targetWidth?	
 				this._imageElement.src = src
-				return this.cfg.deferred.promise
+				promise = this.cfg.deferred.promise.finally ()=>
+					this.cfg.deferred = null
+				return this.cfg.deferred.promise.finally ()->
 
+		# Downsizer static methods			
+		Downsizer.one = ()->
+			Downsizer._instances = [] if !Downsizer._instances
+			found = _.find Downsizer._instances, (d)->
+					return d.cfg.deferred == null
+			if !found
+				found = new Downsizer()
+				Downsizer._instances.push found
+			return found
 
-		# private object for downsizing via canvas
-		_deferred = null
-		_deferredCounter = 0
-		_downsizer = new Downsizer({
-			deferred: _deferred
-			targetWidth: CFG.camera.targetWidth
-		})	
 		
 		# get formatted photo = {} for resolve		
 		_getPhotoObj = (uri, dataURL, exif)->
@@ -122,20 +198,6 @@ angular.module(
 				rating: 0		# required for orderBy:-rating to work				
 			}
 
-		_processImageSrc = (src, dfd)->
-			_downsizer.downsizeImage(src, dfd)
-			rerturn dfd.promise
-
-		_filepathTEST = null
-
-		_processImageFileEntry = (fileEntry, dfd)->
-			fileEntry.file(
-				(file)->
-					_processImageFile(file, dfd)
-				, (error)->
-					notify.alert "fileMoved() error, CODE="+error.code, "danger", 60000
-			)
-			return dfd.promise
 
 		_processImageFile = (file, dfd)->
 			reader = new FileReader()
@@ -151,16 +213,17 @@ angular.module(
 		_processImageDataURL = (dataURL, file, dfdFINAL)->
 			dfdExif = $q.defer()
 			dfdDownsize = $q.defer()
+			downsizer = Downsizer.one()
 			promises = {
-				exif: _parseExif dataURL , dfdExif
-				downsized: _downsizer.downsizeImage(dataURL, dfdDownsize)
+				# exif: _parseExif dataURL , dfdExif
+				downsized: downsizer.downsizeImage(dataURL, dfdDownsize)
 			}
 			$q.all(promises).then (o)->
 				check = _.filter o, (v)->return v=='timeout'
 				if check?.length
 					notify.alert "jsTimeout for " + JSON.stringify check, "warning", 10000
 				src = '/'+file.name
-				photo = _getPhotoObj(src, o.downsized, o.exif)
+				photo = _getPhotoObj(src, o.downsized, o.exif || {} )
 
 				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 30000
 				
@@ -194,55 +257,23 @@ angular.module(
 			, 10000, dfd	
 			return dfd.promise	
 
-		#  ### BROWSER TESTING ###
-		#  for testing in browser, no access to Cordova camera API
+
 		#
-		if !navigator.camera?
-			#
-			# private
-			#
-			_fileReader = new FileReader()
-			_icon = null
+		# this is the actual service for BROWSER
+		#	
+		self = {
+			type: "html5CameraService"
+			# use HTML5 File api in browser
+			getFilesystem : ()->
+				return _fsRoot
+			setDeferred: (dfd)->
+				# dfd.resolved by plupload FilesAdded handler
+				# track dfd by dfd.id
+				_deferred[dfd.id] = dfd
+				return dfd.promise
+					
+		} # end self
 
-			_fileReader.onload = (event)->
-				# _imageElement.src = event.target.result
-				# _downsizer.downsizeImage(event.target.result, _deferred)
-				_processImageSrc(event.target.result, _deferred).finally( ()->
-						_icon.removeClass('fa-spin')
-					)
-
-			#
-			# this is the actual service for BROWSER
-			#	
-			return self = {
-				# use HTML5 File api in browser
-				getFilesystem : ()->
-					return null
-				getPicture: (e)->
-					if _deferred?
-						_deferred.reject(  '(HTML5 getPicture() cancelled'  )
-					_deferred = $q.defer()
-					_deferred.promise.finally ()-> _deferred = null
-					_icon =  angular.element(e.currentTarget.parentNode).find('i')
-
-					if (e.currentTarget.tagName=='INPUT' && 
-											e.currentTarget.type=='file' && 
-											!e.currentTarget.onchange?)
-						# input[type="file"]
-						e.currentTarget.onchange = (e)->
-								e.preventDefault();
-								file = e.currentTarget.files[0]
-								if file 
-									_processImageFile(file, _deferred)
-									# _fileReader.readAsDataURL(file)
-									_icon.addClass('fa-spin') if _icon?
-								return false
-					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
-					return _deferred.promise
-			} # end self
-
-
-		}
 
 		if _.isFunction(window.requestFileSystem)
 			# notify.alert "window.requestFileSystem OK, "+window.requestFileSystem, "success" 
