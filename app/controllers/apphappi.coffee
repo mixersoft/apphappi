@@ -60,6 +60,68 @@ angular.module(
 			this.timeouts = []
 		return	
 ]
+).factory('cameraRoll', [
+	'$window'
+	'$injector'
+	'$timeout'
+	'$q'
+	($window, $injector, $timeout, $q)->
+		#
+		# load the correct service for the device
+		# 	uses html5/plupload when run in browser
+		#   navigator.camera.getPicture() when run as app in cordova
+		#
+		_cameraRollService = {}
+		dfd = $q.defer()
+
+		use_fallback = ()->
+			type = "html5CameraService"
+			_cameraRollService = $injector.get(type)
+			dfd.resolve {
+				type : type
+				cameraRoll: _cameraRollService
+			}
+
+		use_cordova = ()->
+			# return $injector.get('cordovaImpl')
+			type = "cordovaCameraService"
+			_cameraRollService = $injector.get(type)
+			dfd.resolve {
+				type : type
+				cameraRoll: _cameraRollService
+			}
+
+
+		if $window.deviceready	# already known, resolve immediately
+			if ($window.cordova) 
+				use_cordova()
+			else 
+				use_fallback()
+		else 
+			cancel = $timeout use_fallback, 2000	
+			document.addEventListener "deviceready", ()->
+				$timeout.cancel cancel
+				if ($window.cordova) 
+					use_cordova()
+				else 
+					use_fallback()
+				return
+
+		self = {
+			isReady: false
+			promise : null
+			getPicture : ()-> 
+				throw "WARNING: cameraRoll service is not ready yet. use cameraRoll.promise() " if !self.isReady
+		}
+
+		self.promise = dfd.promise.then (o)->
+			self.isReady = true
+			self.type = o.type
+			_.extend self, o.cameraRoll
+			return self
+
+		return self
+	]
 ).factory( 'actionService', [ 
 	'drawerService'
 	'deckService'
@@ -412,11 +474,11 @@ angular.module(
 	'drawerService'
 	'syncService'
 	'deckService'
-	'cameraService'
+	'cameraRoll'
 	'actionService'
 	'notifyService'
 	'appConfig'
-	($scope, $rootScope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraService, actionService, notify, appConfig)->
+	($scope, $rootScope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraRoll, actionService, notify, appConfig)->
 
 		#
 		# Controller: ChallengeCtrl
@@ -606,11 +668,11 @@ angular.module(
 
 
 			if !navigator.camera
-				promise = cameraService.getPicture($event)
+				promise = cameraRoll.getPicture($event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 10000 )
 				return true	# continue to input[type=file] handler
 			else
-				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
+				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "danger", 15000 )
 			return;
 
@@ -776,11 +838,11 @@ angular.module(
 	'drawerService'
 	'syncService'
 	'deckService'
-	'cameraService'
+	'cameraRoll'
 	'actionService'
 	'notifyService'
 	'appConfig'
-	($scope, $rootScope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraService,  actionService, notify, appConfig)->
+	($scope, $rootScope, $filter, $q, $route, $location, $timeout, drawer, syncService, deckService, cameraRoll,  actionService, notify, appConfig)->
 		#
 		# Controller: MomentCtrl
 		#
@@ -1043,11 +1105,11 @@ angular.module(
 				return
 
 			if !navigator.camera
-				promise = cameraService.getPicture($event)
+				promise = cameraRoll.getPicture($event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
 				return true	# continue to input[type=file] handler
 			else
-				promise = cameraService.getPicture(cameraService.cameraOptions.fromPhotoLibrary, $event)
+				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
 
 

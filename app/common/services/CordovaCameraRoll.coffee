@@ -2,7 +2,7 @@ return if !angular?
 
 angular.module(
 	'appHappi'
-).factory('cameraService', [
+).factory('cordovaCameraService', [
 	'$q'
 	'notifyService'
 	'appConfig'
@@ -189,53 +189,6 @@ angular.module(
 				dfd.reject("timeout")
 			, 10000, dfd	
 			return dfd.promise	
-
-		#  ### BROWSER TESTING ###
-		#  for testing in browser, no access to Cordova camera API
-		#
-		if !navigator.camera?
-			#
-			# private
-			#
-			_fileReader = new FileReader()
-			_icon = null
-
-			_fileReader.onload = (event)->
-				# _imageElement.src = event.target.result
-				# _downsizer.downsizeImage(event.target.result, _deferred)
-				_processImageSrc(event.target.result, _deferred).finally( ()->
-						_icon.removeClass('fa-spin')
-					)
-
-			#
-			# this is the actual service for BROWSER
-			#	
-			return NO_cameraService = {
-				# use HTML5 File api in browser
-				getFilesystem : ()->
-					return null
-				getPicture: (e)->
-					if _deferred?
-						_deferred.reject(  '(HTML5 getPicture() cancelled'  )
-					_deferred = $q.defer()
-					_deferred.promise.finally ()-> _deferred = null
-					_icon =  angular.element(e.currentTarget.parentNode).find('i')
-
-					if (e.currentTarget.tagName=='INPUT' && 
-											e.currentTarget.type=='file' && 
-											!e.currentTarget.onchange?)
-						# input[type="file"]
-						e.currentTarget.onchange = (e)->
-								e.preventDefault();
-								file = e.currentTarget.files[0]
-								if file 
-									_processImageFile(file, _deferred)
-									# _fileReader.readAsDataURL(file)
-									_icon.addClass('fa-spin') if _icon?
-								return false
-					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
-					return _deferred.promise
-			} # end NO_cameraService
 
 		#
 		# ### for DEVICE ###
