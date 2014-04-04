@@ -1,40 +1,40 @@
 { 
-  "modified": "2014-01-22T18:04:21.190Z",
+  "modified": "2014-04-04T12:00:00.000Z",
   "data":[
   {
     "name": "gethappi",
     "label": "<i class=\"fa fa-smile-o\"></i> GetHappi Moments",
     "items": [
      {
-      "name": "mostrecent",
+      "item": "mostrecent",
       "label": "Most Recent",
       "orderBy": "-modified",
       "filter": {"status":"!pass"},
       "route": "/moments"
      },
      {
-      "name": "rating",
+      "item": "rating",
       "label": "Top Rated",
       "filter": {"status":"!pass"},
       "orderBy": "-stats.rating.moment",
       "route": "/moments"
      },
      {
-      "name": "name",
+      "item": "name",
       "label": "by Name",
       "filter": {"status":"!pass"},
       "orderBy": "challenge.name",
       "route": "/moments"
      },
      {
-      "name": "category",
+      "item": "category",
       "label": "by Category",
       "filter": {"status":"!pass"},
       "orderBy": "challenge.humanize.category",
       "route": "/moments"
      },
      {
-      "name": "shuffle",
+      "item": "shuffle",
       "label": "Shuffle",
       "filter": {"status":"!pass"},
       "orderBy": "",
@@ -47,7 +47,7 @@
     "label": "<i class=\"fa fa-search\"></i> FindHappi Challenges",
     "items": [
       {
-        "name": "current",
+        "item": "current",
         "label": "Challenge: Current",
         "countKey": "active",
         "filter": {
@@ -56,7 +56,7 @@
         "route": "/challenges"
       },
       {
-        "name": "working",
+        "item": "working",
         "label": "Challenge: Working...",
         "countKey": "working",
         "filter": {
@@ -65,7 +65,7 @@
         "route": "/challenges"
       },
       {
-        "name": "completed",
+        "item": "completed",
         "label": "Challenge: Completed",
         "countKey": "complete",
         "filter": {
@@ -74,7 +74,7 @@
         "route": "/challenges"
       },
       {
-        "name": "passed",  
+        "item": "passed",  
         "label": "Challenge: Passed",
         "countKey": "pass",
         "filter": {
@@ -83,14 +83,14 @@
         "route": "/challenges"
       },
       {
-        "name": "all",  
+        "item": "all",  
         "label": "Challenge: All",
         "countKey": "findhappi",
         "filter": "",
         "route": "/challenges"
       },
       {
-        "name": "create",  
+        "item": "create",  
         "label": "Create a new Challenge",
         "filter": "",
         "route": "/challenges/new"
@@ -102,13 +102,13 @@
     "label": "<i class=\"fa fa-calendar\"></i> Timeline",
     "items": [
       {
-        "name": "toprated",
+        "item": "toprated",
         "label": "Top Rated Photos",
         "orderBy": "-rating",
         "route": "/timeline"
       },
       {
-        "name": "mostrecent",
+        "item": "mostrecent",
         "label": "Most Recent Photos",
         "orderBy": "-dateTaken",
         "route": "/timeline"
@@ -126,37 +126,37 @@
     "label": "<i class=\"fa fa-cog fa-spin\"></i> Settings",
     "items": [
       {
-        "name": "gettingstarted",
+        "item": "gettingstarted",
         "label": "Getting Started",
         "route": "/getting-started"
       },
       {
-        "name": "reminder",
+        "item": "reminder",
         "label": "Reminders",
         "route": "/settings/reminders"
       },
       {
-        "name": "about",
+        "item": "about",
         "label": "About Snaphappi",
         "route": "/about"
       },
       {
-        "name": "debug",
+        "item": "debug",
         "label": "Developer Mode",
         "switch": "CFG.debug"
       },
       {
-        "name": "reload",
+        "item": "reload",
         "label": "Reload",
         "route": "/"
       },
       {
-        "name": "drawer",
+        "item": "drawer",
         "label": "Reset Navigation",
         "route": "/"
       },
       {
-        "name": "reset",
+        "item": "reset",
         "label": "Reset local data",
         "route": "/challenges"
       }

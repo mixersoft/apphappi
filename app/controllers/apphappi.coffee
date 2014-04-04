@@ -376,11 +376,11 @@ angular.module(
 				drawerService.animateClose(500)
 				return 
 
-			nextReminder : (format)->
+			nextReminder : ()->
 				reminder = syncService.notification()['date']
 				return null if !reminder
-				return moment(reminder).format(format) if format
-				return reminder
+				reminder = moment(reminder)
+				return if reminder.isValid() then reminder.toDate() else null
 
 			reminderDays : ()->
 				days = syncService.notification().data?.repeat
@@ -439,7 +439,7 @@ angular.module(
 
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
-			syncService.setForeignKeys(o.challenge, o.moment)
+			o = syncService.setForeignKeys()
 			_.extend($rootScope.route, drawer.getRoute())
 			drawer.init o.challenge, o.moment, $rootScope.route.drawerState
 
@@ -478,10 +478,10 @@ angular.module(
 			if (drawer.state.group=='findhappi' && drawer.state.item=='current')
 				if drawer.state.counts['challenge']['active'] == 0
 					$scope.drawerShowAll()
-					if window.Modernizr.touch 
-						# drawerItem.active not updating correctly on iOS
-						# NOT WORKING on iOS
-						angular.element(document.getElementById("drawer-findhappi-current")).removeClass('active')
+					# if window.Modernizr.touch 
+					# 	# drawerItem.active not updating correctly on iOS
+					# 	# NOT WORKING on iOS
+					# 	angular.element(document.getElementById("drawer-findhappi-current")).removeClass('active')
 
 				else # load moment, challengePhotos
 					$scope.getChallengePhotos()
@@ -557,9 +557,9 @@ angular.module(
 		
 		$scope.drawerShowAll = ()->
 			after_handleItemClick = (route)->
-        $scope.deck.cards('refresh') 
-        # $scope.deck.shuffle()
-        return
+        		$scope.deck.cards('refresh') 
+		        $scope.deck.shuffle()
+		        return
 			return actionService.drawerItemClick 'drawer-findhappi-all', after_handleItemClick
 
 
@@ -802,7 +802,7 @@ angular.module(
 		syncService.initLocalStorage()  
 		$q.all( syncService.promises ).then (o)->
 			# rebuild FKs
-			syncService.setForeignKeys(o.challenge, o.moment)
+			o = syncService.setForeignKeys()
 			# wrap challenges in a Deck
 			_challenges = deckService.setupDeck(o.challenge)
 
@@ -1088,8 +1088,9 @@ angular.module(
 
 		syncService.initLocalStorage() 
 		$q.all( syncService.promises ).then (o)->
-			# rebuild FKs
-			syncService.setForeignKeys(o.challenge, o.moment)
+			# rebuild FKs 
+			# NOTE: o.challenge == localData.challenge, etc. THESE OBJECTS ARE ORIGINALS, not CLONES
+			o = syncService.setForeignKeys()
 			_.extend($rootScope.route, drawer.getRoute())
 			drawer.init o.challenge, o.moment, $rootScope.route.drawerState
 
@@ -1140,98 +1141,102 @@ angular.module(
 	'notifyService'
 	'appConfig'
 	($scope, $rootScope, syncService, drawer, $location, $timeout, $q, localNotify, actionService, notify, appConfig)->
-		# 
-		#	settingsCtrl
-		#
-		# redirect to /getting-started if necessary
-		if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
-			return $location.path('/challenges') 
+		try 
+			# 
+			#	settingsCtrl
+			#
+			# redirect to /getting-started if necessary
+			if $location.path()=='/getting-started/check' && syncService.get('settings')?['hideGettingStarted']
+				return $location.path('/challenges') # goto /challenges/all or /challenges/draw-new???
 
-		CFG = $rootScope.CFG || appConfig
-		drawer = $rootScope.drawer || drawer
-		notify = $rootScope.notify || notify
+			CFG = $rootScope.CFG || appConfig
+			drawer = $rootScope.drawer || drawer
+			notify = $rootScope.notify || notify
 
-		CFG.$curtain.find('h3').html('Loading Settings...')
-		# notify.clearMessages() 	
+			CFG.$curtain.find('h3').html('Loading Settings...')
+			# notify.clearMessages() 	
 
-		if $location.path() == '/getting-started/check'
-			try 
-				# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
-				localNotify.clearBadge()
-			catch error
-				CFG.$curtain.addClass 'hidden'
-				notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
+			if $location.path() == '/getting-started/check'
+				try 
+					# badge plugin: https://github.com/katzer/cordova-plugin-badge.git
+					localNotify.clearBadge()
+				catch error
+					CFG.$curtain.addClass 'hidden'
+					notify.alert "EXCEPTION: localNotify.onclick(), badge clear error="+JSON.stringify error, "danger", 60000
 
-			$rootScope.title = "AppHappi"
-		else $rootScope.title = "Settings"
+				$rootScope.title = "AppHappi"
+			else $rootScope.title = "Settings"
 
-		_.each actionService.exports, (key)->
-			$scope[key] = actionService[key] 
-
-
-		# ************************* Reminders ******************************
-		now  = new Date()
-		if $location.path()=='/settings/reminders' 
-			# localNotify = new LocalNotify()
-			if !localNotify.isReady()
-				notify.message {
-						title: "Note: Reminders Are Emulated"
-						message: """
-							Reminders are emulated in this desktop configuration because Notifications are <u>not</u> available. 
-							To get actual notifications you will need to install the AppHappi app.
-							"""
-					}
-				, null, 10000
-
-		_roundToQuarterHour = (date, today)->
-			date = new Date() if !date?
-			minutes = date.getMinutes()
-			hours = date.getHours()
-			m = (((minutes + 7.5)/15 | 0) * 15) % 60
-			h = (((minutes/105 + .5) | 0) + hours) % 24
-			if today		# convert future datetime to today at same time
-				now = new Date()
-				return new Date now.getFullYear(), now.getMonth(), now.getDate(), h, m
-			return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
-
-		$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
-		$scope.reminderDays = actionService.reminderDays()
-		notify.alert "Timepicker time= " + $scope.reminderTime + ", next reminder="+actionService.nextReminder(), 'info', 30000
-
-		# repeat:  ['secondly', 'minutely', 'hourly', 'daily', 'weekly', 'monthly' or 'yearly']
-		$scope.localNotificationTime = (date, repeat)->
-			localNotify.loadPlugin() if !localNotify.isReady()
-			# sample message from ontrigger()
-			# date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
-			message = actionService.getNotificationMessage()
-			message['repeat'] = repeat if repeat?
-			notify.alert "$scope.localNotification(): message="+JSON.stringify message
-			localNotify.addByDate date, message
-
-		$scope.localNotificationDelay = (sec)->
-			localNotify.loadPlugin() if !localNotify.isReady()
-			# notify.alert "$scope.localNotification(): message="+JSON.stringify message
-			localNotify.addByDelay sec, actionService.getNotificationMessage()
-			
+			_.each actionService.exports, (key)->
+				$scope[key] = actionService[key] 
 
 
-		# ************************* Getting Started ******************************8
-		$scope.carouselIndex = null
-		$scope.formatCardBody = (body)->
-			body = body.join("</p><p>") if _.isArray(body) 
-			return "<p>"+body+"</p>"
-		$scope.gettingStartedDone = ()->
-			settings = syncService.get('settings')
-			settings['hideGettingStarted'] = true
-			syncService.set('settings', settings)
-			$location.path('/challenges/draw-new')
+			# ************************* Reminders ******************************
+			now  = new Date()
+			if $location.path()=='/settings/reminders' 
+				# localNotify = new LocalNotify()
+				if !localNotify.isReady()
+					notify.message {
+							title: "Note: Reminders Are Emulated"
+							message: """
+								Reminders are emulated in this desktop configuration because Notifications are <u>not</u> available. 
+								To get actual notifications you will need to install the AppHappi app.
+								"""
+						}
+					, null, 10000
+
+			_roundToQuarterHour = (date, today)->
+				date = new Date() if !date?
+				minutes = date.getMinutes()
+				hours = date.getHours()
+				m = (((minutes + 7.5)/15 | 0) * 15) % 60
+				h = (((minutes/105 + .5) | 0) + hours) % 24
+				if today		# convert future datetime to today at same time
+					now = new Date()
+					return new Date now.getFullYear(), now.getMonth(), now.getDate(), h, m
+				return new Date date.getFullYear(), date.getMonth(), date.getDate(), h, m
+
+			$scope.reminderTime = _roundToQuarterHour(actionService.nextReminder(), "today")
+			$scope.reminderDays = actionService.reminderDays()
+			notify.alert "Timepicker time= " + $scope.reminderTime + ", next reminder="+actionService.nextReminder(), 'info', 30000
+
+			# repeat:  ['secondly', 'minutely', 'hourly', 'daily', 'weekly', 'monthly' or 'yearly']
+			$scope.localNotificationTime = (date, schedule)->
+				localNotify.loadPlugin() if !localNotify.isReady()
+				# sample message from ontrigger()
+				# date = new Date(date.getTime() + 24*3600*1000) if date < new Date()
+				message = actionService.getNotificationMessage()
+				message['schedule'] = schedule || null
+				# notify.alert "$scope.localNotification(): message="+JSON.stringify message
+				localNotify.addByDate date, message
+				# steroids.logger.log "$scope.localNotificationTime: addByDate() COMPLETE"
+
+			$scope.localNotificationDelay = (sec)->
+				localNotify.loadPlugin() if !localNotify.isReady()
+				# notify.alert "$scope.localNotification(): message="+JSON.stringify message
+				localNotify.addByDelay sec, actionService.getNotificationMessage()
 				
 
-		syncService.initLocalStorage() 
-		$q.all( syncService.promises ).then (o)->
-			_.extend($rootScope.route, drawer.getRoute())
-			drawer.init o.challenge, o.moment, $rootScope.route.drawerState
-			CFG.$curtain.addClass 'hidden'
+
+			# ************************* Getting Started ******************************8
+			$scope.carouselIndex = null
+			$scope.formatCardBody = (body)->
+				body = body.join("</p><p>") if _.isArray(body) 
+				return "<p>"+body+"</p>"
+			$scope.gettingStartedDone = ()->
+				settings = syncService.get('settings')
+				settings['hideGettingStarted'] = true
+				syncService.set('settings', settings)
+				$location.path('/challenges/draw-new')
+					
+
+			syncService.initLocalStorage() 
+			$q.all( syncService.promises ).then (o)->
+				_.extend($rootScope.route, drawer.getRoute())
+				drawer.init o.challenge, o.moment, $rootScope.route.drawerState
+				CFG.$curtain.addClass 'hidden'
+		catch error
+			# steroids.logger.log "EXCEPTION: error="+JSON.stringify error
 
 	]	
 )

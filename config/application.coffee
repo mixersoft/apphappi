@@ -4,7 +4,7 @@
 steroids.config.name = "AppHappi"
 
 # -- Initial Location --
-steroids.config.location = "http://localhost/index.html#!/getting-started"
+steroids.config.location = "http://localhost/index.html#!/getting-started/check"
 
 # -- Tab Bar --
 # steroids.config.tabBar.enabled = true

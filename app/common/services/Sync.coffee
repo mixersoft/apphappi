@@ -72,26 +72,34 @@ angular.module(
 					), {}
 			}
 
-			# syncService.localData[key] should always be valid
-			get: (key, id)->	
-				if !id?
-					# just a wrapper for localStorageService
-					return localStorageService.get('drawerState') if key=='drawerState'
-					return localStorageService.get('settings') || {} if key=='settings'
-					return syncService.localData[key] 
+			# returns a cloned version of cached value, or {} if empty or undefined
+			get: (key, id=null)->	
+				# load from localStorageServe is not cached
+				if !syncService.localData[key] 
+					syncService.localData[key] = localStorageService.get( key ) || {}
+					# parse 'settings'
+					switch key 
+						when 'settings'
+							# all dates remain as toJSON() string, call new Date(notification.date) before using
+							null
+						when 'challenge', 'moment', 'photo'
+							null
 
-				if syncService.localData[key]?[id]?.stale  # this is WRONG
-					o = syncService.localData[key][id]
-					switch o && o.type
-						when 'moment', 'challenge'
-							syncService.set(key, o)
-						when 'photo'
-							syncService.set(key, o)
-						else	
-							throw "ERROR: localData was not saved to localStorage, key="+key
-				return syncService.localData[key][id]
+				if id == null
+					retval = syncService.localData[key] 
+					return _.clone retval, true
+
+				retval = syncService.localData[key][id] || {}
+				if retval.stale 
+					errmsg = "WARNING: localData cached value is stale, value=" + JSON.stringify syncService.localData[key][id]
+					# steroids.logger.log errmsg
+					notify.alert errmsg, "danger", 60000
+				
+				return _.clone retval, true
 
 			# save to localStorageService, checks for o.type=key and o.stale=true
+			# updates syncService.localData[key]
+			# returns savedData
 			set: (key, collection)->
 				if _.isPlainObject( collection ) && collection.type == key
 					collection = [collection]
@@ -104,38 +112,41 @@ angular.module(
 					switch key
 						when 'moment', 'challenge', 'photo'
 							saveData = syncService.serialize[key](collection)
+						when 'drawer'
+							return localStorageService.set('drawer', collection)
 						when 'drawerState'
 							# just a wrapper for localStorageService
 							return localStorageService.set('drawerState', drawer.state)
-						when 'settings'
+						when 'settings' # collection.type is undefined
 							localStorageService.set('settings', collection)
-							syncService.localData[key] = localStorageService.get('settings')
-							return syncService.localData[key]
+							written = localStorageService.get('settings')
+							syncService.parseModel['settings']( written )
+							return syncService.localData[key] = written
 						else 
-							console.warn "WARNING: syncService, key="+key
+							console.log "WARNING: syncService, key="+key
 
 					if !_.isEmpty(saveData)
-						localData = localStorageService.get(key) || {}	
+						model = localStorageService.get(key) || {}	
 						_.each saveData, (o)->
 							# pk = key+":"+o.id
 							# console.info "saving "+pk+" to localStorage..."
 							if o.remove
-								delete localData[o.id] 
+								delete model[o.id] 
 							else 
 								o.type = key
-								localData[o.id] = o
+								model[o.id] = o
 								
 						#TODO: check if we are wasting cycles by saving entire array to localStorageService
-						localStorageService.set(key, localData)
+						localStorageService.set(key, model)
 
 						# restore FKs ['challenge', 'moment', 'photos']
 						# INCOMPLETE!!!
-						# _.each localData (o)->
+						# _.each model (o)->
 						# 	check = collection[o.id]?.id == o.id
 
-						syncService.localData[key] = localData
-						msg =  "syncService.set("+key+") elapsed="+(new Date().getTime() - now.getTime())+"ms"
-						console.log msg
+						syncService.localData[key] = model
+						# msg =  "syncService.set("+key+") elapsed="+(new Date().getTime() - now.getTime())+"ms"
+						# console.log msg
 						return saveData
 						
 				catch
@@ -158,50 +169,42 @@ angular.module(
 				return syncService.lastModified['drawer'] = false
 
 
-			# @param o Object, notification payload, looking for these keys
-			#	o.date as DATE.toJSON() string
-			#	o.target
-			#	o.message
-			# 	o.data.repeat (optional)
-			# 	o.data.date == o.date
-			# 		false to clear notification trigger, handled
-			# 		null to read last notification trigger
+			# @param o Object, notification payload, see parseModel for example
 			# @return notification payload as object of last notification ontrigger
-			# 	notification.date is Date object
+			# 	NOTE: notification.date is a Date.toJSON() string
 			notification : (o = null)->
-				settings = syncService.get('settings')
 				if o == null # getter
-					notification = settings['notification'] || {}
-					notification.date = new Date(notification.date) if notification.date?
-					notification.data.date == notification.date if notification.data?
-					# steroids.logger.log "A - READ last notification, date=" + (notification.date || null)
-					return notification || {}
-				else if o == false
+					return syncService.get('settings', 'notification')
+
+				settings = syncService.get('settings')
+				if o == false
 					settings['notification'] = {}
-					return 	syncService.set('settings', settings)?['notification']
 				else if _.isObject(o)
 					settings['notification'] = o
-					written = syncService.set('settings', settings)
-					# steroids.logger.log "E1 - WRITTEN last notification, o=" + JSON.stringify( written['notification'])
-					return 	written['notification']
-				else
-					return throw "Error: syncService.notification() expecting an object or falsey"
+				else return throw "Error: syncService.notification() expecting an object or false"
+
+				syncService.set('settings', settings)
+				return syncService.get('settings', 'notification')	
+
+
 
 			initLocalStorage: (models=[])->
 				if !CFG.userId?
 					settings = syncService.get('settings')
+					syncService.parseModel['settings']( syncService.localData['settings'] )
 					if !settings['userId']?
 						settings['userId'] = new Date().getTime() 
+						# steroids.logger.log ">>>>> NEW CFG.userId set, userId="+settings['userId']
 						syncService.set('settings', settings)
 					CFG.userId = settings['userId']
 				models = ['challenge', 'moment', 'drawer', 'photo']
 				for model in models
 					syncService.promises[model] = syncService.initLocalStorageModel model
-				return syncService.promises		 	
+				return syncService.promises	
 
 			# @return $q.promise
-			initLocalStorageModel: (model)->
-				syncService.localData[model] = localStorageService.get(model)
+			initLocalStorageModel: (model, sync='later')->
+				syncService.get(model)
 				if syncService.localData[model] && syncService.localData[model].modified?
 					syncService.lastModified[model] = syncService.localData[model].modified
 				else syncService.lastModified[model] = _.reduce( syncService.localData[model]
@@ -209,24 +212,39 @@ angular.module(
 						return if o.modified > last then o.modified else last
 					, ''
 					)
+				
+				local_lastModified = syncService.lastModified[model] 
+				_checkServerLater = (model, local_lastModified)->
+					switch model
+						when "drawer"
+							return syncService.initLocalStorageModel(model, "now")
+						else 
+							return false
+
+				syncLater = (sync=='later' && syncService.lastModified[model])
+
 				switch model
 					when 'drawer' 
-						if !!syncService.lastModified[model]
+						if syncLater
 							# load drawer from localData
 							drawer.json syncService.localData['drawer']
 							drawer.ready = $q.defer()
 							drawer.ready.resolve( "ready" )
+							_checkServerLater model, local_lastModified
 							return drawer.ready.promise
 						else 
 							# load drawer from $http
 							promise = drawer.load( CFG.drawerUrl ).then (resp)->
-								# localStorageService.set(model, resp.data)
-								check = resp
-								return resp
-							# save to localStorageService in drawer.init()?
+								drawerJson = resp.data
+								server_lastModified = drawerJson.modified
+								local_lastModified = syncService.lastModified[model] || 0
+								if new Date(server_lastModified) > new Date(local_lastModified)
+									drawer.json(drawerJson)
+									syncService.set('drawer', drawer.json())
+								return drawerJson
 							return promise
 					when 'challenge'
-						if !!syncService.lastModified[model] 
+						if syncLater
 							# get data from localService
 							# TODO: compare localStorage lastModified against Server to detech sync
 							dfd = $q.defer()
@@ -245,6 +263,7 @@ angular.module(
 							 # return dfd.promise 	
 							.then (resp)->
 								data = resp.data
+								data = {} if _.isEmpty(data)
 								_.each data, (o)->
 									o.type = model
 									o.stale = true
@@ -258,6 +277,7 @@ angular.module(
 							.getList({'modified':syncService.lastModified[model]})
 							.then (data)->
 								# mark all as stale and let syncService.set() format
+								data = {} if _.isEmpty(data)
 								_.each data, (o)->
 									o.type = model
 									o.stale = true
@@ -266,7 +286,7 @@ angular.module(
 								dfd.resolve syncService.get('challenge') 
 							return dfd.promise
 					when 'moment', 'photo'	
-						if !!syncService.lastModified[model] 
+						if syncLater
 							# get data from localService
 							# TODO: compare localStorage lastModified against Server to detech sync
 							dfd = $q.defer()
@@ -275,11 +295,9 @@ angular.module(
 							dfd.resolve(modelData)
 							return dfd.promise
 						else 	
-							#
-							# do NOT load moment test data, return empty [] instead
-							#
+							
 							dfd = $q.defer()
-							dfd.resolve([])
+							dfd.resolve( empty = {} )
 							return dfd.promise
 								
 			parseModel: {
@@ -326,42 +344,67 @@ angular.module(
 					}
 					return  m
 				'photo': (m)->
-					m.rating = 0 if !m.rating?		
+					m.rating = 0 if !m.rating?	
+
+				### expecting
+				settings = {
+				  "userId": 1396483272541,
+				  "hideGettingStarted": true,
+				  "notification": {
+				    "id": 1396411200000,
+				    "date": "2014-04-03T04:00:00.000Z",
+				    "target": "/moments/shuffle",
+				    "message": "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another.",
+				    "title": "Get Your Happi for the Day"
+				    "schedule": {
+				      "1": true, "2": true, "3": true, "4": true, "5": true,  "6": true,  "7": true
+				    },
+				  }
+				###
+				'settings': (o)->
+					return o
+
 			}
 
-			setForeignKeys: (challenges, moments)->
-				# notify.alert "set foreign keys"
+			# @return o.challenge, o.moment, o.photo with foreign keys set. clone?
+			setForeignKeys: ()->
+				# use values directly from syncService.localData to set FK references
+				# NOTE: use localData[model][id] to set foreignKeys syncService.get() will return a copy
 				now = new Date()
 				challengeStatusPriority = ['new', 'sleep', 'pass', 'complete', 'working', 'active']
-				momentsAsArray = _.values(moments)
-				_.each challenges, (challenge)->
-				  # challenge.moments = _.where(momentsAsArray, {challengeId: challenge.id})
-				  if !challenge.momentIds?.length
-				  	challenge.status = 'new' if !challenge.status  # otherwise status='pass'
-				  else	
-				    _.each( challenge.momentIds, (mid,k,l)->
-				    							moment = syncService.get('moment', mid)
-				    							if !moment? 
-				    								notify.alert "ERROR: moment not found, possible data corruption. challenge="+challenge.name+", mid="+mid
-				    								return
-				    							missing = []
-				    							moment.photos = _.reduce moment.photoIds, ((result, id)->
-				    								photo = syncService.get('photo', id) 
-				    								if !!photo
-				    									photo.rating = 0 if !photo.rating?
-					    								result.push photo
-					    							else
-				    									notify.alert "WARNING: DB error, photoId not found. photoId="+id
-				    									missing =  missing.push id 
-				    								return result ), []
-			    								_.each missing, (id)->moment.photoIds.splice( moment.photoIds.indexOf(id),1)
-				    							moment.challenge = challenge    # moment belongsto challenge assoc
-				    							if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
-				    								challenge.status = moment.status 
-				    							return
-				    		)
+				momentsAsArray = _.values(syncService.localData['moment'])
+				_.each syncService.localData['challenge'], (challenge)->
+					# challenge.moments = _.where(momentsAsArray, {challengeId: challenge.id})
+					if !challenge.momentIds?.length
+						challenge.status = 'new' if !challenge.status  # otherwise status='pass'
+					else	
+						_.each( challenge.momentIds, (mid,k,l)->
+							moment = syncService.localData['moment'][mid]
+							if !moment? 
+								notify.alert "ERROR: moment not found, possible data corruption. challenge="+challenge.name+", mid="+mid
+								return
+							missing = []
+							moment.photos = _.reduce moment.photoIds, ((result, id)->
+								photo = syncService.localData['photo'][id] #  syncService.get('photo', id) 
+								if !!photo
+									photo.rating = 0 if !photo.rating?
+									result.push photo
+								else
+									notify.alert "WARNING: DB error, photoId not found. photoId="+id
+									missing.push id 
+								return result ), []
+							_.each missing, (id)->moment.photoIds.splice( moment.photoIds.indexOf(id),1)
+							moment.challenge = challenge    # moment belongsto challenge assoc
+							if challengeStatusPriority.indexOf(moment.status) > challengeStatusPriority.indexOf(challenge.status)
+								challenge.status = moment.status 
+							return
+						)
 				console.log "syncService.setForeignKeys(), elapsed="+ (new Date().getTime() - now.getTime()) + "ms"
-				return
+				return {
+					'challenge': syncService.localData['challenge']
+					'moment': syncService.localData['moment']
+					'photo': syncService.localData['photo']
+				}
 		}
 		# for counts, circular dependency problem, should refactor
 		drawer.setSyncService(syncService)

@@ -27,24 +27,19 @@ angular.module( 'appHappi', [
 	$curtain: angular.element(document.getElementById('curtain'))
 	drawerUrl: if window.location.protocol=='file:' then 'common/data/drawer.json' else ''
 	challengeUrl: if window.location.protocol=='file:' then 'common/data/challenge.json' else '/common/data/challenge.json'
-	# TODO: title/message is set in ChallgenCtrl/MomentCtrl, must duplicate message sent to Notification Center
+	# Note: title/message for notify.message() is set in ChallgenCtrl/MomentCtrl, 
+	# must duplicate message here, which is sent to Notification Center
 	notifications: [
 			{
 				title: "Your 5 Minutes of Happi Starts Now"
 				message: "Spend 5 minutes to find some Happi - a new challenge awaits!"
-				autoCancel: true
-				data: {
-					target: "/challenges/draw-new"
-				}
+				target: "/challenges/draw-new"
 			},
 			{
 				title: "Get Your Happi for the Day"
 				message: "This Happi moment was made possible by your '5 minutes a day'. Grab a smile and make another."
-				autoCancel: true
-				data: {
-					target: "/moments/shuffle"	
-				}
-				
+				target: "/moments/shuffle"	
+				# target: "/challenges/draw-new"
 			}
 		]
 }

@@ -213,7 +213,6 @@ angular.module(
         sameGroup = self.state.group == options.group
         # get drawerItemGroup options
         drawerItemOptions = self.getDrawerItem(options.group, options.item)
-        drawerItemOptions.item = drawerItemOptions.name 
         deckOptions = _.pick(options, ['filter', 'query', 'orderBy'])
         _.extend( self.state, {
           'group': options.group
@@ -239,7 +238,7 @@ angular.module(
         try 
           drawerCfg = _drawer.syncService?.localData['drawer']?.data || _drawer.json.data
           drawerGroup = _.findWhere(drawerCfg, {name: drawerGroup})
-          drawerItemOptions = _.findWhere(drawerGroup.items, {name: itemName})
+          drawerItemOptions = _.findWhere(drawerGroup.items, {item: itemName})
           drawerItemOptions['group'] = drawerGroup.name
           return drawerItemOptions
         catch
@@ -282,10 +281,10 @@ angular.module(
         console.log "*** drawer.load()"  
         _drawer.ready = $http.get(url).success (data, status, headers, config)->
           _drawer.json = data
-          localStorageService.set('drawer', _drawer.json )
+          # localStorageService.set('drawer', _drawer.json )
           # console.log "*** drawer ready"
-          return 'ready'
-        console.log _drawer.ready  
+          return 
+        # console.log _drawer.ready  
         return _drawer.ready  
 
       json: (data)->
