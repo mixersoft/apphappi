@@ -214,7 +214,7 @@ angular.module(
 			#
 			# this is the actual service for BROWSER
 			#	
-			return NO_cameraService = {
+			return self = {
 				# use HTML5 File api in browser
 				getFilesystem : ()->
 					return null
@@ -239,185 +239,8 @@ angular.module(
 								return false
 					# notify.alert "getPicture(): NEW _deferred="+JSON.stringify _deferred, "success"
 					return _deferred.promise
-			} # end NO_cameraService
+			} # end self
 
-		#
-		# ### for DEVICE ###
-		#
-
-		# private
-		_fsRoot = null	# cordova.file.DirectoryEntry
-		_requestFsPERSISTENT = ()->
-		# for devices with access to Cordova camera API
-			# notify.alert "1. window.deviceReady. navigator.camera"+JSON.stringify(navigator.camera), null, 10000
-			_fsDeferred = $q.defer()
-			window.requestFileSystem(
-				LocalFileSystem.PERSISTENT
-				, 50000*1024
-				, (fs)-> 
-					_fsRoot = fs.root
-					_fsDeferred.resolve(_fsRoot)
-					# notify.alert "2. window.requestFileSystem, _fsRoot.toURL()= "+_fsRoot.toURL(), 'success', 60000
-				, (ev)->
-					notify.alert "3. Error: requestFileSystem failed. "+ev.target.error.code, 'danger', 10000
-					_fsDeferred.reject(ev)
-			)
-			return _fsDeferred.promise
-
-		_fileErrorComment = ""
-
-		self = {
-			# Camera options
-			cameraOptions :
-				fromPhotoLibrary:
-					quality: CFG.camera.quality
-					destinationType: navigator.camera.DestinationType.FILE_URI
-					# destinationType: navigator.camera.DestinationType.IMAGE_URI
-					# destinationType: navigator.camera.DestinationType.NATIVE_URI
-					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
-					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
-					targetWidth: CFG.camera.targetWidth
-					popoverOptions: new CameraPopoverOptions(
-							460,
-							260,
-							100,
-							100, 
-							Camera.PopoverArrowDirection.ARROW_UP
-						)
-					# iPad camera roll popover position
-						# width: 768
-						# height: 
-						# arrowDir: Camera.PopoverArrowDirection.ARROW_UP
-				fromCamera:
-					quality: CFG.camera.quality
-					destinationType: navigator.camera.DestinationType.IMAGE_URI
-					correctOrientation: true
-					targetWidth: CFG.camera.targetWidth
-
-			getFilesystem : ()->
-				return _fsRoot
-
-			# Camera failure callback
-			cameraError : (message)->
-				# navigator.notification.alert 'Cordova says: ' + message, null, 'Capturing the photo failed!'
-				if _deferred?
-					_deferred.reject( message )
-					 
-
-			# File system failure callback
-			fileError : (error)->
-				# navigator.notification.alert "Cordova error code: " + error.code, null, "File system error!"
-				if _deferred?
-					_deferred.reject( "Cordova error code: " + error.code + " fileError. " + _fileErrorComment )
-
-			# Take a photo using the device's camera with given options, callback chain starts
-			# returns a promise
-			getPicture : (options, $event)->
-				# notify.alert "_fsRoot BEFORE getPicture = "+_fsRoot?.toURL(), null, 3000
-				navigator.camera.getPicture self.imageUriReceived, self.cameraError, options
-				if _deferred?
-					_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
-				_deferred = $q.defer()
-				_deferred.id = _deferredCounter++
-				_deferred.promise.finally ()-> 
-					# notify.alert "*** finally, set clear _deferred, id="+_deferred.id, "danger"
-					_deferred = null
-				# notify.alert "getPicture(): NEW _deferred, id="+_deferred.id, "success"
-				return _deferred.promise
-
-			# Move the selected photo from Cordova's default tmp folder to Steroids's user files folder
-			imageUriReceived : (imageURI)->
-				# notify.alert "imageUriReceived() from CameraRoll, imageURI="+imageURI
-
-				if true && "moveTo steroids.app.absoluteUserFilesPath" && _deferred?
-					# notify.alert "saving file to steroids.app.absoluteUserFilesPath...", "warning"
-					_fileErrorComment = "imageUriReceived"
-					window.resolveLocalFileSystemURI imageURI, self.gotFileObject, self.fileError
-					return
-				else if false && CFG.saveDownsizedJPG && imageURI && _deferred?
-					# notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning"
-					# _downsizer.downsizeImage(imageURI, _deferred).then( ()->
-					# 	notify.alert "DONE! saving downsized JPG as dataURL", "success"
-					# )
-					_processImageSrc(imageURI, _deferred).then( ()->
-						notify.alert "DONE! saving downsized JPG as dataURL", "success"
-					)
-					return
-				else if false && "use imgeURI directly" && _deferred?
-					photo = _getPhotoObj(imageURI)
-					_deferred.resolve(photo)
-					return
-				else
-					notify.alert "Error: shouldn't be here, _deferred="+JSON.stringify( _deferred), "danger", 10000 
-				return
-
-			gotFileObject : (file)->
-				# Define a target directory for our file in the user files folder
-				# steroids.app variables require the Steroids ready event to be fired, so ensure that
-				return notify.alert "Error: gotFileObject() deferred is null", "warning" if !_deferred?
-
-				# notify.alert "gotFileObject(), file="+JSON.stringify( file), "warning", 20000
-				# notify.alert "_fsRoot BEFORE on.ready = "+_fsRoot?.toURL(), null, 3000
-				steroids.on "ready", ->
-					# notify.alert "_fsRoot.toURL()=" +_fsRoot.toURL(), null, 3000	if _fsRoot
-					# notify.alert "_fsRoot NOT AVAILABLE", 'danger', 3000 if !_fsRoot?
-					
-					targetDirURI = self.getFilesystem()?.toURL() || "file://" + steroids.app.absoluteUserFilesPath 
-					# targetDirURI = "file://" + steroids.app.absoluteUserFilesPath 
-					# targetDirURI += "/.."
-
-					# NOTE
-					# targetDirURI = file:///var/mobile...
-					# _fsRoot.toURL = file://localhost/var/mobile/...
-					
-					fileName = new Date().getTime()+'.jpg'
-
-					# notify.alert "targetDirURI="+targetDirURI, 'info'
-					_fileErrorComment = "gotFileObject"
-
-					window.resolveLocalFileSystemURI(
-						targetDirURI,
-						((directory)->
-							_fileErrorComment = "resolveLocalFileSystemURI, path="+directory.fullPath+'/'+fileName
-							file.moveTo directory, fileName, self.fileMoved, self.fileError),
-						self.fileError
-					)
-					# _requestFsPERSISTENT()
-					return
-
-			# Store the moved file's URL into $scope.imageSrc
-			# localhost serves files from both steroids.app.userFilesPath and steroids.app.path
-			# @param file cordova.file.FileEntry
-			fileMoved : (file)->
-				# notify.alert "fileMoved(): BEFORE deferred.resolve() _dfd="+JSON.stringify _deferred
-				if _deferred?
-					filepath = "/" + file.name
-					# notify.alert "fileMoved(): success filepath="+filepath, "success"
-					# notify.alert "fileMoved(): success file.toURL="+file.toURL(), "success", 3000
-					# notify.alert "fileMoved(): success file.fullPath="+file.fullPath, "danger", 3000
-
-					_filepathTEST = filepath
-
-
-					if CFG.saveDownsizedJPG
-						notify.alert "saving downsized JPG as dataURL, w="+_downsizer.cfg.targetWidth+"px...", "warning", 3000
-						_processImageFileEntry(file, _deferred).then( ()->
-							notify.alert "DONE! saving downsized JPG as dataURL", "success", 30000
-						)
-					else
-						src = filepath
-						# src = file.toURL()  # WARNING: cannot serve IMG.src from file.toURL()
-						notify.alert "DONE! saving file to "+src, "success", 30000
-						photo = _getPhotoObj(src)
-						_deferred.resolve(photo)
-					return
-					# notify.alert "fileMoved(): "+JSON.stringify( file, null, 2)
-
-				self.cleanup()	
-
-			cleanup : ()->
-				# doesn't seem to work
-				navigator.camera.cleanup (()->notify.alert "Camera.cleanup success"), (()-> notify.alert 'Camera cleanup Failed because: ' + message, "warning" )
 
 		}
 
@@ -426,9 +249,6 @@ angular.module(
 			_requestFsPERSISTENT().then (directoryEntry)->
 				_fsRoot = directoryEntry
 				notify.alert "local.PERSISTENT _fsRoot="+_fsRoot.toURL(), 'success', 10000
-		else 
-			notify.alert "window.requestFileSystem UNDEFINED, "+window.requestFileSystem, "danger" 
-			location.reload() 
 
 		return self
 ]   
