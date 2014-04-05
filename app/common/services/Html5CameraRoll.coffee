@@ -18,66 +18,45 @@ angular.module(
 		_fsRoot = null
 
 		# pluploader
-		_plupload = new plupload.Uploader {
-			runtimes : 'html5'
-			# TODO: need to let challenge_getPhoto() invoke uploader
-			browse_button: 'html5-get-file'
-			drop_element: 'html5-get-file'
-			multi_selection: true
-			url: 'nothing'
-			filters :
-				max_file_size: '10mb'
-				mime_types: [{
-						title : "Photos"
-						extensions : "jpg,jpeg"
-					}]
-					prevent_duplicates: true
-			resize: 
-				width: 320
-				height: 320
-				quality: 85
-				crop: false		
-				preserve_headers : true
-			init: 
-				PostInit: ()->
-					document.getElementById('uploadfiles')?.onclick = ()->
-						_plupload.start();
-						return false;
+		_plupload = {
+			uploader: null			# new plupload.Uploader(_plupload.defaults)	
+			bind: (handlers)->
+				up = _plupload.uploader
+				return false if !up
+				up.unbindAll()
+				# bind internal handlers
+				_.each handlers, (fn, ev)->
+					up.bind ev, fn, up
+				return true
 
-				# up plupload.Uploader
-				# files array of PluploadFile
-				FilesAdded: (up, files)->
-					# confirm same as below
-					$target = angular.element(up.settings.browse_button[0])
-					scope = $target.scope()
-
-					multi_select_promises = []
-					_.each files, (plFile)->
-							console.log "plupload file="+ plFile.name + ", properties=" + _.keys file 
-							steroids.logger.log "plupload file="+ plFile.name + ", properties=" + _.keys file 
-
-							# PluploadFile attributes
-							# plFile: ["id", "name", "type", "size", "origSize", "loaded", "percent", "status", "lastModifiedDate", "getNative", "getSource", "destroy"]
-							# plFile.getNative(): ["webkitRelativePath", "lastModifiedDate", "name", "type", "size"]
-							# plFile.getSource(): ["connectRuntime", "getRuntime", "disconnectRuntime", "uid", "ruid", "size", "type", "slice", "getSource", "detach", "isDetached", "destroy", "name", "lastModifiedDate"]
-
-							file = plFile.getNative()
-							name = plFile.name
-							modified = plFile.lastModifiedDate
-
-							dfd = $q.defer()
-							_processImageFile(file, dfd)
-							# _fileReader.readAsDataURL(file)
-							multi_select_promises.push dfd.promise
-							
-					done = _deferred[$target.attr('upload-id')] 
-					throw "ERROR: cannot find deferred to resolve" if !done
-					done.resolve(multi_select_promises)
-					delete _deferred[done.id]
-					return
+			defaults : {
+				runtimes : 'html5'
+				# TODO: need to let challenge_getPhoto() invoke uploader
+				browse_button: 'html5-get-file'
+				drop_element: 'html5-get-file'
+				multi_selection: true
+				url: 'nothing'
+				filters :
+					max_file_size: '10mb'
+					mime_types: [{
+							title : "Photos"
+							extensions : "jpg,jpeg"
+						}]
+						prevent_duplicates: true
+				resize: 
+					width: 320
+					height: 320
+					quality: 85
+					crop: false		
+					preserve_headers : true
+				init: 
+					PostInit: ()->
+							return false;
+			}
 		}
-		_plupload.init()
-		console.log "*** Plupload ready"
+		_plupload.uploader = new plupload.Uploader(_plupload.defaults)
+		window._up = _plupload.uploader 		# for debugging
+		
 
 
 		class Downsizer
@@ -101,7 +80,9 @@ angular.module(
 
 				
 			_downsize: (img, dfd, targetWidth)=>
+				# console.log "downsizer._downsize"
 				_.defer (self)->
+					console.log "begin downsizing on canvas"
 					targetWidth = targetWidth || self.cfg.targetWidth
 					img = img || self._imageElement
 					tempW = img.width;
@@ -119,6 +100,7 @@ angular.module(
 					# get downsized img as dataURL
 					dataURL = self._canvasElement.toDataURL("image/jpeg")
 					clearTimeout(timeout)	
+					console.log "about to resolve, new dataURL=" + dataURL[0..60]
 					dfd.resolve(dataURL)
 				, this
 				timeout = _.delay (dfd)->
@@ -127,6 +109,7 @@ angular.module(
 				return dfd.promise
 
 			_handleImgOnLoad : (self, img)->
+				# console.log "downsizer img.onload"
 				self._downsize(img, self.cfg.deferred)
 				return 
 
@@ -204,6 +187,7 @@ angular.module(
 			reader.onloadend = (ev)-> 
 				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 3000
 				dataURL = ev.target.result
+				console.log "_processImageFile onloadend dataurl="+dataURL[0..60]
 				_processImageDataURL(dataURL, file, dfd)
 			# starts here	...
 			reader.readAsDataURL(file);
@@ -215,7 +199,7 @@ angular.module(
 			dfdDownsize = $q.defer()
 			downsizer = Downsizer.one()
 			promises = {
-				# exif: _parseExif dataURL , dfdExif
+				exif: _parseExif dataURL , dfdExif
 				downsized: downsizer.downsizeImage(dataURL, dfdDownsize)
 			}
 			$q.all(promises).then (o)->
@@ -224,10 +208,9 @@ angular.module(
 					notify.alert "jsTimeout for " + JSON.stringify check, "warning", 10000
 				src = '/'+file.name
 				photo = _getPhotoObj(src, o.downsized, o.exif || {} )
-
-				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 30000
-				
+				console.log "FINAL resolve "+ photo.id
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
+				return
 			return dfdFINAL.promise
 
 		
@@ -261,9 +244,73 @@ angular.module(
 		#
 		# this is the actual service for BROWSER
 		#	
+		_pluploadHandlers = {
+			# @param up plupload.Uploader
+			# @param files array of PluploadFile
+			FilesAdded: (up, files)->
+				# confirm same as below
+				$target = angular.element(up.settings.browse_button[0])
+				icon = $target.find('i')
+				icon.addClass('fa-spin')
+				# WARNING not enough CPU cycles to show spining icons
+
+				scope = $target.scope()
+				done = _deferred[$target.attr('upload-id')] 
+				if !done
+					# WARNING: mobile safari triggers FilesAdded but NOT ng-click(challenge_getPhoto())
+					# mobile chrome??
+					# call challenge_getPhoto() manually
+					console.log "ERROR: cannot find deferred to resolve" 
+					scope.challenge_getPhoto({currentTarget: $target[0]})
+					done = _deferred[$target.attr('upload-id')] 
+					console.log "done, dfd.id="+done.id
+
+				multi_select_promises = [] # one promise for each file selected
+				_.each files, (plFile)->
+						console.log "plupload file="+ plFile.name + ", lastModifiedDate=" + plFile.lastModifiedDate 
+						# steroids.logger.log "plupload file="+ plFile.name + ", lastModifiedDate=" + pFile.lastModifiedDate 
+
+						# PluploadFile attributes
+						# plFile: ["id", "name", "type", "size", "origSize", "loaded", "percent", "status", "lastModifiedDate", "getNative", "getSource", "destroy"]
+						# plFile.getNative(): ["webkitRelativePath", "lastModifiedDate", "name", "type", "size"]
+						# plFile.getSource(): ["connectRuntime", "getRuntime", "disconnectRuntime", "uid", "ruid", "size", "type", "slice", "getSource", "detach", "isDetached", "destroy", "name", "lastModifiedDate"]
+
+						file = plFile.getNative()
+						name = plFile.name
+						modified = plFile.lastModifiedDate
+
+						dfd = $q.defer()
+						multi_select_promises.push dfd.promise
+						_.defer ()->_processImageFile(file, dfd) 
+						return
+						
+				
+				done.resolve(multi_select_promises)
+				$q.all(multi_select_promises).then ()->
+					console.log "$q.all(multi_select_promises), all imgs downsized"
+					delete _deferred[done.id]
+				return
+		}
+
 		self = {
 			type: "html5CameraService"
 			# use HTML5 File api in browser
+			prepare: (browse_button="html5-get-file", options={})->
+				options['browse_button'] = browse_button
+				up = _plupload.uploader
+				setTimeout ()->
+						isNotLoaded = !up.runtime
+						if isNotLoaded
+							up.setOption(options) 
+							_plupload.bind( _pluploadHandlers )
+							up.init() 
+							console.log "*** Plupload init()"
+						else 
+							up.setOption(options) 
+							# we have to "reload" browse_button every time we reload the card
+							console.log "*** Plupload ready"
+					,0
+
 			getFilesystem : ()->
 				return _fsRoot
 			setDeferred: (dfd)->
@@ -273,6 +320,8 @@ angular.module(
 				return dfd.promise
 					
 		} # end self
+
+		window.cameraRoll = self
 
 
 		if _.isFunction(window.requestFileSystem)

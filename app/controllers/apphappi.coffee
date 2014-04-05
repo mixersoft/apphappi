@@ -61,11 +61,12 @@ angular.module(
 		return	
 ]
 ).factory('cameraRoll', [
+	'appConfig'
 	'$window'
 	'$injector'
 	'$timeout'
 	'$q'
-	($window, $injector, $timeout, $q)->
+	(CFG, $window, $injector, $timeout, $q)->
 		#
 		# load the correct service for the device
 		# 	uses html5/plupload when run in browser
@@ -91,7 +92,8 @@ angular.module(
 				cameraRoll: _cameraRollService
 			}
 
-
+		if CFG.cameraRoll == "html5CameraService"
+			use_fallback()
 		if $window.deviceready	# already known, resolve immediately
 			if ($window.cordova) 
 				use_cordova()
@@ -546,6 +548,7 @@ angular.module(
 					# 	angular.element(document.getElementById("drawer-findhappi-current")).removeClass('active')
 
 				else # load moment, challengePhotos
+					cameraRoll.promise.then ()->cameraRoll.prepare?()
 					$scope.getChallengePhotos()
 
 			# hide loading
@@ -624,16 +627,19 @@ angular.module(
 		        return
 			return actionService.drawerItemClick 'drawer-findhappi-all', after_handleItemClick
 
-
+		# called by either ng-click or FilesAdded.FilesAdded handler
 		$scope.challenge_getPhoto = ($event)->
-			icon = angular.element($event.currentTarget).find('i')
-			icon.addClass('fa-spin')
+			
+			$target = angular.element($event.currentTarget) 
+			icon = $target.find('i')
+			# icon.addClass('fa-spin') # spin AFTER we confirm some files were added
 
 			c = $scope.deck.topCard()
 			m = $scope.moment || _.findWhere actionService._getMoments( c ), {status:'active'} 
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
+				console.log "saveToMoment, p.id="+p.id
 				# notify.alert "Challenge saveToMoment "+JSON.stringify(p), "success", 20000
 				now = new Date()
 				if m?
@@ -667,33 +673,33 @@ angular.module(
 							}
 				return
 
-
+			# supports multi-select!!
 			if cameraRoll.type == 'html5CameraService' 
-				console.log "get photos at time=" + moment().format("ss.sss")
+				console.log "challenge_getPhoto() at time=" + moment().format("ss.sss")
 				dfd = $q.defer()
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
 
-				cameraRoll.setDeferred(dfd).then( (promises)->
+				promise = cameraRoll.setDeferred(dfd).then( (promises)->
 					console.log "count of promises=" + promises.length
+					$q.all(promises).finally ()->return icon.removeClass('fa-spin')	
 					_.each promises, (promise)->
-						promise.then( saveToMoment, (message)->
+						promise.then( saveToMoment, (error)->
+								console.error "deferred error=" + error
 								notify.alert message, "danger", 10000 
 						)	
-				).finally ()->
-					return icon.removeClass('fa-spin')		
-				
-				return true	# continue to input[type=file] handler
+				)
+				return promise	
 			else if cameraRoll.type == 'cordovaCameraService' 
 				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->
 					notify.alert message, "danger", 15000 
 				).finally ()->
 					return icon.removeClass('fa-spin')	
-				return true
+				return promise
 			else 
 				console.warn "Error: Invalid cameraRoll."	
-				return false;
+				return false
 
 		$scope.challenge_pass = ()->
 			if drawer.state.filter?.status =='active' && (c = $scope.deck.topCard())
@@ -776,12 +782,13 @@ angular.module(
 			actionService.setCardStatus(stale, 'active', now)
 			stale = stale.concat(deactivated)
 			syncService.set('challenge', stale)
-			syncService.set('moment', stale)		
+			syncService.set('moment', stale)
 			# drawer.updateCounts( _challenges)
 
 			after_handleItemClick = (route)->
-        $scope.deck.cards('refresh') 
-        return
+				$scope.deck.cards('refresh') 
+				cameraRoll.promise.then ()->cameraRoll.prepare?()
+				return
 
 			return actionService.drawerItemClick 'drawer-findhappi-current', after_handleItemClick
 
@@ -832,8 +839,9 @@ angular.module(
 			notify.alert("challenge status="+check.status, 'success')
 
 			after_handleItemClick = (route)->
-        $scope.deck.cards('refresh') 
-        return
+				$scope.deck.cards('refresh') 
+				cameraRoll.promise.then ()->cameraRoll.prepare?()
+				return
 
 			return actionService.drawerItemClick 'drawer-findhappi-current', after_handleItemClick
 
@@ -1036,6 +1044,7 @@ angular.module(
 			m.undo = {} if !m.undo?
 			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
 			m.isCardExpanded = true
+			cameraRoll.promise.then ()->cameraRoll.prepare?()
 
 		$scope.moment_delete = (id)->	
 			m = $scope.deck.topCard()
@@ -1096,8 +1105,9 @@ angular.module(
 		$scope.moment_getPhoto = (id, $event)->
 			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
 			throw "moment id mismatch" if m.id != id
-			icon = angular.element($event.currentTarget.parentNode).find('i')
-			icon.addClass('fa-spin')
+			$target = angular.element($event.currentTarget) 
+			icon = $target.find('i')
+			# icon.addClass('fa-spin') # spin AFTER we confirm some files were added
 
 			saveToMoment = (p)->
 				now = new Date()
@@ -1123,16 +1133,35 @@ angular.module(
 					icon.removeClass('fa-spin')
 				return
 
-			if !navigator.camera
-				promise = cameraRoll.getPicture($event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
-				return true	# continue to input[type=file] handler
-			else
+			# supports multi-select!!
+			if cameraRoll.type == 'html5CameraService' 
+				console.log "moment_getPhoto() at time=" + moment().format("ss.sss")
+				# promise = cameraRoll.getPicture($event)
+				# promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+
+				promise = cameraRoll.setDeferred(dfd).then( (promises)->
+					console.log "count of promises=" + promises.length
+					$q.all(promises).finally ()->return icon.removeClass('fa-spin')	
+					_.each promises, (promise)->
+						promise.then( saveToMoment, (error)->
+								console.error "deferred error=" + error
+								notify.alert message, "danger", 10000 
+						)	
+				)
+				return promise
+			else if cameraRoll.type == 'cordovaCameraService' 
 				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
+				return promise
+			else 
+				console.warn "Error: Invalid cameraRoll."	
+				return false
 
 
-		return;
+		return
 	]
 ).controller( 'TimelineCtrl', [
 	'$scope'

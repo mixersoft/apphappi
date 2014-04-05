@@ -72,10 +72,10 @@
               <div class="btn-group status-active"
               ng-if="['active'].indexOf(card.status)>=0">
                 <button type="button" class="btn btn-default" ng-click="challenge_pass()">Pass</button>
-                  <button type="button" id="html5-get-file" class="btn btn-primary" 
-                  ng-click="challenge_getPhoto($event)">
-                    <i class="fa fa-picture-o"></i> Camera Roll
-                  </button>
+                <button type="button" id="html5-get-file" class="btn btn-primary" 
+                ng-click="challenge_getPhoto($event)">
+                  <i class="fa fa-picture-o"></i> Camera Roll
+                </button>
                 <button type="button" class="btn btn-success" ng-disabled="card.challengePhotos.length==0" ng-click="challenge_done()">Done</button>
               </div> 
               <div class="btn-group status-complete"

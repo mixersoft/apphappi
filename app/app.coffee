@@ -14,11 +14,12 @@ angular.module( 'appHappi', [
 	jsTimeout: 2000							# used by EXIF.getTag, Downsizer._downsize
 	notifyTimeout: 5000
 	messageTimeout: 10000
-	longSleepTimeout: 4*3600		# 4 hours
-	drawerOpenBreakpoint: 768   # bootstrap @screen-sm-min, col-sm breakpoint
+	longSleepTimeout: 4*3600			# 4 hours
+	drawerOpenBreakpoint: 768   		# bootstrap @screen-sm-min, col-sm breakpoint
 	saveDownsizedJPG: true
 	# NOTE: only dataURLs are persisting between re-scans
 	# EXCEPT: in adhoc app (test this)
+	cameraRoll : 'auto'  # "html5CameraService"  # force "html5CameraService" or auto
 	camera: 
 		targetWidth : 320
 		quality: 85
