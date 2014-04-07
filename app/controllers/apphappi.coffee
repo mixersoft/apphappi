@@ -381,7 +381,7 @@ angular.module(
 
 			# called by [done], remove ALL marked photos on save
 			removeMarkedPhotos : (card)->
-				return if !card.markPhotoForRemoval?
+				return if _.isEmpty(card.markPhotoForRemoval)
 				now = new Date().toJSON()
 				# sort by key/index DESC
 				removalIndexes = _.keys card.markPhotoForRemoval
@@ -396,6 +396,7 @@ angular.module(
 
 			# remove ONE marked photo immediately
 			removeMarkedPhotoNow : ($event)->
+				now = new Date().toJSON()
 				scope = this
 				p = scope.$parent.photo
 				card = scope.$parent.$parent.card
