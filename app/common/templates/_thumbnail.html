@@ -22,10 +22,13 @@ ondragstart="_preventDefault(event)"
       {{photo.caption}} 
     </div>
     <div class='bottom-row edit'> 
-      <span class="inline-icons"></span>
-      <span class="inline-icons right">
+      <span class="inline-icons">
         <i ng-click="markPhotoForRemoval(card, $event, $index, 'undo')"
-        class='btn-icon fa fa-times-circle fa-lg'  title='remove'></i>
+        class='btn-icon fa fa-times-circle fa-lg'  title='cancel'></i>
+      </span>
+      <span class="inline-icons right">
+        <i ng-click="removeMarkedPhotoNow($event)"
+          class='btn-icon fa fa-trash-o fa-lg'  title='remove'></i>
       </span>
     </div>
     <div class='bottom-row'

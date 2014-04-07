@@ -147,6 +147,7 @@ angular.module(
 				'goToMoment'
 				'socialShare'
 				'markPhotoForRemoval'
+				'removeMarkedPhotoNow'
 				'isMarkedForRemoval'
 				'shuffleDeck'
 				'nextReminder'	# SettingsCtrl only
@@ -378,6 +379,7 @@ angular.module(
 				marked = this.card?.markPhotoForRemoval?[i]==id
 				return marked;
 
+			# called by [done], remove ALL marked photos on save
 			removeMarkedPhotos : (card)->
 				return if !card.markPhotoForRemoval?
 				now = new Date().toJSON()
@@ -387,10 +389,27 @@ angular.module(
 				_.each(removalIndexes, (index)->
 						id = card.markPhotoForRemoval[index]
 						retval = self._removePhoto(card, index, id)
-						card.stale = now
+						card.modified = card.stale = now
 					)
 				delete card.markPhotoForRemoval
 				return
+
+			# remove ONE marked photo immediately
+			removeMarkedPhotoNow : ($event)->
+				scope = this
+				p = scope.$parent.photo
+				card = scope.$parent.$parent.card
+				index = null
+				_.find card.markPhotoForRemoval, (v,k)->
+					return index = k if v==p.id
+				if !index?	
+					return throw "ERROR: removeMarkedPhotoNow, index not found in card.markPhotoForRemoval" 
+				retval = self._removePhoto(card, index, p.id)
+				if retval
+					delete card.markPhotoForRemoval[index]
+					card.modified = card.stale = now
+					syncService.set(card.type, card)
+
 
 			_removePhoto : (card, i, id)->
 				try
