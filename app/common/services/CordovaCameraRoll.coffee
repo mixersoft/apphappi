@@ -27,21 +27,24 @@ angular.module(
 					# self._handleImgOnLoad(self, this)
 				
 			_downsize: (img, dfd, targetWidth)=>
+				if (img.width <! targetWidth) 
+					dfd.resolve(img.src)
+					return dfd.promise
+
+				resizeH = img.height/img.width * targetWidth
+				resizeW = targetWidth
+
 				_.defer (self)->
 					targetWidth = targetWidth || self.cfg.targetWidth
 					img = img || self._imageElement
-					tempW = img.width;
-					tempH = img.height;
-					if (tempW > targetWidth) 
-						 tempH *= targetWidth / tempW;
-						 tempW = targetWidth;
 
 					# canvas = document.createElement('canvas');
-					self._canvasElement.width = tempW;
-					self._canvasElement.height = tempH;
+					self._canvasElement.width = resizeW;
+					self._canvasElement.height = resizeH;
 					ctx = self._canvasElement.getContext("2d");
-					notify.alert "downsize canvas drawImage, src="+img.src[0..20], "danger", 40000
-					ctx.drawImage(img, 0, 0, tempW, tempH)
+					console.log  "*** downsize canvas, orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
+					console.log "downsize canvas drawImage, src="+img.src[0..80]
+					ctx.drawImage(img, 0, 0, resetW, resizeH)
 					# get downsized img as dataURL
 					dataURL = self._canvasElement.toDataURL("image/jpeg")
 					clearTimeout(timeout)	

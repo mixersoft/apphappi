@@ -75,28 +75,49 @@ angular.module(
 				this._imageElement = new Image()
 				this._imageElement.onload = ()->
 					img = this
+					if false && "*** resize/DRAW CANVAS in onload"
+						targetWidth = self.cfg.targetWidth
+						# check EXIF.orientation, auto-rotate 
+						if (img.width > targetWidth) 
+							resizeH = img.height/img.width * targetWidth
+							resizeW = targetWidth
+						filesize = [img.src.length]	 
+						console.log  "*** downsize canvas, IMG.onload() orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
+						ctx = self._canvasElement.getContext("2d");
+						ctx.drawImage(img, 0, 0, resizeW, resizeH)
+						resizedDataURL = self._canvasElement.toDataURL("image/jpeg")
+						filesize.push resizedDataURL.length
+						console.log "*** downsize result, filesize=" + JSON.stringify filesize
+						self.cfg.deferred.resolve(resizedDataURL)
+						return
+
 					self._downsize(img, self.cfg.deferred)
 					# self._handleImgOnLoad(self, this)
 
 				
 			_downsize: (img, dfd, targetWidth)=>
+				# img.src is dataURL
+				if (img.width <! targetWidth) 
+					dfd.resolve(img.src)
+					return dfd.promise
+
+
+				resizeH = img.height/img.width * targetWidth
+				resizeW = targetWidth
+
 				# console.log "downsizer._downsize"
 				_.defer (self)->
 					console.log "begin downsizing on canvas"
 					targetWidth = targetWidth || self.cfg.targetWidth
 					img = img || self._imageElement
-					tempW = img.width;
-					tempH = img.height;
-					if (tempW > targetWidth) 
-						 tempH *= targetWidth / tempW;
-						 tempW = targetWidth;
 
 					# canvas = document.createElement('canvas');
-					self._canvasElement.width = tempW;
-					self._canvasElement.height = tempH;
+					self._canvasElement.width = resizeW;
+					self._canvasElement.height = resizeH;
 					ctx = self._canvasElement.getContext("2d");
-					notify.alert "downsize canvas drawImage, src="+img.src[0..20], "danger", 40000
-					ctx.drawImage(img, 0, 0, tempW, tempH)
+					console.log  "*** downsize canvas, orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
+					console.log "downsize canvas drawImage, src="+img.src[0..80]
+					ctx.drawImage(img, 0, 0, resetW, resizeH)
 					# get downsized img as dataURL
 					dataURL = self._canvasElement.toDataURL("image/jpeg")
 					clearTimeout(timeout)	
@@ -115,6 +136,11 @@ angular.module(
 
 			downsizeImage : (src, dfd, targetWidth)=>
 				throw "Error: downsizeImage() Expecting deferred" if !dfd
+
+				if false && "skip downsize"
+					console.log "SKIPPING DOWNSIZE, using dataURL of orig, src=" + src[0..60] 
+					dfd.resolve(src)
+					return dfd.promise
 
 				this.cfg.deferred = dfd
 				this.cfg.targetWidth = targetWidth if targetWidth?	
@@ -187,7 +213,7 @@ angular.module(
 			reader.onloadend = (ev)-> 
 				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 3000
 				dataURL = ev.target.result
-				console.log "_processImageFile onloadend dataurl="+dataURL[0..60]
+				console.log "_processImageFile onloadend file.name= " + file.name  + ", dataurl="+dataURL[0..60]
 				_processImageDataURL(dataURL, file, dfd)
 			# starts here	...
 			reader.readAsDataURL(file);
