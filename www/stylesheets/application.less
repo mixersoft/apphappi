@@ -257,6 +257,28 @@ i.fa, .badge, .label {
 	&.ng-enter.ng-enter-active {
 		opacity: 1;
 	}
+	> .touch {
+		/*font-size: 1.1em;*/
+	}
+	> div.moxie-shim-xxx {
+		opacity: 0.5 !important;
+		background-color:  red !important;
+		top: 5px !important;
+		z-index: -1 !important;
+	} 
+}
+
+html.touch .card .footer .btn-group {
+	/* 
+	 * for plupload: mobile safari renders file[type=input] at z-index>1 (ABOVE button) 
+	 * setting z-index=-1 doesn't seem to change this
+	 * so force mobile chrome to follow with z-index=2; 
+	 * this causes file[type=input] & up.FilesAdded() to run BEFORE challenge_getPhoto()
+	 * see "manualNgClick" in HTML5CameraRoll.coffee FilesAdded() line 267
+	*/ 
+	> div.moxie-shim {
+		z-index: 2 !important;
+	}
 }
 
 #about {

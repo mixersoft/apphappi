@@ -661,7 +661,7 @@ angular.module(
 						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 						syncService.set('moment', m)
 						
-						# notify.alert "Challenge saveToMoment, IMG.src="+photo.src[0..60], "success", 20000
+						console.log "Challenge saveToMoment, IMG.src="+photo.src[0..60]
 					else 
 						notify.alert "That photo was already added", "warning"
 					
@@ -673,9 +673,11 @@ angular.module(
 							}
 				return
 
-			# supports multi-select!!
+			# plupload supports multi-select!!
 			if cameraRoll.type == 'html5CameraService' 
-				console.log "challenge_getPhoto() at time=" + moment().format("ss.sss")
+				# for plupload, JUST set the deferred/promise and let up.FilesAdded() do the rest
+				#
+				# console.log "challenge_getPhoto() at time=" + moment().format("ss.sss")
 				dfd = $q.defer()
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
@@ -721,6 +723,11 @@ angular.module(
 				$scope.moment = null
 				return $scope.drawerShowAll()
 			return $scope.deck.nextCard()  # $scope.carousel.index++
+
+		$scope.isDoneEnabled = ()->
+			return false if $scope.deck.topCard().challengePhotos?.length==0
+			return false if angular.element(document.getElementById('html5-get-file')).hasClass('fa-spin') 
+			return true
 
 
 		$scope.challenge_done = ()->
@@ -937,7 +944,7 @@ angular.module(
 				_collapseCardOnChange()	
 
 			# check if user just completed first challenge of the day
-			_showSupportAfterFirstChallenge(m) if drawer.state['item']=='mostrecent' 
+			_showSupportAfterFirstChallenge(m) if m.state=="complete" && drawer.state['item']=='mostrecent' 
 			
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -1010,6 +1017,12 @@ angular.module(
 			# drawer.updateCounts( null, _moments )
 
 			$location.path drawer.state.route 
+
+		$scope.isDoneEnabled = ()->
+			return false if $scope.deck.topCard().photoIds.length==0
+			# disable [Done] button if waiting for img downsizing to complete
+			return false if angular.element(document.getElementById('html5-get-file')).hasClass('fa-spin') 
+			return true	
 
 		$scope.moment_done = (id)->
 			m = $scope.deck.topCard()
@@ -1133,11 +1146,11 @@ angular.module(
 					icon.removeClass('fa-spin')
 				return
 
-			# supports multi-select!!
+			# plupload supports multi-select!!
 			if cameraRoll.type == 'html5CameraService' 
-				console.log "moment_getPhoto() at time=" + moment().format("ss.sss")
-				# promise = cameraRoll.getPicture($event)
-				# promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )
+				# for plupload, JUST set the deferred/promise and let up.FilesAdded() do the rest
+				#
+				# console.log "moment_getPhoto() at time=" + moment().format("ss.sss")
 				dfd = $q.defer()
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
@@ -1153,6 +1166,7 @@ angular.module(
 				)
 				return promise
 			else if cameraRoll.type == 'cordovaCameraService' 
+				icon.addClass('fa-spin') # spin AFTER we confirm some files were added 
 				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
 				return promise

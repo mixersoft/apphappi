@@ -43,12 +43,12 @@ angular.module(
 							extensions : "jpg,jpeg"
 						}]
 						prevent_duplicates: true
-				resize: 
-					width: 320
-					height: 320
-					quality: 85
-					crop: false		
-					preserve_headers : true
+				# resize: 
+				# 	width: 320
+				# 	height: 320
+				# 	quality: 85
+				# 	crop: false		
+				# 	preserve_headers : true
 				init: 
 					PostInit: ()->
 							return false;
@@ -250,20 +250,32 @@ angular.module(
 			FilesAdded: (up, files)->
 				# confirm same as below
 				$target = angular.element(up.settings.browse_button[0])
-				icon = $target.find('i')
-				icon.addClass('fa-spin')
+				$target.removeClass('active').find('i').addClass('fa-spin')
 				# WARNING not enough CPU cycles to show spining icons
 
 				scope = $target.scope()
 				done = _deferred[$target.attr('upload-id')] 
 				if !done
-					# WARNING: mobile safari triggers FilesAdded but NOT ng-click(challenge_getPhoto())
-					# mobile chrome??
-					# call challenge_getPhoto() manually
-					console.log "ERROR: cannot find deferred to resolve" 
-					scope.challenge_getPhoto({currentTarget: $target[0]})
+					###
+					# WARNING: CSS modified in application.less for mobile/touch browsers
+					#   this is a hack because mobile safari renders the .moxie-shim ABOVE the btn
+					# 	so FilesAdded is called BEFORE challenge_getPhoto()
+					# 	CSS changes .moxie-shim at z-index: 2 to force same behavior for mobile chrome
+					# 	THEN, call challenge_getPhoto() manually here
+					###
+					# console.log "ERROR: cannot find deferred to resolve" 
+					manualNgClick = $target.attr('ng-click')
+					fakeEvent = {currentTarget: $target[0]}
+					if manualNgClick=="challenge_getPhoto($event)"
+						scope.challenge_getPhoto(fakeEvent)
+					else if manualNgClick=="moment_getPhoto(card.id, $event)"
+						scope.moment_getPhoto(scope.card.id, fakeEvent)
+					else
+						console.error "ERROR: manualNgClick not set for this controller, ng-click="+ manualNgClick
+						throw "ERROR: manualNgClick not set for this controller, ng-click="+ manualNgClick
+
 					done = _deferred[$target.attr('upload-id')] 
-					console.log "done, dfd.id="+done.id
+					# console.log "done, dfd.id="+done.id
 
 				multi_select_promises = [] # one promise for each file selected
 				_.each files, (plFile)->
@@ -276,20 +288,30 @@ angular.module(
 						# plFile.getSource(): ["connectRuntime", "getRuntime", "disconnectRuntime", "uid", "ruid", "size", "type", "slice", "getSource", "detach", "isDetached", "destroy", "name", "lastModifiedDate"]
 
 						file = plFile.getNative()
-						name = plFile.name
-						modified = plFile.lastModifiedDate
-
 						dfd = $q.defer()
+						# name = plFile.name
+						# modified = plFile.lastModifiedDate
+						
 						multi_select_promises.push dfd.promise
-						_.defer ()->_processImageFile(file, dfd) 
+						_.delay ()-> 		## allow UI to update 
+								_processImageFile(file, dfd)
+						, 200 
 						return
 						
 				
 				done.resolve(multi_select_promises)
 				$q.all(multi_select_promises).then ()->
-					console.log "$q.all(multi_select_promises), all imgs downsized"
+					console.log "html5CameraService: $q.all(multi_select_promises), all imgs downsized"
 					delete _deferred[done.id]
 				return
+		}
+		_otherHandlers = {
+			propagateClick : (e)->
+				if (e.target.tagName == 'INPUT' && 
+									e.target.getAttribute('type') == 'file' && 
+									e.target.parentNode.className.indexOf('moxie-shim') > -1)
+					angular.element(_plupload.uploader.settings.browse_button[0])?.addClass('active')
+				return true
 		}
 
 		self = {
@@ -298,12 +320,17 @@ angular.module(
 			prepare: (browse_button="html5-get-file", options={})->
 				options['browse_button'] = browse_button
 				up = _plupload.uploader
+
 				setTimeout ()->
 						isNotLoaded = !up.runtime
 						if isNotLoaded
 							up.setOption(options) 
 							_plupload.bind( _pluploadHandlers )
 							up.init() 
+							# WARNING: this event handler is not unset on destroy
+							# check for zombie buttons	
+							$delegate = angular.element(document.getElementById('view'))
+							$delegate?.off('click',_otherHandlers.propagateClick).on('click', _otherHandlers.propagateClick)
 							console.log "*** Plupload init()"
 						else 
 							up.setOption(options) 
