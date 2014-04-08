@@ -58,109 +58,6 @@ angular.module(
 		window._up = _plupload.uploader 		# for debugging
 		
 
-
-		class Downsizer
-			constructor: (options)->
-				defaults = {
-					deferred: null
-					# deferredImgReady: null	# resolve with Img onload
-					targetWidth: CFG.camera.targetWidth
-					quality: CFG.camera.quality
-				}
-				self = this
-
-				this.cfg = _.defaults(options||{}, defaults)
-
-				this._canvasElement = document.createElement('canvas')
-				this._imageElement = new Image()
-				this._imageElement.onload = ()->
-					img = self._imageElement
-					canvas = self._canvasElement
-					if "*** resize/DRAW CANVAS in onload *******"
-						targetWidth = self.cfg.targetWidth
-						# check EXIF.orientation, auto-rotate 
-						if (img.width > targetWidth) 
-							resizeH = img.height/img.width * targetWidth
-							resizeW = targetWidth
-						resizeH = Math.round(resizeH)	
-						filesize = [img.src.length]	 
-						console.log  "*** downsize canvas, IMG.onload() orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
-						ctx = canvas.getContext("2d");
-						ctx.drawImage(img, 0, 0, resizeW, resizeH)
-						resizedDataURL = canvas.toDataURL("image/jpeg")
-						filesize.push resizedDataURL.length
-						console.log "*** downsize result, filesize=" + JSON.stringify filesize
-						self.cfg.deferred.resolve(resizedDataURL)
-						return
-
-					self._downsize(img, self.cfg.deferred)
-					# self._handleImgOnLoad(self, this)
-
-				
-			_downsize: (img, dfd, targetWidth)=>
-				# img.src is dataURL
-				if (img.width <! targetWidth) 
-					dfd.resolve(img.src)
-					return dfd.promise
-
-
-				resizeH = img.height/img.width * targetWidth
-				resizeW = targetWidth
-
-				# console.log "downsizer._downsize"
-				_.defer (self)->
-					console.log "begin downsizing on canvas"
-					targetWidth = targetWidth || self.cfg.targetWidth
-					img = img || self._imageElement
-
-					# canvas = document.createElement('canvas');
-					self._canvasElement.width = resizeW;
-					self._canvasElement.height = resizeH;
-					ctx = self._canvasElement.getContext("2d");
-					console.log  "*** downsize canvas, orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
-					console.log "downsize canvas drawImage, img instanceof HTMLImageElement=" + img instanceof HTMLImageElement + " src="+img.src[0..80]
-					ctx.drawImage(img, 0, 0, resetW, resizeH)
-					# get downsized img as dataURL
-					dataURL = self._canvasElement.toDataURL("image/jpeg")
-					clearTimeout(timeout)	
-					console.log "about to resolve, new dataURL=" + dataURL[0..60]
-					dfd.resolve(dataURL)
-				, this
-				timeout = _.delay (dfd)->
-					dfd.reject("timeout")
-				, CFG.jsTimeout, dfd
-				return dfd.promise
-
-			_handleImgOnLoad : (self, img)->
-				# console.log "downsizer img.onload"
-				self._downsize(img, self.cfg.deferred)
-				return 
-
-			downsizeImage : (src, dfd, targetWidth)=>
-				throw "Error: downsizeImage() Expecting deferred" if !dfd
-
-				if false && "skip downsize"
-					console.log "SKIPPING DOWNSIZE, using dataURL of orig, src=" + src[0..60] 
-					dfd.resolve(src)
-					return dfd.promise
-
-				this.cfg.deferred = dfd
-				this.cfg.targetWidth = targetWidth if targetWidth?	
-				this._imageElement.src = src
-				promise = this.cfg.deferred.promise.finally ()=>
-					this.cfg.deferred = null
-				return this.cfg.deferred.promise.finally ()->
-
-		# Downsizer static methods			
-		Downsizer.one = ()->
-			Downsizer._instances = [] if !Downsizer._instances
-			found = _.find Downsizer._instances, (d)->
-					return d.cfg.deferred == null
-			if !found
-				found = new Downsizer()
-				Downsizer._instances.push found
-			return found
-
 		
 		# get formatted photo = {} for resolve		
 		_getPhotoObj = (uri, dataURL, exif)->
@@ -213,7 +110,9 @@ angular.module(
 		_processImageFile = (file, dfd)->
 			reader = new FileReader()
 			reader.onloadend = (ev)-> 
-				# notify.alert "TEST!!! READER #2 readAsDataURL, ev.target.result"+ev.target.result[0..60], "danger", 3000
+
+				TODO = "save original file to local storage"
+
 				dataURL = ev.target.result
 				console.log "_processImageFile onloadend file.name= " + file.name  + ", dataurl="+dataURL[0..60]
 				_processImageDataURL(dataURL, file, dfd)
@@ -225,10 +124,10 @@ angular.module(
 		_processImageDataURL = (dataURL, file, dfdFINAL)->
 			dfdExif = $q.defer()
 			dfdDownsize = $q.defer()
-			downsizer = Downsizer.one()
 			promises = {
 				exif: _parseExif dataURL , dfdExif
-				downsized: downsizer.downsizeImage(dataURL, dfdDownsize)
+				downsized: _resample dataURL, dfdDownsize
+					
 			}
 			$q.all(promises).then (o)->
 				check = _.filter o, (v)->return v=='timeout'
@@ -240,6 +139,21 @@ angular.module(
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
 				return
 			return dfdFINAL.promise
+
+		_resample = (origDataURL, dfd)->
+			console.log "*** resize using Resample.js ******* dataURL.size=" + origDataURL.length
+			done = (dataURL)->
+				console.log "resampled data=" + JSON.stringify {
+					size: dataURL.length
+					data: dataURL[0..60]
+				}
+				dfd.resolve(dataURL)
+				return
+			Resample.one()?.resample origDataURL
+				, 	CFG.camera.targetWidth
+				, 	null		# targetHeight
+				, 	done
+			return dfd.promise
 
 		
 		_parseExif = (dataURL, dfd)->
