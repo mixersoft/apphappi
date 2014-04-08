@@ -74,18 +74,20 @@ angular.module(
 				this._canvasElement = document.createElement('canvas')
 				this._imageElement = new Image()
 				this._imageElement.onload = ()->
-					img = this
-					if false && "*** resize/DRAW CANVAS in onload"
+					img = self._imageElement
+					canvas = self._canvasElement
+					if "*** resize/DRAW CANVAS in onload *******"
 						targetWidth = self.cfg.targetWidth
 						# check EXIF.orientation, auto-rotate 
 						if (img.width > targetWidth) 
 							resizeH = img.height/img.width * targetWidth
 							resizeW = targetWidth
+						resizeH = Math.round(resizeH)	
 						filesize = [img.src.length]	 
 						console.log  "*** downsize canvas, IMG.onload() orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
-						ctx = self._canvasElement.getContext("2d");
+						ctx = canvas.getContext("2d");
 						ctx.drawImage(img, 0, 0, resizeW, resizeH)
-						resizedDataURL = self._canvasElement.toDataURL("image/jpeg")
+						resizedDataURL = canvas.toDataURL("image/jpeg")
 						filesize.push resizedDataURL.length
 						console.log "*** downsize result, filesize=" + JSON.stringify filesize
 						self.cfg.deferred.resolve(resizedDataURL)
@@ -116,7 +118,7 @@ angular.module(
 					self._canvasElement.height = resizeH;
 					ctx = self._canvasElement.getContext("2d");
 					console.log  "*** downsize canvas, orig size=" + JSON.stringify [img.width, img.height] + ", downsize=" + JSON.stringify [resizeW, resizeH] 
-					console.log "downsize canvas drawImage, src="+img.src[0..80]
+					console.log "downsize canvas drawImage, img instanceof HTMLImageElement=" + img instanceof HTMLImageElement + " src="+img.src[0..80]
 					ctx.drawImage(img, 0, 0, resetW, resizeH)
 					# get downsized img as dataURL
 					dataURL = self._canvasElement.toDataURL("image/jpeg")
