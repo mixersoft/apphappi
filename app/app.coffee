@@ -107,6 +107,8 @@ angular.module( 'appHappi', [
 		# TODO: use html5Mode with /index.html
 		# $locationProvider.html5Mode(true)
 		$locationProvider.html5Mode(false).hashPrefix('!')
+
+
 ]
 ).filter('reverse', ()->
   return (items)-> 
@@ -214,20 +216,9 @@ angular.module( 'appHappi', [
 ])
 
 
-# NOTE: adding .force-open as early as possible to prevent flash
-# directive 'responsiveDrawerWrap' will update on window.resize
-if window.innerWidth >= 768
-	try 
-		drawer = document.getElementById('drawer')
-		if drawer
-			classes = drawer.className.split(' ')	
-			if classes.indexOf('force-open')==-1
-		 		classes.push('force-open')
-		 		drawer.className = classes.join(' ')
-	catch error
-
 
 # bootstrap 
+
 window.deviceReady = false
 # window.Modernizr.touch = false # for loading from port 4000 on mobile browsers
 if window.Modernizr.touch
