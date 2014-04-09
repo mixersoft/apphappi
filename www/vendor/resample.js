@@ -114,6 +114,12 @@ var Resample = (function () {
 		// same is if there is a height, but no width
 		width == null && (width = round(img.width * height / img.height));
 		height == null && (height = round(img.height * width / img.width));
+
+		if (width <= img.width) {
+			src = typeof img == "string" ? img : img.src
+			return done(src)
+		}
+		
 		// remove (hopefully) stored info
 		delete img._onresample;
 		delete img._width;
