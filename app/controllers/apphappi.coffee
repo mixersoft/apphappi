@@ -712,6 +712,25 @@ angular.module(
 						)	
 				)
 				return promise	
+			else if "multi-select" && cameraRoll.type == 'cordovaCameraService' 
+				# using cordova-plugin-assets-picker
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+				options = cameraRoll.cameraOptions.fromPhotoLibrary
+				options.destinationType = navigator.camera.DestinationType.DATA_URL
+				steroids.logger.log options
+				promise = cameraRoll.getPicture(options, $event)
+				promise.then (photos)->
+						_.each photos, (photo)->
+							saveToMoment photo
+						return
+					.catch (error)->
+						console.error "deferred error=" + error
+						notify.alert message, "danger", 10000 
+					.finally ()->return icon.removeClass('fa-spin')	
+
+				return promise		
 			else if cameraRoll.type == 'cordovaCameraService' 
 				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
 				promise.then( saveToMoment ).catch( (message)->

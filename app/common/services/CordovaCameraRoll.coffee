@@ -16,7 +16,7 @@ angular.module(
 
 		
 		# get formatted photo = {} for resolve		
-		_getPhotoObj = (uri, dataURL, exif={})->
+		_getPhotoObj = (uri, dataURL, exif={}, alAssetId=null)->
 			# get hash from EXIF to detect duplicate photo
 			# hash photo data to detect duplicates
 			__getPhotoHash = (exif, dataURL)->
@@ -44,12 +44,12 @@ angular.module(
 			now = new Date()
 			dateTaken = now.toJSON()
 
-			id = __getPhotoHash( exif, dataURL)
-			if id
+			id = alAssetId || __getPhotoHash( exif, dataURL)
+			if id && !alAssetId
 				isoDate = exif["DateTimeOriginal"]
 				isoDate = isoDate.replace(':','-').replace(':','-').replace(' ','T')
 				dateTaken = new Date(isoDate).toJSON()
-			else
+			else if !id
 				id = now.getTime() + "-photo"
 
 			notify.alert "_getPhotoObj() photo.id=="+id, "success", 2000
@@ -301,6 +301,10 @@ angular.module(
 			# this is the main API entry point
 			#
 			getPicture: (options, $event)->
+				return self.getPictureAssetsPicker(options, $event)
+				return self.getPictureCordova(options, $event)
+
+			getPictureCordova: (options, $event)->
 				try
 					steroids.logger.log "Using SAVE PICTURE!!!"
 					if _deferred?
@@ -320,6 +324,64 @@ angular.module(
 					return _deferred.promise.finally ()->_deferred = null
 				catch error
 					JSON.stringify error
+
+
+			getPictureAssetsPicker: (options, $event)->
+				options.selectedAssets = self.SAVE_PREVIOUSLY_SELECTED || []
+
+				try
+					steroids.logger.log "Using cordova-assets-picker"
+					if _deferred?
+						_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
+					_deferred = $q.defer()
+					_deferred.id = _deferredCounter++
+					
+
+					navigator.camera.getPicture (dataArray)->
+							self.SAVE_PREVIOUSLY_SELECTED = options.selectedAssets.concat dataArray
+							photos = []
+							steroids.logger.log "dataArray ids=" + _.pluck dataArray, 'id'
+							# steroids.logger.log dataArray
+							_.each dataArray, (o)->
+								# expecting
+								# o.id, data, exif
+								steroids.logger.log ">>> o.keys=" + _.keys o
+								steroids.logger.log ">>> ALAssetsId" + JSON.stringify(o)[0..100]
+								retval = self.dataURLPipeline(o.id, o.data)
+								retval.exif = o.exif || null
+
+								photo = _getPhotoObj(retval.originalSrc, retval.previewSrc, retval.exif , o.id)
+								photos.push photo
+								steroids.logger.log ">>> photo = " + JSON.stringify(photo)[0..100]	
+								return
+
+							steroids.logger.log "DONE: photos = " + JSON.stringify(photos)[0..200]	
+
+							_deferred.resolve photos
+
+						, self.cameraError
+						, options
+
+
+					
+					return _deferred.promise.finally ()->_deferred = null
+				catch error
+					JSON.stringify error
+
+			# dataURL > resolve with originalSrc as FileURI and previewSrc as DataURL
+			dataURLPipeline : (id, dataURL)->
+				# dfd = $q.defer() 
+				dataURL = "data:image/jpeg;base64," + dataURL if dataURL && dataURL.indexOf("data:image/jpeg;base64,") != 0
+				# steroids.logger.log dataURL[0..100]
+				retval = {
+					originalSrc: id
+					previewSrc: dataURL
+				}
+				steroids.logger.log "dataURLPipeline COMPLETE, retval=" + JSON.stringify(retval)[0..200]
+				# dfd.resolve(retval)
+				# return dfd.promise
+				return retval
+					
 
 			# use promises to pipeline image handling
 			# fileURI > FileEntry > FileEntry.moveTo  > FileEntry.copyTo > steroids.File.resizeImage
