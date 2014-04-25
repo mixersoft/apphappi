@@ -83,6 +83,15 @@ angular.module(
 				cameraRoll: _cameraRollService
 			}
 
+		use_snappiAssetsPickerService = ()->
+			# return $injector.get('cordovaImpl')
+			type = "snappiAssetsPickerService"
+			_cameraRollService = $injector.get(type)
+			dfd.resolve {
+				type : type
+				cameraRoll: _cameraRollService
+			}	
+
 		use_cordova = ()->
 			# return $injector.get('cordovaImpl')
 			type = "cordovaCameraService"
@@ -104,7 +113,9 @@ angular.module(
 			cancel = $timeout use_fallback, CAMERA_ROLL_TIMEOUT	
 			document.addEventListener "deviceready", ()->
 				$timeout.cancel cancel
-				if ($window.cordova) 
+				if $window.plugin?.snappi?.assetspicker || CFG.cameraRoll=='snappiAssetsPickerService'
+					use_snappiAssetsPickerService()
+				else if ($window.cordova) 
 					use_cordova()
 				else 
 					use_fallback()
@@ -712,8 +723,8 @@ angular.module(
 						)	
 				)
 				return promise	
-			else if "multi-select" && cameraRoll.type == 'cordovaCameraService' 
-				# using cordova-plugin-assets-picker
+			else if cameraRoll.type == 'snappiAssetsPickerService' 
+				# using cordova-plugin-assets-picker, change to snappi-assets-picker
 				dfd = $q.defer()
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
