@@ -87,6 +87,13 @@ angular.module(
         }
         return {'challenge': challengeCounts}
 
+      setScrollHeight: (fullHeight)->
+        drawerWrap = angular.element(document.getElementById('drawer'))
+        if fullHeight
+          drawerWrap.removeClass('collapsed')
+        else drawerWrap.addClass('collapsed')
+
+
     }
 
     self = {
@@ -110,6 +117,10 @@ angular.module(
         else if open==false
            slider.removeClass('slide-over')
         else throw "ERROR: invalid value"
+
+        fullHeight = slider.hasClass('slide-over')
+        _drawer.setScrollHeight(fullHeight)
+
         window.scrollTo(0, 0)
         return
 
@@ -365,10 +376,11 @@ angular.module(
   '$q'
   'appConfig'
   'drawerService'
+  'helpService'
   'notifyService'
   'actionService'
   'syncService'
-  ($scope, $rootScope, $q, CFG, drawer, notify, actionService, syncService )->
+  ($scope, $rootScope, $q, CFG, drawer, helpService, notify, actionService, syncService )->
     #
     # Controller: DrawerCtrl
     #   - use $rootScope to share common services with 'view' controllers
@@ -379,6 +391,7 @@ angular.module(
     $rootScope.CFG = CFG
     $rootScope.notify = window.notify = notify
     $rootScope.drawer = drawer
+    $rootScope.helpService = helpService
     $rootScope.route = {
       # controller: 'SettingsCtrl'
       # view: 'views/settings/_about.html'
@@ -387,6 +400,7 @@ angular.module(
     $scope.CFG = $rootScope.CFG         # used by on-off-switch
     $scope.route = $rootScope.route
     $scope.drawer = $rootScope.drawer
+    $scope.helpService = helpService
     $scope.deck = null                  # refresh deck.cards() on filter
     # TODO: refactor actionService for exports
     $scope.shuffleDeck = actionService.shuffleDeck
