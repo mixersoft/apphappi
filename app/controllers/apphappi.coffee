@@ -113,7 +113,7 @@ angular.module(
 			cancel = $timeout use_fallback, CAMERA_ROLL_TIMEOUT	
 			document.addEventListener "deviceready", ()->
 				$timeout.cancel cancel
-				if $window.plugin?.snappi?.assetspicker || CFG.cameraRoll=='snappiAssetsPickerService'
+				if CFG.cameraRoll=='snappiAssetsPickerService'
 					use_snappiAssetsPickerService()
 				else if ($window.cordova) 
 					use_cordova()
@@ -729,7 +729,7 @@ angular.module(
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
 				options = cameraRoll.cameraOptions.fromPhotoLibrary
-				options.destinationType = navigator.camera.DestinationType.DATA_URL
+				# options.destinationType = navigator.camera.DestinationType.DATA_URL
 				steroids.logger.log options
 				promise = cameraRoll.getPicture(options, $event)
 				promise.then (photos)->
