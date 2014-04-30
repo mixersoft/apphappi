@@ -32,15 +32,42 @@ body {
 	font-family: "Roboto";
 }
 
-#curtain {
-	background-color: white;
+.fullscreen-overlay {
 	position: absolute;
 	height: 100%;
 	width: 100%; 
+	z-index: 100;
+}
+#curtain {
+	.fullscreen-overlay;
+	background-color: #FFF;
 	padding-top: 30%;
 	text-align: center;
 	opacity: 0.95;
-	z-index: 100;
+}
+
+#help-wrap {
+	.fullscreen-overlay;
+	background-color: rgba(0,0,0,.65);
+	color: @snappi-yellow;
+
+	.help-challenge {
+		& > div {
+			position: absolute;
+		}
+		.drawer {
+			top: 10px;
+			left: 50px;
+		}
+		.swipe {
+			top: 100px;
+			left: 25%;
+		}
+		.notes {
+			top: 200px;
+			left: 10%;
+		}
+	}
 }
 
 .nowrap {
@@ -286,15 +313,23 @@ html.touch .card .footer .btn-group {
 		.sidebar {
 			position: absolute;
 			top: 0;
-		  bottom: 0;
-		  left: 0;
-		  height: 100%;
-		  width: 100%;
+			bottom: 0;
+			left: 0;
+			height: 100%;
+			width: 100%;
 			z-index: 1;
+			&.collapsed {
+				overflow: hidden;
+			}
 			.drawer.inverse {
 				background-color: @snappi-darkblue;
-  			min-height: 1000px;									/*	TODO: should be window height */
-  			.panel-body .panel-body {
+  				min-height: 1000px;									/*	TODO: should be window height */
+  			/*
+  				TODO: fix scroll-Y on iphone, drawer height forces scxroll-Y
+  				when CLOSED: CSS=height: window.height;overflow: hidden;
+				when OPEN: height=100%; overflow:visible;
+  			*/
+  				.panel-body .panel-body {
 					padding-bottom: 0;
 				}
 			}

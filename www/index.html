@@ -48,14 +48,20 @@
         Please enable Javascript to experience this site :)
     </noscript>
     <div id="curtain" class="center">
-        <h3>Loading...</h3>
-        <i class="fa fa-spinner fa-spin fa-2x"></i>
+            <h3>Loading...</h3>
+            <i class="fa fa-spinner fa-spin fa-2x"></i>
     </div>
 
     <div class="device hidden">
         <div class="device-border iphone4 center-block"></div>
     </div>
-<div id="ng-app" class="viewport"><div id="frame" class="frame slide">
+<div id="ng-app" class="viewport">
+    <div id="help-wrap" class="center hidden"
+    ng-click="helpService.hide()">
+            <ng-include ng-if="helpService.template" src="helpService.template || null"></ng-include>
+    </div>
+    <div id="frame" class="frame slide">
+    
     <div class="container"><div class="row">
         <!-- sliding drawer  -->
         <div class="col-xs-sidebar col-xs-right-inset col-sm-4">
@@ -73,7 +79,8 @@
                       <i id='sidebar-open-btn' class='fa fa-bars fa-lg pull-left visible-xs'
                       ng-click="drawer.toggleDrawerOpen($event)"
                       ></i>
-                      <i class="fa fa-question-circle fa-lg pull-right visible-xs hidden"></i>
+                      <i class="fa fa-question-circle fa-lg pull-right visible-xs"
+                      ng-click="helpService.show($event)"></i>
                       <div class="panel-title text-center center-block" ng-cloak>{{title}}</div>
                     </div>
                 </div>
@@ -132,6 +139,7 @@
     <script src="common/services/SnappiAssetsPicker.js"></script>
     <script src="common/services/Html5CameraRoll.js"></script>
     <script src="common/services/LocalNotification.js"></script>
+    <script src="common/services/Help.js"></script>
     <script src="controllers/apphappi.js"></script>
     <!-- endbuild -->
 
