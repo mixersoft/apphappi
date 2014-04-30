@@ -89,6 +89,8 @@ angular.module(
 
       setScrollHeight: (fullHeight)->
         drawerWrap = angular.element(document.getElementById('drawer'))
+        return if !drawerWrap.hasClass('collapsable')
+
         if fullHeight
           drawerWrap.removeClass('collapsed')
         else drawerWrap.addClass('collapsed')
@@ -285,7 +287,20 @@ angular.module(
 
         localStorageService.set('drawerState', self.state)  
         return self  
-          
+
+      # .visible-xs uses collapsable drawer, .visible-sm keeps drawer visible
+      setCollapsable: ()->
+        collapsable = !!document.getElementById("sidebar-open-btn").offsetWidth
+        drawerWrap = angular.element(document.getElementById('drawer'))
+        # .collapse sets overflow: hidden to minimize height of drawer when hidden
+        if collapsable 
+          if drawerWrap.hasClass('collapsed')
+            return
+          else
+            drawerWrap.addClass('collapsable collapsed').removeClass('slide-over')
+        else drawerWrap.removeClass('collapsable collapsed').addClass('slide-over')
+        return
+
 
       load: (url)->
         url = _drawer.url if _.isEmpty(url)
@@ -294,6 +309,9 @@ angular.module(
           _drawer.json = data
           # localStorageService.set('drawer', _drawer.json )
           # console.log "*** drawer ready"
+          angular.element($window).bind 'resize', _.throttle self.setCollapsable
+            , 200 
+          self.setCollapsable() # call after drawer is ready
           return 
         # console.log _drawer.ready  
         return _drawer.ready  
