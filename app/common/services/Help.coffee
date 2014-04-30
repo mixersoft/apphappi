@@ -20,13 +20,18 @@ angular.module(
 					.removeClass('hidden')
 					.scope()
 				
-				switch ($location.url())
-					when '/challenges', '/challenges/draw-new'
+				switch (scope.route.controller)
+					when 'ChallengeCtrl'
 						helpService.template = templatePath + '_challenges.html'
-					when '/moments'
-						helpService.template = templatePath + '_moments.html'
-					when '/timeline'
+					when 'MomentCtrl'
+						edit = !!scope.route.action
+						if edit
+							helpService.template = templatePath + '_moments_edit.html'
+						else helpService.template = templatePath + '_moments.html'
+					when 'TimelineCtrl'
 						helpService.template = templatePath + '_timeline.html'
+					else 
+						helpService.hide()
 
 
 				return
