@@ -670,7 +670,7 @@ angular.module(
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
-				console.log "saveToMoment, p.id="+p.id
+				steroids.logger.log "saveToMoment, p.id="+p.id
 				# notify.alert "Challenge saveToMoment "+JSON.stringify(p), "success", 20000
 				now = new Date()
 				if m?
@@ -692,8 +692,10 @@ angular.module(
 						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 						syncService.set('moment', m)
 						
-						console.log "Challenge saveToMoment, IMG.src="+photo.src[0..60]
+						steroids.logger.log "Challenge saveToMoment, IMG.src="+photo.src
+						steroids.logger.log "Challenge saveToMoment, photoIds="+JSON.stringify m.photoIds
 					else 
+						steroids.logger.log "************* DUPLICATE PHOTO ID ************"
 						notify.alert "That photo was already added", "warning"
 					
 					# check if this is the first photo
@@ -729,10 +731,17 @@ angular.module(
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
 				options = cameraRoll.cameraOptions.fromPhotoLibrary
-				# options.destinationType = navigator.camera.DestinationType.DATA_URL
+				options.success = saveToMoment
 				steroids.logger.log options
 				promise = cameraRoll.getPicture(options, $event)
 				promise.then (photos)->
+						if options.success	# call inline for multi-select
+							steroids.logger.log "****  ALL DONE ******"
+							# now = new Date()
+							# actionService.setCardStatus(m, 'active', now)
+							# syncService.set('moment', m)
+							return 
+
 						_.each photos, (photo)->
 							saveToMoment photo
 						return
