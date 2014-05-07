@@ -302,7 +302,7 @@ angular.module(
 			#
 			getPicture: (options, $event)->
 				try
-					steroids.logger.log "Using SAVE PICTURE!!!"
+					steroids.logger.log "Using cordovaCameraService"
 					if _deferred?
 						_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
 					_deferred = $q.defer()
@@ -337,19 +337,20 @@ angular.module(
 					# steroids.logger.log "imagePipeline !!!"
 					promise = _initFileStore()
 					promise.catch (o)->
+						o = { 'directoryEntry': o.directoryEntry }
 						steroids.logger.log {
 							msg: "**** _initFileStore().REJECTED! ******"
 							root: o.directoryEntry.root.fullPath 
 							preview: o.directoryEntry.preview.fullPath 
 						}
 					.then (o)->
-						# steroids.logger.log "5. fileEntry"
-						# steroids.logger.log {
-						# 	msg: "**** _initFileStore().resolved ******"
-						# 	fileURI: fileURI
-						# 	root: o.directoryEntry.root.fullPath 
-						# 	preview: o.directoryEntry.preview.fullPath 
-						# }
+						steroids.logger.log "5. fileEntry"
+						steroids.logger.log {
+							msg: "**** _initFileStore().resolved ******"
+							fileURI: fileURI
+							root: o.directoryEntry.root.fullPath 
+							preview: o.directoryEntry.preview.fullPath 
+						}
 
 
 						dfd = $q.defer()

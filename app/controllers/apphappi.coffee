@@ -113,9 +113,9 @@ angular.module(
 			cancel = $timeout use_fallback, CAMERA_ROLL_TIMEOUT	
 			document.addEventListener "deviceready", ()->
 				$timeout.cancel cancel
-				if $window.plugin?.snappi?.assetspicker || CFG.cameraRoll=='snappiAssetsPickerService'
+				if CFG.cameraRoll=='snappiAssetsPickerService'
 					use_snappiAssetsPickerService()
-				else if ($window.cordova) 
+				else if (CFG.cameraRoll=='cordovaCameraService' && $window.cordova) 
 					use_cordova()
 				else 
 					use_fallback()
@@ -670,7 +670,7 @@ angular.module(
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
-				console.log "saveToMoment, p.id="+p.id
+				steroids.logger.log "saveToMoment, p.id="+p.id
 				# notify.alert "Challenge saveToMoment "+JSON.stringify(p), "success", 20000
 				now = new Date()
 				if m?
@@ -692,8 +692,10 @@ angular.module(
 						$scope.deck.topCard().challengePhotos = $filter('reverse')(m.photos)  	# for display of challenge only 'active'
 						syncService.set('moment', m)
 						
-						console.log "Challenge saveToMoment, IMG.src="+photo.src[0..60]
+						steroids.logger.log "Challenge saveToMoment, IMG.src="+photo.src
+						steroids.logger.log "Challenge saveToMoment, photoIds="+JSON.stringify m.photoIds
 					else 
+						steroids.logger.log "************* DUPLICATE PHOTO ID ************"
 						notify.alert "That photo was already added", "warning"
 					
 					# check if this is the first photo
@@ -725,29 +727,44 @@ angular.module(
 				return promise	
 			else if cameraRoll.type == 'snappiAssetsPickerService' 
 				# using cordova-plugin-assets-picker, change to snappi-assets-picker
+				icon.addClass('fa-spin')
 				dfd = $q.defer()
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
 				options = cameraRoll.cameraOptions.fromPhotoLibrary
-				options.destinationType = navigator.camera.DestinationType.DATA_URL
-				steroids.logger.log options
+				steroids.logger.log "challenge_getPhoto()" + JSON.stringify options
 				promise = cameraRoll.getPicture(options, $event)
-				promise.then (photos)->
-						_.each photos, (photo)->
-							saveToMoment photo
-						return
-					.catch (error)->
-						console.error "deferred error=" + error
-						notify.alert message, "danger", 10000 
-					.finally ()->return icon.removeClass('fa-spin')	
+				.then (promises)->
+					_.each promises, (promise)->
+						promise.then( saveToMoment )
+						.catch (error)->
+							steroids.logger.log "deferred error=" + error
+							notify.alert message, "danger", 10000 
+
+					$q.all(promises).finally (all)->
+						icon.removeClass('fa-spin')	
+						steroids.logger.log "DONE: ALL photos, count=" + _.values(all).length
+						steroids.logger.log "photos=" + JSON.stringify _.pluck(all, "src")
+						return 	
+					return
+				.catch (error)->
+					icon.removeClass('fa-spin')	
+					steroids.logger.log "deferred error=" + error
+					notify.alert message, "danger", 10000 
+				
 
 				return promise		
 			else if cameraRoll.type == 'cordovaCameraService' 
-				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
-				promise.then( saveToMoment ).catch( (message)->
+				icon.addClass('fa-spin')
+				options = _.clone cameraRoll.cameraOptions.fromPhotoLibrary
+				promise = cameraRoll.getPicture(options, $event)
+				promise.then( saveToMoment )
+				.catch (message)->
+					steroids.logger.log message
 					notify.alert message, "danger", 15000 
-				).finally ()->
+				.finally ()->
 					return icon.removeClass('fa-spin')	
+
 				return promise
 			else 
 				console.warn "Error: Invalid cameraRoll."	

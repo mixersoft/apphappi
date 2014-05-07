@@ -8,11 +8,95 @@ angular.module(
 	'appConfig'
 	($q, notify, CFG)->
 		
-
+		_defaultCameraOptions = {
+				fromPhotoLibrary:
+					quality: CFG.camera.quality
+					destinationType: navigator.camera.DestinationType.FILE_URI
+					# destinationType: navigator.camera.DestinationType.DATA_URL
+					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
+					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
+					targetWidth: CFG.camera.targetWidth
+					popoverOptions: new CameraPopoverOptions(
+							460,
+							260,
+							100,
+							100, 
+							Camera.PopoverArrowDirection.ARROW_UP
+						)
+					# iPad camera roll popover position
+						# width: 768
+						# height: 
+						# arrowDir: Camera.PopoverArrowDirection.ARROW_UP
+				fromCamera:
+					quality: CFG.camera.quality
+					destinationType: navigator.camera.DestinationType.IMAGE_URI
+					correctOrientation: true
+					targetWidth: CFG.camera.targetWidth
+		}
 
 		# private object for downsizing via canvas
 		_deferred = null
 		_deferredCounter = 0
+
+		# see: http://stackoverflow.com/questions/4998908/convert-data-uri-to-file-then-append-to-formdata
+		_dataURItoBlob = (dataURI)-> 
+			###
+			function dataURItoBlob(dataURI) {
+			    var byteString = atob(dataURI.split(',')[1]);
+			    var ab = new ArrayBuffer(byteString.length);
+			    var ia = new Uint8Array(ab);
+			    for (var i = 0; i < byteString.length; i++) {
+			        ia[i] = byteString.charCodeAt(i);
+			    }
+			    return new Blob([ab], { type: 'image/jpeg' });
+			}###
+
+			data = dataURI.split(',')[1]
+			
+			try 
+				data = data.replace(/\r\n/g,'')
+				byteString = atob(data)           # crashes here!!!
+				steroids.logger.log "**** SUCCESS, base64 decoded! byteString.length=" + byteString.length +  ", data=" + data[0..100]
+			catch error
+				steroids.logger.log "**** EXCEPTION: atob() doesn't work properly in Safari/iOS ****"	
+				steroids.logger.log "_dataURItoBlob(): dataURI.length=" + data.length
+				# steroids.logger.log data
+				throw error
+
+			ab = new ArrayBuffer(byteString.length)
+			ia = new Uint8Array(ab)
+			ia[i] = byteString.charCodeAt(i) for i in [0...byteString.length]
+			return new Blob([ia], { type: 'image/jpeg' })
+
+		_writeDataUrl2File = (directoryEntry, filename, dataURI, onSuccess)->
+			# steroids.logger.log "Success: requestFileSystem=" + directoryEntry.fullPath
+
+			dataURI = "data:image/jpeg;base64," + dataURI if dataURI.indexOf("data:") != 0
+
+			blob = _dataURItoBlob(dataURI)
+
+			directoryEntry.getFile filename
+				, {create:true, exclusive:false}
+				, (fileEntry)->
+					# steroids.logger.log "5. writeDataUrl2File() fileEntry=" + fileEntry.toURL()
+					fileEntry.createWriter (fileWriter)->
+						fileWriter.onwriteend = (e)->
+							# steroids.logger.log "write complete for filename=" + fileEntry.name
+							return if fileWriter.isError
+							# steroids.logger.log "fileEntry: fullpath=" + fileEntry.fullPath
+							# steroids.logger.log "fileEntry: toURL()=" + fileEntry.toURL()
+							onSuccess(fileEntry) if onSuccess
+							return
+
+						fileWriter.onerror = (e)->
+							steroids.logger.log "write failed for filename="+fileEntry.name
+							fileWriter.isError = true
+							return throw "ERROR: writeDataUrl2File()"
+							
+
+						return fileWriter.write(blob);
+
+			return
 
 		
 		# get formatted photo = {} for resolve		
@@ -44,14 +128,7 @@ angular.module(
 			now = new Date()
 			dateTaken = now.toJSON()
 
-			id = alAssetId || __getPhotoHash( exif, dataURL)
-			if id && !alAssetId
-				isoDate = exif["DateTimeOriginal"]
-				isoDate = isoDate.replace(':','-').replace(':','-').replace(' ','T')
-				dateTaken = new Date(isoDate).toJSON()
-			else if !id
-				id = now.getTime() + "-photo"
-
+			id = alAssetId 
 			notify.alert "_getPhotoObj() photo.id=="+id, "success", 2000
 			return {
 				id: id
@@ -169,6 +246,9 @@ angular.module(
 			, 10000, dfd	
 			return dfd.promise	
 
+
+
+
 		#
 		# ### for DEVICE ###
 		#
@@ -248,6 +328,316 @@ angular.module(
 					
 			return dfd0.promise
 
+		_pipelinePromises = {
+			# all methods to be used with promise API, e.g. then method()
+			getLocalFilesystem : (o)->
+				### expecting o = 
+						directoryEntry:
+							root: File.DirectoryEntry
+							preview: File.DirectoryEntry
+				###
+				return { 'directoryEntry': o.directoryEntry }  # _.pluck o "directoryEntry"
+
+			getPreviewAsDataURL : (o, options, extension='JPG', label='preview')->
+				### this method uses snappi.assetspicker.getById() to resize dataURL
+				call: then (o)->
+						return getPreviewAsDataURL(o, uuid, extension, options)
+
+				expecting o = 
+					uuid: 
+					orig_ext:
+					data: 
+					directoryEntry:
+
+				return {
+					directoryEntry
+					dataURL: 
+						'[label]': DataURL
+				}
+				###
+				dfd = $q.defer()
+
+				# steroids.logger.log {
+				# 	msg: "**** _initFileStore() ******"
+				# 	root: o.directoryEntry.root.fullPath 
+				# 	preview: o.directoryEntry.preview.fullPath 
+				# }
+				options = _.defaults options, {
+					quality: 75
+					targetWidth: 640
+				}
+				
+				if extension == 'PNG' 
+					options.encodingType = Camera.EncodingType.PNG 
+					mimeType = 'image/png'
+				else 
+					options.encodingType = Camera.EncodingType.JPEG
+					mimeType = 'image/jpeg'
+
+
+				# noop, just format retval and return
+				if options.destinationType == navigator.camera.DestinationType.DATA_URL && o.data
+					o.dataURL = o.dataURL || {}
+					o.dataURL[label] = "data:" + mimeType + ";base64," + o.data
+					steroids.logger.log "getPreviewAsDataURL(): already dataurl=" + o.dataURL[label][0..100]
+					dfd.resolve o
+					return dfd.promise
+
+				# destinationType == FILE_URI
+				
+				options.destinationType = Camera.DestinationType.DATA_URL  # force!
+				window.plugin?.snappi?.assetspicker?.getById o.uuid
+					, o.orig_ext
+					, (data)->
+						steroids.logger.log "getPreviewAsDataURL(): getById() for DATA_URL, data="+o.data[0..100]
+						o.dataURL = o.dataURL || {}
+						o.dataURL[label] = "data:" + mimeType + ";base64," + data.data
+						return dfd.resolve o
+					, (message)->
+						dfd.reject("Error assetspicker.getbyId() to dataURL")
+					, options
+				return dfd.promise	
+
+			writeDataURL2File : (o, version='preview')->
+				### 
+				call: then (o)->
+						return writeDataURL2File(o, filename)
+
+				expecting o = 
+					uuid: 
+					directoryEntry:
+						root: File.DirectoryEntry
+						preview: File.DirectoryEntry
+					dataURL:
+						'[version]':
+
+				return {
+					fileEntry:
+						'preview': File.FileEntry
+				}
+				###
+				# TODO: complete preview==false
+				steroids.logger.log "writeDataURL2File(): WARNING: write full-res dataURL to file not yet implemented!" if version != 'preview'
+				steroids.logger.log "writeDataURL2File(): filename=" + o.uuid	
+
+				folder = version
+				if o.dataURL[folder].indexOf('data:image/jpeg')==0
+					extension = 'JPG'
+				else if o.dataURL[folder].indexOf('data:image/png')==0
+					extension = 'PNG'
+				else 
+					steroids.logger.log "writeDataURL2File(): ERROR: unknown mimetype, dataurl=" + o.dataURL[folder][0...60]
+
+				filename = o.uuid  + "." + version + "." + extension
+				# steroids.logger.log "o.directoryEntry" + JSON.stringify( o )[0..300]
+				try 
+					dfd = $q.defer()
+					steroids.logger.log "writeDataURL2File(): destination=" + o.directoryEntry[folder].name
+					_writeDataUrl2File o.directoryEntry[folder]
+						, filename
+						, o.dataURL[folder]
+						, (fileEntry)->
+							o.fileEntry = o.fileEntry || {}
+							o.fileEntry[folder] = fileEntry 	# o.fileEntry['preview']
+							dfd.resolve o
+				catch error
+					steroids.logger.log "writeDataURL2File(): *****  EXCEPTION : reject & try dataURLPipeline"
+					steroids.logger.log "writeDataURL2File(): directoryEntry not defined for version=" + folder if !o.directoryEntry?[folder]
+					steroids.logger.log error
+					dfd.reject(o) # goto .catch() and try dataUrlPipeline
+
+				return dfd.promise	
+
+			resolveLocalFileSystemURI : (o, fileURI, name='selected')->
+				### 
+				call: then (o)->
+						return resolveLocalFileSystemURI(o, fileURI, 'chosen')
+
+				expecting o = {}
+
+				return {
+					fileEntry:
+						[name]: File.FileEntry
+				}
+				###
+				steroids.logger.log "resolveLocalFileSystemURI(): fileURI="+fileURI[0..100]
+				dfd = $q.defer()
+				window.resolveLocalFileSystemURI fileURI
+					, (fileEntry)->
+						steroids.logger.log "resolveLocalFileSystemURI(): fileEntry=" + fileEntry.name
+						o.fileEntry = o.fileEntry || {}
+						o.fileEntry[name] = fileEntry 	# o.fileEntry['selected']
+						dfd.resolve o
+					, ()->
+						steroids.logger.log "resolveLocalFileSystemURI(): CATCH: resolveLocalFileSystemURI="+fileURI
+						# self.fileError
+						throw "Error:  resolveLocalFileSystemURI fileURI"
+				return dfd.promise
+
+			fileEntryMoveTo	: (o, fileEntry, directoryEntry, filename, label='original')->
+				### 
+				call: then (o)->
+						return fileEntryMoveTo(o, o.fileEntry['selected'], o.directoryEntry['root'], uuid, 'original')
+
+				expecting o =
+					uuid:
+					orig_ext: 
+					directoryEntry:
+						root: File.DirectoryEntry
+						preview: File.DirectoryEntry
+					fileEntry: {}
+
+				return {
+					filename: string, UUID
+					fileEntry:
+						'[label]': File.FileEntry
+				}
+				###
+				steroids.logger.log "fileEntryMoveTo()"
+				dfd = $q.defer()
+				
+				if label == 'original'
+					filename += "." + o.orig_ext 
+				else filename +=  "." + label + "." + o.orig_ext
+
+				source = fileEntry.fullPath
+				dest = directoryEntry.fullPath + '/' + filename
+
+				if source == dest 
+					steroids.logger.log "fileEntryMoveTo SKIP"
+					o.fileEntry[label] = fileEntry
+					dfd.resolve o
+					return dfd.promise
+				
+				steroids.logger.log "fileEntryMoveTo():  fileEntry=" + fileEntry.fullPath + ", target=dirEntry=" + dest
+
+				fileEntry.moveTo directoryEntry
+					, filename
+					, (fileEntry)->
+						steroids.logger.log "fileEntryMoveTo(): COMPLETE"
+						o.fileEntry[label] = fileEntry
+						dfd.resolve o				
+					, (o)->
+						# self.fileError
+						steroids.logger.log "fileEntryMoveTo(): Error:  o.fileEntry.chosen.moveTo, dirEntry=" + directoryEntry.fullPath
+						steroids.logger.log o
+						throw "Error:  o.fileEntry.chosen.moveTo"
+				return dfd.promise
+
+			fileEntryCopyTo	: (o, fileEntry, directoryEntry, filename, label='copy')->
+				### 
+				call: then (o)->
+						return fileEntryCopyTo(o, o.fileEntry['original'], o.directoryEntry['preview'], uuid, 'preview')
+
+				expecting o = 
+					uuid:
+					orig_ext:
+					directoryEntry:
+						root: File.DirectoryEntry
+						preview: File.DirectoryEntry
+					fileEntry: {}
+
+				return {
+					filename: string
+					fileEntry:
+						'[label]': File.FileEntry
+				}
+				###
+				filename = filename + "." + label + "." + o.orig_ext
+				dfd = $q.defer()
+				fileEntry.copyTo directoryEntry
+					, filename
+					, (fileEntry)->
+						o.fileEntry[label] = fileEntry
+						o['filename'] = filename
+						dfd.resolve o				
+					, ()->
+						# self.fileError
+						teroids.logger.log "Error:  o.fileEntry.chosen.copyTo"
+						throw "Error:  o.fileEntry.chosen.copyTo"
+				return dfd.promise
+
+			canvasResize : (o, label, quality=0, width=640)->
+				### 
+				call: then (o)->
+						return canvasResize(o, 'preview', 75, 640)
+
+				expecting o = 
+					uuid:
+					orig_ext:
+					directoryEntry: {}
+					fileEntry: {
+						'[label]'
+					}
+
+
+				return {
+					filename: string, UUID
+					fileEntry:
+						'[label]': File.FileEntry
+				}
+				###
+				steroids.logger.log "8. resize"
+
+				dfd = $q.defer()
+				resizer = new steroids.File( {
+					path: o.fileEntry[label].name
+					relativeTo: steroids.app.userFilesPath 	# should use o.directoryEntry[].fullPath(?)
+				})
+				resizer.resizeImage( 
+					{
+						format: 
+							type: o.orig_ext || "JPG"
+							compression: quality || CFG.camera.quality
+						constraint: 
+							dimension: "width"	
+							# use 2*320=640p since we are saving to FS
+							length: width || CFG.camera.targetWidth
+					},
+					{
+						onSuccess: ()->
+							# o.fileEntry[label] should be resized
+							steroids.logger.log "canvasResized!"
+							dfd.resolve(o)
+							
+						onFailure: ()->
+							steroids.logger.log "resize FAILURE!!!"
+							throw "Error:  resizer.resizeImage"
+
+					}
+				)
+				return dfd.promise
+
+			formatResult : (o)->
+				### 
+				call: then formatResult
+
+				expecting o = 
+					uuid:
+					orig_ext: [JPG | PNG]
+					directoryEntry:
+						root: File.DirectoryEntry
+						preview: File.DirectoryEntry
+					fileEntry: 
+						original: File.FileEntry
+						preview: File.FileEntry
+
+				###
+				retval = {
+					# originalSrc: '/' + o.fileEntry['original'].name
+					id: o.uuid
+					# filename: filename || o.uuid
+					extension: o.orig_ext
+					# label: label || o.uuid
+					originalSrc: null
+					previewSrc: null
+				}
+				retval.originalSrc = '/' + o.fileEntry['original'].name if o.fileEntry?['original']
+				retval.previewSrc = '/' + o.fileEntry['preview'].name if o.fileEntry?['preview']
+				return retval
+		}
+		# end _pipelinePromises		
+
 
 
 		_fileErrorComment = ""
@@ -255,32 +645,7 @@ angular.module(
 		self = {
 			type : "snappiAssetsPickerService"
 			# Camera options
-			cameraOptions :
-				fromPhotoLibrary:
-					quality: CFG.camera.quality
-					destinationType: navigator.camera.DestinationType.FILE_URI
-					# destinationType: navigator.camera.DestinationType.IMAGE_URI
-					# destinationType: navigator.camera.DestinationType.NATIVE_URI
-					sourceType: navigator.camera.PictureSourceType.PHOTOLIBRARY
-					correctOrientation: true # Let Cordova correct the picture orientation (WebViews don't read EXIF data properly)
-					targetWidth: CFG.camera.targetWidth
-					popoverOptions: new CameraPopoverOptions(
-							460,
-							260,
-							100,
-							100, 
-							Camera.PopoverArrowDirection.ARROW_UP
-						)
-					# iPad camera roll popover position
-						# width: 768
-						# height: 
-						# arrowDir: Camera.PopoverArrowDirection.ARROW_UP
-				fromCamera:
-					quality: CFG.camera.quality
-					destinationType: navigator.camera.DestinationType.IMAGE_URI
-					correctOrientation: true
-					targetWidth: CFG.camera.targetWidth
-
+			cameraOptions : _defaultCameraOptions
 
 			# Camera failure callback
 			cameraError : (message)->
@@ -301,7 +666,10 @@ angular.module(
 			# this is the main API entry point
 			#
 			getPicture: (options, $event)->
-				options.selectedAssets = self.SAVE_PREVIOUSLY_SELECTED || []
+				if _.isArray( options.overlay?['previously-selected'] )
+					options.overlay['previously-selected'] = self.SAVE_PREVIOUSLY_SELECTED
+				else 
+					options.overlay = _.extend (options.overlay || {}), {'previously-selected' : [] } 
 
 				try
 					steroids.logger.log "Using snappi-assets-picker"
@@ -310,28 +678,56 @@ angular.module(
 					_deferred = $q.defer()
 					_deferred.id = _deferredCounter++
 					
-
-					navigator.camera.getPicture (dataArray)->
-							self.SAVE_PREVIOUSLY_SELECTED = options.selectedAssets.concat dataArray
+					steroids.logger.log "getPicture() options:" + JSON.stringify options
+					window.plugin?.snappi?.assetspicker?.getPicture (dataArray)->
+							self.SAVE_PREVIOUSLY_SELECTED = options.overlay['previously-selected'].concat _.pluck( dataArray, "id")
+							steroids.logger.log "SAVE_PREVIOUSLY_SELECTED=" + JSON.stringify self.SAVE_PREVIOUSLY_SELECTED
 							photos = []
-							steroids.logger.log "dataArray ids=" + _.pluck dataArray, 'id'
+							promises = []
+							steroids.logger.log "dataArray uuids=" + _.pluck dataArray, 'uuid'
 							# steroids.logger.log dataArray
 							_.each dataArray, (o)->
-								# expecting
-								# o.id, data, exif
-								steroids.logger.log ">>> o.keys=" + _.keys o
-								steroids.logger.log ">>> ALAssetsId" + JSON.stringify(o)[0..100]
-								retval = self.dataURLPipeline(o.id, o.data)
-								retval.exif = o.exif || null
+								###
+								expecting: o = {
+									id : ALAssetsLibrary Id, assets-library://asset/asset.{ext}?id={uuid}&ext={ext}
+									uuid : uuid,
+									label: string
+									orig_ext : orig_ext, [JPG | PNG] NOT same as options.encodingType
+									data : String, File_URI: path or Data_URL:base64-encoded string
+									exif : {
+									    DateTimeOriginal : dateTimeOriginal,  format:  "yyyy-MM-dd HH:mm:ss"
+									    PixelXDimension : pixelXDimension, 
+									    PixelYDimension : pixelYDimension,
+									    Orientation : orientation
+									};
+								### 
 
-								photo = _getPhotoObj(retval.originalSrc, retval.previewSrc, retval.exif , o.id)
-								photos.push photo
-								steroids.logger.log ">>> photo = " + JSON.stringify(photo)[0..100]	
+								promises.push self.fileURIPipeline(o, options).then (retval)->
+										### expecting retval = {
+											id: o.uuid
+											extension: o.orig_ext
+											originalSrc: null
+											previewSrc: null
+										}
+										###
+										retval.exif = o.exif || null
+										retval.label = o.label || null
+										photo = _getPhotoObj(retval.originalSrc, retval.previewSrc, retval.exif , retval.id)
+										photos.push photo
+										steroids.logger.log ">>> ONE photo = " + photo.src[0..100]	
+										return photo
+									, (error)->
+										steroids.logger.log "CATCH HERE *******************"
+										steroids.logger.log error
+										return
 								return
 
-							steroids.logger.log "DONE: photos = " + JSON.stringify(photos)[0..200]	
+							_deferred.resolve promises	
 
-							_deferred.resolve photos
+							# $q.all(promises).then (all)->
+							# 	steroids.logger.log "DONE: ALL photos, count=" + _.values(all).length
+							# 	steroids.logger.log "photos=" + JSON.stringify _.pluck(all, "src")
+							# 	_deferred.resolve photos
 
 						, self.cameraError
 						, options
@@ -341,14 +737,29 @@ angular.module(
 					return _deferred.promise.finally ()->_deferred = null
 				catch error
 					JSON.stringify error
+	
 
 			# dataURL > resolve with originalSrc as FileURI and previewSrc as DataURL
-			dataURLPipeline : (id, dataURL)->
+			dataURLPipeline : (o, options)->
 				# dfd = $q.defer() 
-				dataURL = "data:image/jpeg;base64," + dataURL if dataURL && dataURL.indexOf("data:image/jpeg;base64,") != 0
+				dataURL = o.dataURL['preview'] || null
+				extension = if options.encodingType then "PNG" else "JPG"
+				if extension == 'PNG' 
+					options.encodingType = Camera.EncodingType.PNG 
+					mimeType = 'image/png'
+				else 
+					options.encodingType = Camera.EncodingType.JPEG
+					mimeType = 'image/jpeg'
+
+				dataURL = "data:" + mimeType + ";base64," + dataURL if dataURL && dataURL.indexOf("data:") != 0
 				# steroids.logger.log dataURL[0..100]
 				retval = {
-					originalSrc: id
+					# originalSrc: '/' + o.fileEntry['original'].name
+					id: o.uuid
+					# filename: filename || o.uuid
+					extension: o.orig_ext
+					# label: label || o.uuid
+					originalSrc: null
 					previewSrc: dataURL
 				}
 				steroids.logger.log "dataURLPipeline COMPLETE, retval=" + JSON.stringify(retval)[0..200]
@@ -359,121 +770,284 @@ angular.module(
 
 			# use promises to pipeline image handling
 			# fileURI > FileEntry > FileEntry.moveTo  > FileEntry.copyTo > steroids.File.resizeImage
-			imagePipeline : (fileURI)->
-				try 
-					### pattern: 
-					(o)->
-						dfd = $q.defer()
-						asyncFn (retval)->
-							dfd.resolve {
-								retval: reval
-							}
-						return dfd.promise
-					###
-					# steroids.logger.log "imagePipeline !!!"
-					promise = _initFileStore()
-					promise.catch (o)->
-						steroids.logger.log {
-							msg: "**** _initFileStore().REJECTED! ******"
-							root: o.directoryEntry.root.fullPath 
-							preview: o.directoryEntry.preview.fullPath 
+			# params item {id: data: exif:}, see onSuccess in https://github.com/mixersoft/snappi-assets-picker
+			# returns a promise
+			fileURIPipeline : (item, options)->
+				###
+				expecting: item = {
+					id : ALAssetsLibrary Id, assets-library://asset/asset.{ext}?id={uuid}&ext={ext}
+					uuid : uuid,
+					orig_ext : orig_ext, [JPG | PNG] NOT same as options.encodingType
+					data : String, File_URI: path or Data_URL:base64-encoded string
+					exif : {
+					    DateTimeOriginal : dateTimeOriginal,  format:  "yyyy-MM-dd HH:mm:ss"
+					    PixelXDimension : pixelXDimension, 
+					    PixelYDimension : pixelYDimension,
+					    Orientation : orientation
+					};
+				### 	
+				uuid = item.uuid
+				filename = item.filename || item.uuid
+				extension = if options.encodingType then "PNG" else "JPG"
+				fileURI = item.data 
+
+
+				### pattern: 
+				(o)->
+					dfd = $q.defer()
+					asyncFn (retval)->
+						dfd.resolve {
+							retval: reval
 						}
-					.then (o)->
-						# steroids.logger.log "5. fileEntry"
-						# steroids.logger.log {
-						# 	msg: "**** _initFileStore().resolved ******"
-						# 	fileURI: fileURI
-						# 	root: o.directoryEntry.root.fullPath 
-						# 	preview: o.directoryEntry.preview.fullPath 
-						# }
+					return dfd.promise
+				###
+				steroids.logger.log "imagePipeline !!!"
+				steroids.logger.log JSON.stringify( item)[0..150]
+				promise = _initFileStore()
+				return promise.catch (o)->
+					steroids.logger.log {
+						msg: "**** _initFileStore().REJECTED! ******"
+						root: o.directoryEntry.root.fullPath 
+						preview: o.directoryEntry.preview.fullPath 
+					}
+				.then (o)->
+					steroids.logger.log "getLocalFilesystem"
+					return _pipelinePromises.getLocalFilesystem(o) # _.pluck o, "directoryEntry"	
+				.then (o)->
+					o.uuid = item.uuid
+					o.orig_ext = item.orig_ext
+					if options.destinationType == navigator.camera.DestinationType.FILE_URI
+						steroids.logger.log "navigator.camera.DestinationType.FILE_URI"
+						filename = item.uuid
+						fileURI = item.data
+						steroids.logger.log  "************** fileURI=" + fileURI
+						return _pipelinePromises.resolveLocalFileSystemURI( o , fileURI, 'original')
+							.then (o)->
+								fileEntry = o.fileEntry['original']
+								return _pipelinePromises.fileEntryMoveTo( o, fileEntry, o.directoryEntry['root'], filename)
+							.then (o)->
+								steroids.logger.log "formatResult"
+								return _pipelinePromises.formatResult(o)
 
+					else # DATA_URL
+						o.data = item.data
+						steroids.logger.log "navigator.camera.DestinationType.DATA_URL"
 
+						return _pipelinePromises.getPreviewAsDataURL(o, options, extension)
+							.then (o)->
+								steroids.logger.log "writeDataURL2File"
+								return _pipelinePromises.writeDataURL2File(o, 'preview')
+							.then (o)->
+								# when is o.fileEntry[root] set?
+								return _pipelinePromises.formatResult(o)
+				.catch (o)->
+					if (o?.dataURL?.preview)
 						dfd = $q.defer()
-						window.resolveLocalFileSystemURI fileURI
-							, (fileEntry)->
-								# steroids.logger.log "5. fileEntry=" + fileEntry.fullPath
-								dfd.resolve _.extend o, {
-									fileEntry: 
-										'chosen': fileEntry
-								}
-							, ()->
-								self.fileError
-								throw "Error:  resolveLocalFileSystemURI fileURI"
+						retval = self.dataURLPipeline(o, options)
+						steroids.logger.log "dataURLPipeline COMPLETE, retval=" + JSON.stringify retval[0..200]
+						dfd.resolve(retval)
 						return dfd.promise
-					.then (o)->
-						# steroids.logger.log "6. moveTo"
 
-						filename = new Date().getTime()  
-						# moveTo
-						dfd = $q.defer()
-						o.fileEntry['chosen'].moveTo o.directoryEntry['root']
-							, filename + '.jpg'
-							, (fileEntry)->
-								o.fileEntry['original'] = fileEntry
-								o['filename'] = filename
-								dfd.resolve o				
-							, ()->
-								self.fileError
-								throw "Error:  o.fileEntry.chosen.moveTo"
-						return dfd.promise
-					.then (o)->
-						# steroids.logger.log "7. copyTo"
-
-						dfd = $q.defer()
-						o.fileEntry['original'].copyTo o.directoryEntry['root']
-							, o['filename']+'.preview.jpg'
-							, (fileEntry)->
-								o.fileEntry['copy'] = fileEntry
-								dfd.resolve o				
-							, ()->
-								self.fileError
-								throw "Error:  o.fileEntry.chosen.copyTo"
-						return dfd.promise	
-					.then (o)->
-						# steroids.logger.log "8. resize"
-
-						dfd = $q.defer()
-						resizer = new steroids.File( {
-							path: o.fileEntry['copy'].name
-							relativeTo: steroids.app.userFilesPath 	# should use o.preview
-						})
-						resizer.resizeImage( 
-							{
-								format: 
-									type: "jpg"
-									compression: CFG.camera.quality
-								constraint: 
-									dimension: "width"	
-									# use 2*320=640p since we are saving to FS
-									length: CFG.camera.targetWidth * 2  	
-							},
-							{
-								onSuccess: ()->
-									retval = {
-										originalSrc: '/' + o.fileEntry['original'].name
-										previewSrc: '/' + o.fileEntry['copy'].name
-									}
-									steroids.logger.log "imagePipeline COMPLETE, retval=" + JSON.stringify retval
-									dfd.resolve(retval)
-									
-								onFailure: ()->
-									steroids.logger.log "resize FAILURE!!!"
-									throw "Error:  resizer.resizeImage"
-
-							}
-						)
-						return dfd.promise
-					.catch (o)->
-						steroids.log.logger "imagePipeline REJECTED!"
-						
-				catch error
-					JSON.stringify error	
+					steroids.logger.log "imagePipeline REJECTED!"
+					steroids.logger.log o
+					return throw "imagePipeline REJECTED!"
+				# end fileURIPipeline
 
 
+
+
+
+				# # get DataURL from FileURI (ALAssetsId), using getById(0)	
+				# $q.defer().promise
+				# .then (o)->
+				# 	return _pipelinePromises.getPreviewAsDataURL(o, uuid, extension, options)
+
+
+				# 	o = { 'directoryEntry': o.directoryEntry }
+				# 	steroids.logger.log {
+				# 		msg: "**** _initFileStore() ******"
+				# 		root: o.directoryEntry.root.fullPath 
+				# 		preview: o.directoryEntry.preview.fullPath 
+				# 	}
+				# 	if destinationType == navigator.camera.DestinationType.DATA_URL
+				# 		_.extend o, {
+				# 			dataURL: 
+				# 				'preview': "data:image/jpeg;base64," + item.data
+				# 		}
+				# 		return o
+
+				# 	# destinationType == FILE_URI
+				# 	dfd = $q.defer()
+				# 	options = options = {
+	   #                  quality: 75
+	   #                  destinationType: Camera.DestinationType.DATA_URL
+	   #                  encodingType: Camera.EncodingType.JPEG
+	   #                  targetWidth: 640
+	   #              };
+				# 	window.plugin?.snappi?.assetspicker?.getById item.id
+				# 		, (data)->
+				# 			steroids.logger.log "*** getById(), data="+data.data[0..100]
+				# 			_.extend o, {
+				# 				dataURL: 
+				# 					'preview': "data:image/jpeg;base64," + data.data
+				# 			}
+				# 			# steroids.logger.log "*** getById(), keys=" + _.keys o
+				# 			return dfd.resolve o
+				# 		, (message)->
+				# 			dfd.reject("Error assetspicker.getbyId() to dataURL")
+				# 		, options
+				# 	return dfd.promise
+
+				# # new FileEntry in o.root, o.preview
+				# .then (o)->
+				# 	return _pipelinePromises.writeDataURL2File(o, filename)
+
+				# 	steroids.logger.log "4a. filename=" + filename	
+				# 	# steroids.logger.log "o.directoryEntry" + JSON.stringify( o )[0..300]
+				# 	try 
+				# 		dfd = $q.defer()
+				# 		o['filename'] = filename
+				# 		steroids.logger.log "4b. previewDir=" + o.directoryEntry['preview'].name
+				# 		writeDataUrl2File o.directoryEntry['preview']
+				# 			, filename + ".preview.JPG"
+				# 			, o.dataURL['preview']
+				# 			, (fileEntry)->
+				# 				dfd.resolve _.extend o, {
+				# 					fileEntry: 
+				# 						'preview': fileEntry
+				# 				}
+				# 	catch error
+				# 		steroids.logger.log "*****  EXCEPTION : reject & try dataURLPipeline"
+				# 		steroids.logger.log error
+				# 		dfd.reject(o) # goto .catch() and try dataUrlPipeline
+
+				# 	return dfd.promise		
+				# .then (o)->
+				# 	return o if "skip"	# skip this step
+				# 	return _pipelinePromises.resolveLocalFileSystemURI(o, fileURI, 'chosen')
+
+				# 	# steroids.logger.log "5. fileEntry"
+				# 	# steroids.logger.log {
+				# 	# 	msg: "**** _initFileStore().resolved ******"
+				# 	# 	fileURI: fileURI
+				# 	# 	root: o.directoryEntry.root.fullPath 
+				# 	# 	preview: o.directoryEntry.preview.fullPath 
+				# 	# }
+
+
+				# 	dfd = $q.defer()
+				# 	window.resolveLocalFileSystemURI fileURI
+				# 		, (fileEntry)->
+				# 			steroids.logger.log "5. fileEntry=" + fileEntry.name
+				# 			dfd.resolve _.extend o, {
+				# 				fileEntry: 
+				# 					'chosen': fileEntry
+				# 			}
+				# 		, ()->
+				# 			self.fileError
+				# 			throw "Error:  resolveLocalFileSystemURI fileURI"
+				# 	return dfd.promise
+				# .then (o)->
+				# 	return o if "skip" 	# skip this step
+				# 	return _pipelinePromises.fileEntryMoveTo(o, o.fileEntry['selected'], o.directoryEntry['root'], uuid, 'original')
+
+				# 	# steroids.logger.log "6. moveTo"
+
+				# 	filename = new Date().getTime()    
+				# 	# moveTo
+				# 	dfd = $q.defer()
+				# 	o.fileEntry['chosen'].moveTo o.directoryEntry['root']
+				# 		, filename + '.jpg'
+				# 		, (fileEntry)->
+				# 			o.fileEntry['original'] = fileEntry
+				# 			o['filename'] = filename
+				# 			dfd.resolve o				
+				# 		, ()->
+				# 			self.fileError
+				# 			throw "Error:  o.fileEntry.chosen.moveTo"
+				# 	return dfd.promise
+				# .then (o)->
+				# 	return o if "skip" 	# skip this step
+				# 	return _pipelinePromises.fileEntryCopyTo(o, o.fileEntry['original'], o.directoryEntry['preview'], uuid, 'preview')
+
+				# 	# steroids.logger.log "7. copyTo"
+
+				# 	dfd = $q.defer()
+				# 	o.fileEntry['original'].copyTo o.directoryEntry['root']
+				# 		, o['filename']+'.preview.jpg'
+				# 		, (fileEntry)->
+				# 			o.fileEntry['copy'] = fileEntry
+				# 			dfd.resolve o				
+				# 		, ()->
+				# 			self.fileError
+				# 			throw "Error:  o.fileEntry.chosen.copyTo"
+				# 	return dfd.promise	
+				# .then (o)->
+				# 	if "do not resize"
+				# 		retval = {
+				# 			# originalSrc: '/' + o.fileEntry['original'].name
+				# 			filename: o.filename
+				# 			originalSrc: '/'+  (o.fileEntry['root']?.name || o.filename + '.JPG')
+				# 			previewSrc: '/' + o.fileEntry['preview'].name
+				# 		}
+				# 		steroids.logger.log "imagePipeline COMPLETE, retval=" + JSON.stringify retval
+				# 		return retval
+
+
+
+
+				# 	steroids.logger.log "8. resize"
+
+				# 	o.fileEntry['copy'].name = o.fileEntry['preview'].name
+
+				# 	dfd = $q.defer()
+				# 	resizer = new steroids.File( {
+				# 		path: o.fileEntry['copy'].name
+				# 		relativeTo: steroids.app.userFilesPath 	# should use o.preview
+				# 	})
+				# 	resizer.resizeImage( 
+				# 		{
+				# 			format: 
+				# 				type: "jpg"
+				# 				compression: CFG.camera.quality
+				# 			constraint: 
+				# 				dimension: "width"	
+				# 				# use 2*320=640p since we are saving to FS
+				# 				length: CFG.camera.targetWidth * 2  	
+				# 		},
+				# 		{
+				# 			onSuccess: ()->
+				# 				retval = {
+				# 					# originalSrc: '/' + o.fileEntry['original'].name
+				# 					filename: o.filename
+				# 					originalSrc: o.filename
+				# 					previewSrc: '/' + o.fileEntry['copy'].name
+				# 				}
+				# 				steroids.logger.log "imagePipeline COMPLETE, retval=" + JSON.stringify retval
+				# 				dfd.resolve(retval)
+								
+				# 			onFailure: ()->
+				# 				steroids.logger.log "resize FAILURE!!!"
+				# 				throw "Error:  resizer.resizeImage"
+
+				# 		}
+				# 	)
+				# 	return dfd.promise
+				# .catch (o)->
+				# 	if (o?.dataURL?.preview)
+				# 		dfd = $q.defer()
+				# 		retval = self.dataURLPipeline(o['filename'], o.dataURL['preview'])
+				# 		steroids.logger.log "dataURLPipeline COMPLETE, retval=" + JSON.stringify retval[0..200]
+				# 		dfd.resolve(retval)
+				# 		return dfd.promise
+
+				# 	steroids.log.logger "imagePipeline REJECTED!"
+				# 	steroids.logger.log o
+				# 	throw "imagePipeline REJECTED!"
 		}
 
 		_initFileStore()
 		
 		return self
-]   
+]
 )
