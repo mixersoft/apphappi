@@ -90,11 +90,11 @@ angular.module( 'appHappi', [
 			controller: 'SettingsCtrl'
 			})		
 		.when('/getting-started', {
-			templateUrl: 'views/settings/_gettingstarted.html'
+			templateUrl: 'views/settings/_gettingstarted.1.html'
 			controller: 'SettingsCtrl'
 		})
 		.when('/getting-started/check', {
-			templateUrl: 'views/settings/_gettingstarted.html'
+			templateUrl: 'views/settings/_gettingstarted.1.html'
 			controller: 'SettingsCtrl'
 		})
 		.when('/about', {

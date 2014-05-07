@@ -87,6 +87,15 @@ angular.module(
         }
         return {'challenge': challengeCounts}
 
+      setScrollHeight: (fullHeight)->
+        drawerWrap = angular.element(document.getElementById('drawer'))
+        return if !drawerWrap.hasClass('collapsable')
+
+        if fullHeight
+          drawerWrap.removeClass('collapsed')
+        else drawerWrap.addClass('collapsed')
+
+
     }
 
     self = {
@@ -110,6 +119,10 @@ angular.module(
         else if open==false
            slider.removeClass('slide-over')
         else throw "ERROR: invalid value"
+
+        fullHeight = slider.hasClass('slide-over')
+        _drawer.setScrollHeight(fullHeight)
+
         window.scrollTo(0, 0)
         return
 
@@ -274,7 +287,20 @@ angular.module(
 
         localStorageService.set('drawerState', self.state)  
         return self  
-          
+
+      # .visible-xs uses collapsable drawer, .visible-sm keeps drawer visible
+      setCollapsable: ()->
+        collapsable = !!document.getElementById("sidebar-open-btn").offsetWidth
+        drawerWrap = angular.element(document.getElementById('drawer'))
+        # .collapse sets overflow: hidden to minimize height of drawer when hidden
+        if collapsable 
+          if drawerWrap.hasClass('collapsed')
+            return
+          else
+            drawerWrap.addClass('collapsable collapsed').removeClass('slide-over')
+        else drawerWrap.removeClass('collapsable collapsed').addClass('slide-over')
+        return
+
 
       load: (url)->
         url = _drawer.url if _.isEmpty(url)
@@ -283,6 +309,9 @@ angular.module(
           _drawer.json = data
           # localStorageService.set('drawer', _drawer.json )
           # console.log "*** drawer ready"
+          angular.element($window).bind 'resize', _.throttle self.setCollapsable
+            , 200 
+          self.setCollapsable() # call after drawer is ready
           return 
         # console.log _drawer.ready  
         return _drawer.ready  
@@ -365,10 +394,11 @@ angular.module(
   '$q'
   'appConfig'
   'drawerService'
+  'helpService'
   'notifyService'
   'actionService'
   'syncService'
-  ($scope, $rootScope, $q, CFG, drawer, notify, actionService, syncService )->
+  ($scope, $rootScope, $q, CFG, drawer, helpService, notify, actionService, syncService )->
     #
     # Controller: DrawerCtrl
     #   - use $rootScope to share common services with 'view' controllers
@@ -379,6 +409,7 @@ angular.module(
     $rootScope.CFG = CFG
     $rootScope.notify = window.notify = notify
     $rootScope.drawer = drawer
+    $rootScope.helpService = helpService
     $rootScope.route = {
       # controller: 'SettingsCtrl'
       # view: 'views/settings/_about.html'
@@ -387,6 +418,7 @@ angular.module(
     $scope.CFG = $rootScope.CFG         # used by on-off-switch
     $scope.route = $rootScope.route
     $scope.drawer = $rootScope.drawer
+    $scope.helpService = helpService
     $scope.deck = null                  # refresh deck.cards() on filter
     # TODO: refactor actionService for exports
     $scope.shuffleDeck = actionService.shuffleDeck
