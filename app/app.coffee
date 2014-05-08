@@ -162,31 +162,16 @@ angular.module( 'appHappi', [
 			deck: "=paginateDeck"
 		link : (scope, element, attrs)->
 			# TODO: use pull down to refresh pattern for pull up
-			pager = angular.element '<div class="pager-wrap" on-touch="galleryGlow"><div id="timeline-pager"><i class="fa fa-spinner fa-spin" ng-show="loading"></i> {{remaining}} more</div></div>'
-			element.append(pager)
 			scope.remaining = 0
-			scope.loading = false
+			element.append('<div ng-include="\'/common/templates/_pager.html\'"></div>')
 			
-			_updatePager = (type="loading")->
+			_updatePager = ()->
 				total = scope.deck.size()
 				showing = scope.deck.paginatedCards("showing")
 				scope.remaining = total-showing
 				if scope.remaining == 0 
-					pager.unbind()
-					pager.remove()
 					angular.element($window).off 'scroll', _paginateAfterScroll
-				scope.loading = type=="loading"
-				# use timeout for now
-				$timeout (()->_updatePager("done")), 1000
 
-			pager.bind 'touchstart, click',(e)->
-				scope.$apply ()->
-				 	scope.deck.paginatedCards("more")
-				 	_updatePager("loading")
-
-			pager.bind 'touchend',(e)->
-				scope.$apply ()->
-				 	_updatePager("done")
 
 			# same as infinite-scroll
 			_paginateAfterScroll = _.debounce (e)->
@@ -196,21 +181,23 @@ angular.module( 'appHappi', [
 						el_bottom = el.offsetTop + el.offsetHeight
 						if scope.remaining && el_bottom < (win_bottom + 100) 
 							scope.deck.paginatedCards("more")
-							_updatePager("loading")
+							_updatePager()
+							scope.$apply()
 						return
-					, 250		# inifinite-scroll Timeout
+					, 100		# inifinite-scroll Timeout
+					, {leading: false, trailing: true}
 
 			angular.element($window).on 'scroll', _paginateAfterScroll
 
-			# TODO: destroy listeners
 			scope.$on '$destroy', ()->
-				pager.unbind()
+				# pager.unbind()
 				angular.element($window).off 'scroll', _paginateAfterScroll
 
 			# initialize to page=1, perpage=scope.perpage
 			scope.deck.paginatedCards(scope.perpage) 
-			_updatePager("done")	 	
-			$compile(pager.contents())(scope); 
+			_updatePager()	 	
+			# ???: how do I use compile: and connect with link: scope?
+			$compile(element.contents())(scope); 
 			return
 	}
 ])
