@@ -52,41 +52,51 @@ body {
 	color: @snappi-yellow;
 
 	.help-challenge, .help-moment, .help-timeline {
-		& > div {
-			position: absolute;
+		.help-element {
+			position: relative;
+			max-width: 425px;
 		}
 		.drawer {
 			top: 10px;
-			left: 40px;
+			left: 24px;
 		}
 		.swipe {
 			top: 100px;
-			left: 50%;
-			margin-left: -80px;
+			max-width: 150px;
+			width: 88%;
+			.center-block();
 		}
 		.notes {
 			top: 200px;
-			left: 50%;
-			margin-left: -180px;
+			width: 88%;
+			.center-block();
+
+		}
+	}
+	.help-challenge {
+		.notes {
+			top: 132px;
 		}
 	}
 	.help-moment {
 		.tap-open {
-			top: 74px;
-			left: 49%;
+			top: 50px;
+			left: 48%;
 		}
 		.swipe {
 			top: 120px;
 		}
 		.notes {
-			margin-left: -150px;
 		}
 	}
 	.help-timeline {
 		.see-more {
 			top: 135px;
-			left: 50%;
-			margin-left: -74px;
+			max-width: 150px;
+			width: 50%;
+			.center-block();
+		}
+		.notes {
 		}
 	}
 }
