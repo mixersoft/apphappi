@@ -117,6 +117,11 @@ angular.module( 'appHappi', [
 )
 # set fallback Img.src for fullres
 .directive('photo', ()->
+	_getSrc = (index, scope, fallback=false)->
+		if scope.preferFileUrl && !fallback
+			return scope.photo.fileURI || scope.photo.src
+		else return scope.photo.src	
+
 	return {
 		restrict: "A"
 		scope: {
@@ -124,16 +129,80 @@ angular.module( 'appHappi', [
 		}
 		link : (scope, element, attrs)->
 			# add class="prefer-fileurl" to ng-include
-			if element.parent().parent().parent().parent().hasClass('prefer-fileurl')
+			parent = scope.$parent
+			ngRepeat = element.parent().parent().parent().parent().parent()
+			scope.preferFileUrl = ngRepeat.hasClass('prefer-fileurl')
+			# ???: why do I need to define in both scope and scope.$parent???
+			scope.index = parent.$index
+			scope.getSrc = parent.getSrc = ngRepeat.getSrc = (index)->
+				# console.log "getSrc, index="+index
+				return _getSrc(index, scope)
+
+			if scope.preferFileUrl 
 				# attrs.ngSrc = scope.photo.fileURI || scope.photo
-				element.attr('src', scope.photo.fileURI || scope.photo.src)
-				element.bind('error', ()->angular.element(this).attr("src", scope.photo.src) )				
+				# element.attr('src', scope.photo.fileURI || scope.photo.src)
+				element.bind('error', ()->
+					# angular.element(this).attr("src", scope.photo.src) 
+					angular.element(this).attr( "src", _getSrc( scope.index, scope, "fallback")  )
+					scope.$apply()
+
+				)				
 				# TODO: destroy listeners
 				scope.$on '$destroy', ()->
-					element.unbind()	 	
-			else element.attr('src',scope.photo.src)
+					element.unbind()
+
+			return
 	}
 )
+.directive('lazyload', ['$window', ($window)->
+	_inView = (img, docViewTop, docViewBottom)-> 
+		el = img.parentNode.parentNode.parentNode	# .thumb
+		elemTop = el.offsetTop
+		elemBottom = elemTop + el.clientHeight
+		return ((elemBottom >= docViewTop) && (elemTop <= docViewBottom) && (elemBottom <= docViewBottom) &&  (elemTop >= docViewTop) )
+
+	_getFocus = (imgs)->
+		doc = $window.document
+		docViewTop = doc.body.scrollTop
+		docViewBottom = docViewTop + doc.documentElement.clientHeight
+		for i in [imgs.length-1..0]
+			return i if _inView(imgs[i], docViewTop, docViewBottom)
+
+	return {
+		restrict: "A"
+		scope: false
+		link : (scope, element, attrs)->
+			# ???: how do I set scope.focus and have photos watch that value?
+			cache = attrs.lazyload/2
+
+			_lazyload = _.debounce (e)->
+					imgs = element.find('IMG')
+					focus =  _getFocus(imgs)
+					_.each imgs, (img, i, l)->
+						return if !img.hasAttribute('photo')
+
+						isVisible =  focus - cache <= i && i <= focus + cache
+						if isVisible
+							stashed = img.getAttribute('stash-src')
+							if stashed
+								img.src = stashed
+								# console.warn "RESTORE i="+i+" ,src=" + img.getAttribute('stash-src')[0..100]
+								img.setAttribute('stash-src','')
+						else 
+							return if img.getAttribute('stash-src')
+							img.style.height = img.clientHeight+'px'
+							img.setAttribute('stash-src', img.src)
+							img.src = ''	
+				, 100
+
+
+			angular.element($window).on 'scroll', _lazyload
+			scope.$on '$destroy', ()->
+				# pager.unbind()
+				angular.element($window).off 'scroll', _lazyload
+
+	}
+])
 .directive('onTouch', ()->
 	return {
 		restrict: "A"
@@ -154,7 +223,7 @@ angular.module( 'appHappi', [
 			return
 	}
 )
-.directive('paginateDeck', [ '$compile', '$timeout', '$window', ($compile, $timeout, $window)->
+.directive('paginateDeck', [ '$compile', '$window', ($compile, $window)->
 	return {
 		restrict: "A"
 		scope:
