@@ -100,42 +100,44 @@ angular.module(
 
 		
 		# get formatted photo = {} for resolve		
-		_getPhotoObj = (uri, dataURL, exif={}, alAssetId=null)->
+		_getPhotoObj = (o)->   #(uri, dataURL, exif={}, alAssetId=null)->
 			# get hash from EXIF to detect duplicate photo
 			# hash photo data to detect duplicates
-			__getPhotoHash = (exif, dataURL)->
-				if !(exif?['DateTimeOriginal'])
-					exifKeys = _.keys(exif)
-					notify.alert "WARNING: EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "danger", 30000	
-					return false 
-				hash = []
-				exifKeys = _.keys(exif)
-				# notify.alert "EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "info", 30000
-				compact = exif['DateTimeOriginal']?.replace(/[\:]/g,'').replace(' ','-')
-				hash.push(compact)
-				# notify.alert "photoHash 1="+hash.join('-'), "danger", 30000
-				if dataURL?
-					hash.push dataURL.slice(-20)
-					# notify.alert "photoHash 2="+hash.join('-'), "danger", 30000
-				else 
-					hash.push exif['Model']
-					hash.push exif['Make']
-					hash.push exif['ExposureTime']
-					hash.push exif['FNumber']
-					hash.push exif['ISOSpeedRatings']
-				return hash.join('-')
+			# __getPhotoHash = (exif, dataURL)->
+			# 	if !(exif?['DateTimeOriginal'])
+			# 		exifKeys = _.keys(exif)
+			# 		notify.alert "WARNING: EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "danger", 30000	
+			# 		return false 
+			# 	hash = []
+			# 	exifKeys = _.keys(exif)
+			# 	# notify.alert "EXIF count="+exifKeys.length+", keys="+exifKeys.join(", "), "info", 30000
+			# 	compact = exif['DateTimeOriginal']?.replace(/[\:]/g,'').replace(' ','-')
+			# 	hash.push(compact)
+			# 	# notify.alert "photoHash 1="+hash.join('-'), "danger", 30000
+			# 	if dataURL?
+			# 		hash.push dataURL.slice(-20)
+			# 		# notify.alert "photoHash 2="+hash.join('-'), "danger", 30000
+			# 	else 
+			# 		hash.push exif['Model']
+			# 		hash.push exif['Make']
+			# 		hash.push exif['ExposureTime']
+			# 		hash.push exif['FNumber']
+			# 		hash.push exif['ISOSpeedRatings']
+			# 	return hash.join('-')
 
 			now = new Date()
-			dateTaken = now.toJSON()
+			dateTaken = o.exif?.DateTimeOriginal || now.toJSON()
 
-			id = alAssetId 
-			notify.alert "_getPhotoObj() photo.id=="+id, "success", 2000
+			id = o.id || now.getTime() 
+			# notify.alert "_getPhotoObj() photo.id=="+id, "success", 2000
 			return {
-				id: id
-				dateTaken: dateTaken
-				Exif: exif || {}
-				src: dataURL || uri 							# resized dataURL or src
-				fileURI: if _.isString(uri) then uri else null 	# original src
+				id: o.id
+				dateTaken: dateTaken 
+				orig_ext: o.orig_ext
+				label: o['label']
+				Exif: o.exif || {}
+				src: o.previewSrc || o.originalSrc 							# resized dataURL or src
+				fileURI: if _.isString(o.originalSrc) then o.originalSrc else null 	# original src
 				rating: 0		# required for orderBy:-rating to work				
 			}
 
@@ -150,7 +152,7 @@ angular.module(
 				check = _.filter o, (v)->return v=='timeout'
 				if check?.length
 					notify.alert "jsTimeout for " + JSON.stringify check, "warning", 10000
-				photo = _getPhotoObj(src, o.downsized, o.exif)
+				photo = _getPhotoObj({originalSrc: src, previewSrc: o.downsized, exif: o.exif})
 
 				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 30000
 				
@@ -192,7 +194,7 @@ angular.module(
 				if check?.length
 					notify.alert "jsTimeout for " + JSON.stringify check, "warning", 10000
 				src = '/'+file.name
-				photo = _getPhotoObj(src, o.downsized, o.exif)
+				photo = _getPhotoObj({originalSrc: src, previewSrc: o.downsized, exif: o.exif}) #  _getPhotoObj(src, o.downsized, o.exif)
 
 				notify.alert "FINAL resolve "+ JSON.stringify(photo), "success", 30000
 				
@@ -460,7 +462,7 @@ angular.module(
 						[name]: File.FileEntry
 				}
 				###
-				steroids.logger.log "resolveLocalFileSystemURI(): fileURI="+fileURI[0..100]
+				steroids.logger.log "resolveLocalFileSystemURI(): fileURI="+fileURI[0..120]
 				dfd = $q.defer()
 				window.resolveLocalFileSystemURI fileURI
 					, (fileEntry)->
@@ -493,7 +495,7 @@ angular.module(
 						'[label]': File.FileEntry
 				}
 				###
-				steroids.logger.log "fileEntryMoveTo()"
+				# steroids.logger.log "fileEntryMoveTo()"
 				dfd = $q.defer()
 				
 				if label == 'original'
@@ -626,9 +628,9 @@ angular.module(
 				retval = {
 					# originalSrc: '/' + o.fileEntry['original'].name
 					id: o.uuid
-					# filename: filename || o.uuid
-					extension: o.orig_ext
-					# label: label || o.uuid
+					label: o['label']
+					orig_ext: o.orig_ext
+					extension: o.extension
 					originalSrc: null
 					previewSrc: null
 				}
@@ -639,8 +641,6 @@ angular.module(
 		# end _pipelinePromises		
 
 
-
-		_fileErrorComment = ""
 
 		self = {
 			type : "snappiAssetsPickerService"
@@ -657,19 +657,23 @@ angular.module(
 			# File system failure callback
 			fileError : (error)->
 				# navigator.notification.alert "Cordova error code: " + error.code, null, "File system error!"
-				steroids.logger.log  "Cordova error code: " + error.code + " fileError. " + _fileErrorComment
+				steroids.logger.log  "Cordova error code: " + error.code + " fileError. " 
 				if _deferred?
-					_deferred.reject( "Cordova error code: " + error.code + " fileError. " + _fileErrorComment )
+					_deferred.reject( "Cordova error code: " + error.code + " fileError. "  )
 
 
 			#
 			# this is the main API entry point
 			#
 			getPicture: (options, $event)->
-				if _.isArray( options.overlay?['previously-selected'] )
-					options.overlay['previously-selected'] = self.SAVE_PREVIOUSLY_SELECTED
-				else 
-					options.overlay = _.extend (options.overlay || {}), {'previously-selected' : [] } 
+				if !options.overlay?[Camera.Overlay.PREVIOUS_SELECTED]?.length
+					self.SAVE_PREVIOUSLY_SELECTED = []
+					options.overlay = {} if !options.overlay
+					options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = self.SAVE_PREVIOUSLY_SELECTED if !options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
+				else if options.overlay[Camera.Overlay.PREVIOUS_SELECTED] != self.SAVE_PREVIOUSLY_SELECTED 
+					steroids.logger.log "1 ##### options.overlay=" + JSON.stringify options.overlay
+					self.SAVE_PREVIOUSLY_SELECTED = options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
+				# options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.map syncService.get['photos']. (o)-> return o.id + '.' + o.orig_ext
 
 				try
 					steroids.logger.log "Using snappi-assets-picker"
@@ -678,13 +682,15 @@ angular.module(
 					_deferred = $q.defer()
 					_deferred.id = _deferredCounter++
 					
-					steroids.logger.log "getPicture() options:" + JSON.stringify options
+					# steroids.logger.log "*** getPicture() options:" + JSON.stringify options
 					window.plugin?.snappi?.assetspicker?.getPicture (dataArray)->
-							self.SAVE_PREVIOUSLY_SELECTED = options.overlay['previously-selected'].concat _.pluck( dataArray, "id")
-							steroids.logger.log "SAVE_PREVIOUSLY_SELECTED=" + JSON.stringify self.SAVE_PREVIOUSLY_SELECTED
+							_.each dataArray, (o)->
+								self.SAVE_PREVIOUSLY_SELECTED.push o.uuid + '.' + o.orig_ext  
+
+							# steroids.logger.log "SAVE_PREVIOUSLY_SELECTED=" + JSON.stringify self.SAVE_PREVIOUSLY_SELECTED
 							photos = []
 							promises = []
-							steroids.logger.log "dataArray uuids=" + _.pluck dataArray, 'uuid'
+							# steroids.logger.log "dataArray uuids=" + _.pluck dataArray, 'uuid'
 							# steroids.logger.log dataArray
 							_.each dataArray, (o)->
 								###
@@ -701,7 +707,7 @@ angular.module(
 									    Orientation : orientation
 									};
 								### 
-
+								# steroids.logger.log "&&&&&&&&&&&& item=" + JSON.stringify o
 								promises.push self.fileURIPipeline(o, options).then (retval)->
 										### expecting retval = {
 											id: o.uuid
@@ -712,7 +718,7 @@ angular.module(
 										###
 										retval.exif = o.exif || null
 										retval.label = o.label || null
-										photo = _getPhotoObj(retval.originalSrc, retval.previewSrc, retval.exif , retval.id)
+										photo = _getPhotoObj(retval)
 										photos.push photo
 										steroids.logger.log ">>> ONE photo = " + photo.src[0..100]	
 										return photo
@@ -756,8 +762,9 @@ angular.module(
 				retval = {
 					# originalSrc: '/' + o.fileEntry['original'].name
 					id: o.uuid
-					# filename: filename || o.uuid
-					extension: o.orig_ext
+					label: o.label
+					orig_ext: o.orig_ext
+					extension: extension
 					# label: label || o.uuid
 					originalSrc: null
 					previewSrc: dataURL
@@ -802,7 +809,7 @@ angular.module(
 					return dfd.promise
 				###
 				steroids.logger.log "imagePipeline !!!"
-				steroids.logger.log JSON.stringify( item)[0..150]
+				# steroids.logger.log JSON.stringify( item)[0..150]
 				promise = _initFileStore()
 				return promise.catch (o)->
 					steroids.logger.log {
@@ -816,6 +823,8 @@ angular.module(
 				.then (o)->
 					o.uuid = item.uuid
 					o.orig_ext = item.orig_ext
+					o.label = item.label
+					o.extension = extension
 					if options.destinationType == navigator.camera.DestinationType.FILE_URI
 						steroids.logger.log "navigator.camera.DestinationType.FILE_URI"
 						filename = item.uuid
@@ -826,7 +835,7 @@ angular.module(
 								fileEntry = o.fileEntry['original']
 								return _pipelinePromises.fileEntryMoveTo( o, fileEntry, o.directoryEntry['root'], filename)
 							.then (o)->
-								steroids.logger.log "formatResult"
+								# steroids.logger.log "formatResult"
 								return _pipelinePromises.formatResult(o)
 
 					else # DATA_URL

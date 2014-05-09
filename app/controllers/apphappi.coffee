@@ -667,11 +667,13 @@ angular.module(
 
 			c = $scope.deck.topCard()
 			m = $scope.moment || _.findWhere actionService._getMoments( c ), {status:'active'} 
+			duplicates = []
+			isFirst = drawer.state.counts.challenge.complete==0 && m.photoIds.length == 0
+
 
 			# @params p object, p.id, p.src
 			saveToMoment = (p)->
-				steroids.logger.log "saveToMoment, p.id="+p.id
-				# notify.alert "Challenge saveToMoment "+JSON.stringify(p), "success", 20000
+				steroids.logger.log "saveToMoment, p=" + JSON.stringify p
 				now = new Date()
 				if m?
 					photo = _.defaults p, {
@@ -696,10 +698,10 @@ angular.module(
 						steroids.logger.log "Challenge saveToMoment, photoIds="+JSON.stringify m.photoIds
 					else 
 						steroids.logger.log "************* DUPLICATE PHOTO ID ************"
-						notify.alert "That photo was already added", "warning"
+						duplicates.push photo.id
 					
 					# check if this is the first photo
-					if drawer.state.counts.challenge.complete==0 && m.photoIds.length == 1
+					if isFirst
 						notify.message {
 								title: "You Found Your First Photo!"
 								message: "Good job. You can continue to add more photos, or just be done with this Challenge."
@@ -732,6 +734,18 @@ angular.module(
 				dfd.id = moment().unix()
 				$event.currentTarget.setAttribute('upload-id', dfd.id)
 				options = cameraRoll.cameraOptions.fromPhotoLibrary
+				# steroids.logger.log "##### m.photoIds=" + JSON.stringify m.photoIds
+				options.overlay = {}
+				if m.photoIds?.length
+					m.photos = actionService._getPhotos m if m.photos?.length != m.photoIds.length
+					options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.reduce m.photos, (retval, o)->
+							retval.push o.id + '.' + o.orig_ext if o.orig_ext?
+							return retval
+						,[]
+					# steroids.logger.log "0 ##### options.overlay=" + JSON.stringify options.overlay	
+				else options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = []
+
+
 				steroids.logger.log "challenge_getPhoto()" + JSON.stringify options
 				promise = cameraRoll.getPicture(options, $event)
 				.then (promises)->
@@ -742,7 +756,13 @@ angular.module(
 							notify.alert message, "danger", 10000 
 
 					$q.all(promises).finally (all)->
-						icon.removeClass('fa-spin')	
+						icon.removeClass('fa-spin')
+						if duplicates.length	
+							notify.message {
+								title: "Duplicate Photos Selected"
+								message: duplicates.length + " photo(s) were skipped because they were already added."
+							},
+							2000
 						steroids.logger.log "DONE: ALL photos, count=" + _.values(all).length
 						steroids.logger.log "photos=" + JSON.stringify _.pluck(all, "src")
 						return 	
@@ -1187,6 +1207,7 @@ angular.module(
 			throw "moment id mismatch" if m.id != id
 			$target = angular.element($event.currentTarget) 
 			icon = $target.find('i')
+			duplicates = []
 			# icon.addClass('fa-spin') # spin AFTER we confirm some files were added
 
 			saveToMoment = (p)->
@@ -1209,8 +1230,9 @@ angular.module(
 						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
 						syncService.set('moment', m)
 					else 
-						notify.alert "That photo was already added", "warning"
-					icon.removeClass('fa-spin')
+						steroids.logger.log "************* DUPLICATE PHOTO ID ************"
+						duplicates.push photo.id
+
 				return
 
 			# plupload supports multi-select!!
@@ -1232,10 +1254,62 @@ angular.module(
 						)	
 				)
 				return promise
+			else if cameraRoll.type == 'snappiAssetsPickerService' 
+				# using cordova-plugin-assets-picker, change to snappi-assets-picker
+				icon.addClass('fa-spin')
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+				options = cameraRoll.cameraOptions.fromPhotoLibrary
+				options.overlay = {}
+				if m.photoIds?.length
+					m.photos = actionService._getPhotos m if m.photos?.length != m.photoIds.length
+					options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.reduce m.photos, (retval, o)->
+							retval.push o.id + '.' + o.orig_ext if o.orig_ext?
+							return retval
+						,[]
+					# steroids.logger.log "0 ##### options.overlay=" + JSON.stringify options.overlay	
+				else options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = []		
+
+				steroids.logger.log "moment_getPhoto()" + JSON.stringify options
+				promise = cameraRoll.getPicture(options, $event)
+				.then (promises)->
+					_.each promises, (promise)->
+						promise.then( saveToMoment )
+						.catch (error)->
+							steroids.logger.log "deferred error=" + error
+							notify.alert message, "danger", 10000 
+
+					$q.all(promises).finally (all)->
+						icon.removeClass('fa-spin')
+						if duplicates.length	
+							notify.message {
+								title: "Duplicate Photos Selected"
+								message: duplicates.length + " photo(s) were skipped because they were already added."
+							},
+							2000
+						steroids.logger.log "DONE: ALL photos, count=" + _.values(all).length
+						steroids.logger.log "photos=" + JSON.stringify _.pluck(all, "src")
+						return 	
+					return
+				.catch (error)->
+					icon.removeClass('fa-spin')	
+					steroids.logger.log "deferred error=" + error
+					notify.alert message, "danger", 10000 
+				
+
+				return promise		
 			else if cameraRoll.type == 'cordovaCameraService' 
-				icon.addClass('fa-spin') # spin AFTER we confirm some files were added 
-				promise = cameraRoll.getPicture(cameraRoll.cameraOptions.fromPhotoLibrary, $event)
-				promise.then( saveToMoment ).catch( (message)->notify.alert message, "warning", 10000 )			
+				icon.addClass('fa-spin')
+				options = _.clone cameraRoll.cameraOptions.fromPhotoLibrary
+				promise = cameraRoll.getPicture(options, $event)
+				promise.then( saveToMoment )
+				.catch (message)->
+					steroids.logger.log message
+					notify.alert message, "danger", 15000 
+				.finally ()->
+					return icon.removeClass('fa-spin')	
+
 				return promise
 			else 
 				console.warn "Error: Invalid cameraRoll."	
