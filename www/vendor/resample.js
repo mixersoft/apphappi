@@ -115,9 +115,10 @@ var Resample = (function () {
 		width == null && (width = round(img.width * height / img.height));
 		height == null && (height = round(img.height * width / img.width));
 
-		if (width <= img.width) {
+		if (img.width <= width) {
 			src = typeof img == "string" ? img : img.src
-			return done(src)
+			isDataUrl = src.indexOf("data:")==0
+			if (isDataUrl) return done(src)		// force dataUrl
 		}
 		
 		// remove (hopefully) stored info
@@ -156,13 +157,14 @@ var Resample = (function () {
 			// destination height
 			height 
 		);
-		console.log("*** Resample.js: context.drawImage params=" + JSON.stringify([
+		msg = "*** Resample.js: context.drawImage params=" + JSON.stringify([
 			0,0,
 			img.width,img.height,
 			0,0,
 			width,height 
-			])
-		);
+			]);
+		console.log(msg)
+		
 		// retrieve the canvas content as
 		// base4 encoded PNG image
 		// and pass the result to the callback

@@ -201,18 +201,18 @@ angular.module(
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
 			return dfdFINAL.promise
 
-		_resample = (img, dfd)->
+		_resample = (img, dfd, targetWidth)->
 			src = if img.src? then img.src else img  
-			console.log "*** resize using Resample.js ******* IMG.src=" + src[0..60]
+			steroids.logger.log "*** resize using Resample.js ******* IMG.src=" + src[0..60]
 			done = (dataURL)->
-				console.log "resampled data=" + JSON.stringify {
+				steroids.logger.log "resampled data=" + JSON.stringify {
 					size: dataURL.length
 					data: dataURL[0..60]
 				}
 				dfd.resolve(dataURL)
 				return
 			Resample.one()?.resample img
-				, 	CFG.camera.targetWidth
+				, 	targetWidth || CFG.camera.targetWidth
 				, 	null		# targetHeight
 				, 	done
 			return dfd.promise
@@ -684,8 +684,6 @@ angular.module(
 					
 					# steroids.logger.log "*** getPicture() options:" + JSON.stringify options
 					window.plugin?.snappi?.assetspicker?.getPicture (dataArray)->
-							_.each dataArray, (o)->
-								self.SAVE_PREVIOUSLY_SELECTED.push o.uuid + '.' + o.orig_ext  
 
 							# steroids.logger.log "SAVE_PREVIOUSLY_SELECTED=" + JSON.stringify self.SAVE_PREVIOUSLY_SELECTED
 							photos = []
@@ -861,6 +859,11 @@ angular.module(
 					steroids.logger.log o
 					return throw "imagePipeline REJECTED!"
 				# end fileURIPipeline
+
+			resample: (img)->
+				dfd = $q.defer()
+				_resample img, dfd, 640
+				return dfd.promise
 
 
 		}

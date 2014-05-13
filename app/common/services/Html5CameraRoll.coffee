@@ -140,7 +140,7 @@ angular.module(
 				return
 			return dfdFINAL.promise
 
-		_resample = (origDataURL, dfd)->
+		_resample = (origDataURL, dfd, targetWidth)->
 			console.log "*** resize using Resample.js ******* dataURL.size=" + origDataURL.length
 			done = (dataURL)->
 				console.log "resampled data=" + JSON.stringify {
@@ -150,7 +150,7 @@ angular.module(
 				dfd.resolve(dataURL)
 				return
 			Resample.one()?.resample origDataURL
-				, 	CFG.camera.targetWidth
+				, 	targetWidth || CFG.camera.targetWidth
 				, 	null		# targetHeight
 				, 	done
 			return dfd.promise
@@ -287,6 +287,13 @@ angular.module(
 				# track dfd by dfd.id
 				_deferred[dfd.id] = dfd
 				return dfd.promise
+
+			resample: (img)->
+				dfd = $q.defer()
+				_resample img, dfd, 640
+				return dfd.promise
+
+
 					
 		} # end self
 

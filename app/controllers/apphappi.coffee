@@ -138,6 +138,7 @@ angular.module(
 ).factory( 'actionService', [ 
 	'drawerService'
 	'deckService'
+	'cameraRoll'
 	'syncService'
 	'localNotificationService'
 	'notifyService'
@@ -145,7 +146,7 @@ angular.module(
 	'$location'
 	'$timeout'
 	'$rootScope'
-	(drawerService, deckService, syncService, localNotify, notify, appConfig, $location, $timeout, $rootScope)->
+	(drawerService, deckService, cameraRoll, syncService, localNotify, notify, appConfig, $location, $timeout, $rootScope)->
 		CFG = $rootScope.CFG || appConfig
 		self = {
 
@@ -156,6 +157,7 @@ angular.module(
 				'glowOnClick'
 				'drawerItemClick'
 				'goToMoment'
+				'serverShare'
 				'socialShare'
 				'markPhotoForRemoval'
 				'removeMarkedPhotoNow'
@@ -298,6 +300,97 @@ angular.module(
 					# 	scope.deck.cards('refresh')
 					if route? && route != $location.path()
 						$location.path(route)
+
+			# share on server, post to apphappi.parseapp.com
+			# view at http://apphappi.parseapp.com/stream/[uuid]
+			serverShare : (ev, i, scope)-> 
+				ev.preventDefault()
+				target = ev.currentTarget
+				photo = this.photo
+				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
+
+				###
+				parse code
+				###
+				parseAPPID = "ksv7tSSSheFcPB4rk8mtYWzkpH8bXH4JWBAeTwFm";
+				parseJSID = "c6OAp6Vr5qvCQSPgQFfY4I8t4u4tySea6K4KwUkN";
+				 
+				# //Initialize Parse
+				Parse.initialize(parseAPPID,parseJSID);
+				
+				PhotoObj = Parse.Object.extend("Photo")
+				StreamObj = Parse.Object.extend("Stream")
+
+				
+				# photo keys = [id, dateTaken, orig_ext, label, Exif, src, fileURI, rating ]
+				checkPhoto = (photo)->
+					return new Parse.Query(PhotoObj).get(photo.id).then (photoObj)->
+							check = photoObj
+							return photoObj
+						, (error)->
+							if error.code == 101
+								return photo
+							else 
+								console.log "checkPhoto, not found?"
+								console.log error
+
+				uploadToParse = (base64src, streamId)->
+					# query to find 
+					parseFile = new Parse.File(photo.id + ".JPG", {
+							base64: base64src
+						})
+					return parseFile.save().then (parseFile)->
+								# save parseFile as photoObj
+								serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
+								serverPhoto.src = parseFile.url()
+								serverPhoto.fileObjId = parseFile.id
+								serverPhoto.id = photo.id
+								steroids.logger.log "uploadToParse() photo="+ JSON.stringify serverPhoto
+								photoObj = new PhotoObj(serverPhoto)
+								return photoObj
+							, (err)->
+								steroids.logger.log "ERROR: parse.save() JPG file"
+
+				saveToStream = (photoObj)->
+						serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
+						serverPhoto.src = photoObj.src
+						
+
+						if streamId? 
+							return new Parse.Query(StreamObj).get(streamId).then (streamObj)->
+								return streamObj.addUnique("photos", serverPhoto).save()
+							.catch (err)->
+									steroids.logger.log "parse.query.get() StreamObk id=" + streamId
+						else 		
+							streamObj = new StreamObj()
+							return streamObj.set("photos",[serverPhoto]).save()
+
+				if true || !isDataURL
+					return checkPhoto(photo).then (photoObj)->
+							return saveToStream( photoObj ).then (streamObj)->
+									return streamObj
+								, (error)->
+									steroids.logger.log error
+
+						, (photo)->
+							# not found, new Photo 
+							promise = cameraRoll.resample(photo.src)
+								.then( uploadToParse)
+								.then( saveToStream
+									, (error)->
+										steroids.logger.log error
+										)
+
+				else 
+					base64src = photo.src
+					uploadToParse( base64src )
+					.then (parseFile)->
+							saveToStream( parseFile ).then (streamObj)->
+								photos = streamObj.get("photos")
+								console.log photos
+						, (error)->
+							steroids.logger.log error			
+
 
 			socialShare : (ev, i)->
 				ev.preventDefault()
