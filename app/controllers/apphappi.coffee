@@ -60,6 +60,112 @@ angular.module(
 			this.timeouts = []
 		return	
 ]
+).factory( 'uploadService', [
+	'$q'
+	'cameraRoll'
+	'appConfig'
+	($q, cameraRoll, CFG)->
+		# share on server, post to apphappi.parseapp.com
+		# view at http://apphappi.parseapp.com/stream/[uuid]
+		PhotoObj = StreamObj = null
+		init = ()->
+			return if _initialized
+			###
+			parse code
+			###
+			parseAPPID = "ksv7tSSSheFcPB4rk8mtYWzkpH8bXH4JWBAeTwFm";
+			parseJSID = "c6OAp6Vr5qvCQSPgQFfY4I8t4u4tySea6K4KwUkN";
+
+			# //Initialize Parse
+			Parse.initialize(parseAPPID,parseJSID);
+			PhotoObj = Parse.Object.extend("Photo")
+			StreamObj = Parse.Object.extend("Stream")
+
+			_initialized = true
+			return
+
+		self = {
+			share : (ev, index, scope)-> 
+				init()
+
+				ev.preventDefault()
+				target = ev.currentTarget
+				photo = this.photo
+				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
+
+				
+				return self.queryPhoto(photo).then( self.foundPhoto, self.uploadPhoto )
+					.fail (error)->
+						steroids.logger.log error
+
+
+				
+			# photo keys = [id, dateTaken, orig_ext, label, Exif, src, fileURI, rating ]
+			queryPhoto : (photo)->
+				return new Parse.Query(PhotoObj).equalTo('photoId', photo.id).first().then (found)->
+						if !found 
+							steroids.logger.log "Photo not found, photoId="+photo.id
+							return Parse.Promise.error(photo) # return Parse.Promise.error(exports.parseerror(code, desc));
+						return found
+
+			foundPhoto : (photoObj)->
+				return self.saveToStream( photoObj )
+
+			uploadPhoto : (photo)->
+				# resize to 640 before upload
+				return cameraRoll.resample(photo.src) # resolved as DATA_URL
+					.then( (base64src)->
+						return self.uploadToParse( base64src, photo ) )
+					.then (photoObj)->
+						return self.saveToStream(photoObj) 
+
+			uploadToParse : (base64src, photo, streamId)->
+				# query to find 
+				parseFile = new Parse.File(photo.id + ".JPG", {
+						base64: base64src
+					})
+				return parseFile.save().then (parseFile)->
+							# save parseFile as photoObj
+							serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
+							serverPhoto.src = parseFile.url()
+							serverPhoto.fileObjId = parseFile.id
+							serverPhoto.photoId = photo.id
+							steroids.logger.log "uploadToParse() photo="+ JSON.stringify serverPhoto
+							photoObj = new PhotoObj(serverPhoto)
+							return photoObj.save()
+						, (err)->
+							steroids.logger.log "ERROR: parse.save() JPG file"
+
+			saveToStream : (photoObj, streamId)->
+				# serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
+				# serverPhoto.src = photoObj.src
+				p = {
+					type: "Photo"
+					id: photoObj.id
+					photoId: photoObj.get("photoId")
+					src: photoObj.src
+				}
+				if streamId? 
+					return new Parse.Query(StreamObj).get(streamId).fail (error)->
+							if error.code == 101
+								return self.saveNewStream(p)
+							else 	
+								steroids.logger.log "parse.query.get() StreamObj id=" + streamId
+					.then (streamObj)->
+
+						return streamObj.addUnique("photos", p).save().then (streamObj)->
+							steroids.logger.log "saveToStream() existing stream.id=" + streamObj.id + JSON.stringify streamObj.get('photos')
+					
+				else return self.saveNewStream(p)		
+
+			saveNewStream : (p)->
+				streamObj = new StreamObj()
+				return streamObj.set("photos",[p]).save().then (streamObj)->
+						steroids.logger.log "saveToStream() NEW stream.id=" + streamObj.id + JSON.stringify streamObj.get('photos')
+
+		}
+		return	self
+]
 ).factory('cameraRoll', [
 	'appConfig'
 	'$window'
@@ -138,7 +244,7 @@ angular.module(
 ).factory( 'actionService', [ 
 	'drawerService'
 	'deckService'
-	'cameraRoll'
+	'uploadService'
 	'syncService'
 	'localNotificationService'
 	'notifyService'
@@ -146,7 +252,7 @@ angular.module(
 	'$location'
 	'$timeout'
 	'$rootScope'
-	(drawerService, deckService, cameraRoll, syncService, localNotify, notify, appConfig, $location, $timeout, $rootScope)->
+	(drawerService, deckService, uploadService, syncService, localNotify, notify, appConfig, $location, $timeout, $rootScope)->
 		CFG = $rootScope.CFG || appConfig
 		self = {
 
@@ -303,93 +409,8 @@ angular.module(
 
 			# share on server, post to apphappi.parseapp.com
 			# view at http://apphappi.parseapp.com/stream/[uuid]
-			serverShare : (ev, i, scope)-> 
-				ev.preventDefault()
-				target = ev.currentTarget
-				photo = this.photo
-				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
-
-				###
-				parse code
-				###
-				parseAPPID = "ksv7tSSSheFcPB4rk8mtYWzkpH8bXH4JWBAeTwFm";
-				parseJSID = "c6OAp6Vr5qvCQSPgQFfY4I8t4u4tySea6K4KwUkN";
-				 
-				# //Initialize Parse
-				Parse.initialize(parseAPPID,parseJSID);
-				
-				PhotoObj = Parse.Object.extend("Photo")
-				StreamObj = Parse.Object.extend("Stream")
-
-				
-				# photo keys = [id, dateTaken, orig_ext, label, Exif, src, fileURI, rating ]
-				checkPhoto = (photo)->
-					return new Parse.Query(PhotoObj).get(photo.id).then (photoObj)->
-							check = photoObj
-							return photoObj
-						, (error)->
-							if error.code == 101
-								return photo
-							else 
-								console.log "checkPhoto, not found?"
-								console.log error
-
-				uploadToParse = (base64src, streamId)->
-					# query to find 
-					parseFile = new Parse.File(photo.id + ".JPG", {
-							base64: base64src
-						})
-					return parseFile.save().then (parseFile)->
-								# save parseFile as photoObj
-								serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
-								serverPhoto.src = parseFile.url()
-								serverPhoto.fileObjId = parseFile.id
-								serverPhoto.id = photo.id
-								steroids.logger.log "uploadToParse() photo="+ JSON.stringify serverPhoto
-								photoObj = new PhotoObj(serverPhoto)
-								return photoObj
-							, (err)->
-								steroids.logger.log "ERROR: parse.save() JPG file"
-
-				saveToStream = (photoObj)->
-						serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
-						serverPhoto.src = photoObj.src
-						
-
-						if streamId? 
-							return new Parse.Query(StreamObj).get(streamId).then (streamObj)->
-								return streamObj.addUnique("photos", serverPhoto).save()
-							.catch (err)->
-									steroids.logger.log "parse.query.get() StreamObk id=" + streamId
-						else 		
-							streamObj = new StreamObj()
-							return streamObj.set("photos",[serverPhoto]).save()
-
-				if true || !isDataURL
-					return checkPhoto(photo).then (photoObj)->
-							return saveToStream( photoObj ).then (streamObj)->
-									return streamObj
-								, (error)->
-									steroids.logger.log error
-
-						, (photo)->
-							# not found, new Photo 
-							promise = cameraRoll.resample(photo.src)
-								.then( uploadToParse)
-								.then( saveToStream
-									, (error)->
-										steroids.logger.log error
-										)
-
-				else 
-					base64src = photo.src
-					uploadToParse( base64src )
-					.then (parseFile)->
-							saveToStream( parseFile ).then (streamObj)->
-								photos = streamObj.get("photos")
-								console.log photos
-						, (error)->
-							steroids.logger.log error			
+			serverShare : (ev, i)->
+				return uploadService.share.apply(this, arguments)
 
 
 			socialShare : (ev, i)->
