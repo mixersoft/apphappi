@@ -112,6 +112,9 @@ angular.module(
 					switch key
 						when 'moment', 'challenge', 'photo'
 							saveData = syncService.serialize[key](collection)
+						when 'shared_moment', 'shared_photo'
+							if collection[0].ownerId == CFG.userId 
+								console.log "*** WARNING: syncService: this shared_photo is actually owned by User. handle differently... , key="+key
 						when 'drawer'
 							return localStorageService.set('drawer', collection)
 						when 'drawerState'
@@ -343,8 +346,21 @@ angular.module(
 						completedIn: _asDuration m.stats && m.stats.completedIn || 0
 					}
 					return  m
-				'photo': (m)->
-					m.rating = 0 if !m.rating?	
+				'shared_moment': (m)->
+					console.log "SHARED moment parseModel: "+m.modified
+					# parse m.challenge.stats for custom moments
+					return syncService.parseModel['moment'](m)
+
+				'photo': (p)->
+					p.rating = 0 if !p.rating?	
+					return p
+
+				'shared_photo': (p)->
+					console.log "SHARED photo parseModel: "+p.modified
+					p.type == 'photo' if p.ownerId == CFG.userId 
+					# ???: lookup local version by p.id???
+					# check syncService.set('photo', p) should save ratings and views
+					return syncService.parseModel['photo'](p)	
 
 				### expecting
 				settings = {

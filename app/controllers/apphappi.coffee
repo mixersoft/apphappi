@@ -2,6 +2,22 @@ return if !angular?
 
 angular.module( 
 	'appHappi'
+).service( 'parseService', [
+	'appConfig'
+	(appConfig)->
+		this.init = ()->
+			return true if _initialized
+			###
+			parse code
+			###
+			parseAPPID = "ksv7tSSSheFcPB4rk8mtYWzkpH8bXH4JWBAeTwFm";
+			parseJSID = "c6OAp6Vr5qvCQSPgQFfY4I8t4u4tySea6K4KwUkN";
+
+			# //Initialize Parse
+			Parse.initialize(parseAPPID,parseJSID);
+			return _initialized = true
+		return
+]
 ).service( 'notifyService', [
 	'$timeout'
 	'appConfig'
@@ -63,38 +79,40 @@ angular.module(
 ).factory( 'uploadService', [
 	'$q'
 	'cameraRoll'
+	'parseService'
 	'appConfig'
-	($q, cameraRoll, CFG)->
+	($q, cameraRoll, parseService, CFG)->
 		# share on server, post to apphappi.parseapp.com
 		# view at http://apphappi.parseapp.com/stream/[uuid]
-		PhotoObj = StreamObj = null
-		init = ()->
-			return if _initialized
-			###
-			parse code
-			###
-			parseAPPID = "ksv7tSSSheFcPB4rk8mtYWzkpH8bXH4JWBAeTwFm";
-			parseJSID = "c6OAp6Vr5qvCQSPgQFfY4I8t4u4tySea6K4KwUkN";
-
-			# //Initialize Parse
-			Parse.initialize(parseAPPID,parseJSID);
-			PhotoObj = Parse.Object.extend("Photo")
-			StreamObj = Parse.Object.extend("Stream")
-
-			_initialized = true
-			return
+		PhotoObj = Parse.Object.extend("Photo")
+		StreamObj = Parse.Object.extend("Stream")
 
 		self = {
-			share : (ev, index, scope)-> 
-				init()
-
+			share : (ev, index)-> 
 				ev.preventDefault()
 				target = ev.currentTarget
 				photo = this.photo
-				isDataURL = /^data\:image\/jpeg/.test(this.photo.src)
+				scope = angular.element(target).scope()
+				loop
+					break if scope.card
+					scope = scope.$parent
+				moment = scope.card
+				throw "Error: can't find moment!" if moment.type !="moment"
+				photo.ownerId = scope.$root.CFG.userId
+				moment.ownerId = photo.ownerId if !moment.ownerId
 
+				return self.sharePhoto(photo, moment)
+
+			sharePhoto : (photo, moment)->	
+				parseService.init()
 				
-				return self.queryPhoto(photo).then( self.foundPhoto, self.uploadPhoto )
+				isDataURL = /^data\:image\/jpeg/.test(photo.src)
+
+				return self.queryPhoto(photo).then( (photoObj)->
+							return self.foundPhoto(photoObj, moment)
+						(photo)->
+							return self.uploadPhoto(photo, moment) 
+					)
 					.fail (error)->
 						steroids.logger.log error
 
@@ -108,16 +126,17 @@ angular.module(
 							return Parse.Promise.error(photo) # return Parse.Promise.error(exports.parseerror(code, desc));
 						return found
 
-			foundPhoto : (photoObj)->
-				return self.saveToStream( photoObj )
+			foundPhoto : (photoObj, moment)->
+				console.log "selected photo EXISTS, id="+photoObj.id
+				return self.saveToStream( photoObj, moment )
 
-			uploadPhoto : (photo)->
+			uploadPhoto : (photo, moment)->
 				# resize to 640 before upload
 				return cameraRoll.resample(photo.src) # resolved as DATA_URL
 					.then( (base64src)->
 						return self.uploadToParse( base64src, photo ) )
 					.then (photoObj)->
-						return self.saveToStream(photoObj) 
+						return self.saveToStream(photoObj, moment) 
 
 			uploadToParse : (base64src, photo, streamId)->
 				# query to find 
@@ -126,9 +145,9 @@ angular.module(
 					})
 				return parseFile.save().then (parseFile)->
 							# save parseFile as photoObj
-							serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
+							serverPhoto = _.pick photo, ['ownerId','dateTaken', 'label', 'Exif', 'rating', 'created', 'modified']
 							serverPhoto.src = parseFile.url()
-							serverPhoto.fileObjId = parseFile.id
+							serverPhoto.fileObjId = parseFile.id # ???: Parse hasOne relation
 							serverPhoto.photoId = photo.id
 							steroids.logger.log "uploadToParse() photo="+ JSON.stringify serverPhoto
 							photoObj = new PhotoObj(serverPhoto)
@@ -136,32 +155,50 @@ angular.module(
 						, (err)->
 							steroids.logger.log "ERROR: parse.save() JPG file"
 
-			saveToStream : (photoObj, streamId)->
-				# serverPhoto = _.pick photo, ['dateTaken', 'label', 'Exif', 'rating']
-				# serverPhoto.src = photoObj.src
-				p = {
-					type: "Photo"
-					id: photoObj.id
-					photoId: photoObj.get("photoId")
-					src: photoObj.src
-				}
-				if streamId? 
-					return new Parse.Query(StreamObj).get(streamId).fail (error)->
+			saveToStream : (photoObj, moment)->
+				now = new Date().toJSON()
+				if moment?.id 
+					return new Parse.Query(StreamObj).equalTo('momentId', moment.id).first().then (streamObj)->
+							streamObj.relation('photos').add(photoObj)
+							streamObj.set('modified', now )
+							return streamObj.save().then (s)->
+								steroids.logger.log "saveToStream() existing stream.id=" + streamObj.id 
+								photoObj.relation("moments").add(s)
+								return photoObj.save()
+						, (error)->
 							if error.code == 101
-								return self.saveNewStream(p)
+								return self.saveNewStream(photoObj, moment)
 							else 	
-								steroids.logger.log "parse.query.get() StreamObj id=" + streamId
-					.then (streamObj)->
-
-						return streamObj.addUnique("photos", p).save().then (streamObj)->
-							steroids.logger.log "saveToStream() existing stream.id=" + streamObj.id + JSON.stringify streamObj.get('photos')
+								steroids.logger.log "parse.query.first() StreamObj moment.id=" + moment.id
 					
-				else return self.saveNewStream(p)		
+				else return self.saveNewStream(photoObj, moment)		
 
-			saveNewStream : (p)->
-				streamObj = new StreamObj()
-				return streamObj.set("photos",[p]).save().then (streamObj)->
-						steroids.logger.log "saveToStream() NEW stream.id=" + streamObj.id + JSON.stringify streamObj.get('photos')
+			saveNewStream : (photoObj, moment)->
+				attrs = _.pick moment, ['ownerId','challengeId', 'status',  'created', 'modified']
+				attrs['stats'] = {
+					count: moment.stats.count
+					viewed: moment.stats.viewed
+					rating:
+						moment: moment.stats.rating.moment
+				}
+				attrs['momentId'] = moment.id
+				lookup_challenge = syncService.get('challenge', attrs.challengeId)
+				if _.isEmpty(lookup_challenge) && moment.challenge
+					# this is a "custom" moment, just push challenge
+					attrs['challenge'] = _.pick( moment, challenge, ['name', 'title', 'category', 'description', 'icon', 'modified', 'type'])
+					attrs['challenge']['stats'] = _.pick challenge.stats, ['ratings', 'viewed']
+					console.log "********* saving a CUSTOM moment"
+
+				streamObj = new StreamObj(attrs)
+
+				# streamObj.addUnique('photoSrcs', photoObj.get('src'))
+				streamObj.relation('photos').add(photoObj)
+				return streamObj.save().then (s)->
+						console.log "saveToStream() NEW stream.id=" + streamObj.id 
+						photoObj.relation("moments").add(s)
+						return photoObj.save()
+				.fail (error)->
+						console.log error
 
 		}
 		return	self
@@ -1432,6 +1469,319 @@ angular.module(
 
 		return
 	]
+).controller( 'SharedMomentCtrl', [
+	'$scope'
+	'$rootScope'
+	'$filter'
+	'$q'
+	'$route'
+	'$location'
+	'$timeout'
+	'drawerService'
+	'syncService'
+	'sharedDeckService'
+	'cameraRoll'
+	'actionService'
+	'notifyService'
+	'appConfig'
+	($scope, $rootScope, $filter, $q, $route, $location, $timeout, drawer, syncService, sharedDeckService, cameraRoll,  actionService, notify, appConfig)->
+		#
+		# Controller: MomentCtrl
+		#
+		CFG = $rootScope.CFG || appConfig
+		drawer = $rootScope.drawer || drawer
+		notify = $rootScope.notify || notify
+
+		CFG.$curtain.find('h3').html('Loading Moments...')
+		notify.clearMessages() 
+
+		_challenges = _moments = _cards = null
+
+		# attributes
+		$rootScope.title = "Shared Moments"
+		$scope.carousel = {index:0}
+		_.each actionService.exports, (key)->
+			$scope[key] = actionService[key] 
+
+		deckOptions = {control: $scope.carousel} 
+		userId = null
+		sharedDeckService.setupDeck(userId, _cards, deckOptions )
+			.then (deck)->	
+				$scope.deck = deck
+				_moments = deck.allCards
+				m = $scope.deck.topCard()
+				_collapseCardOnChange()	
+
+				# edit mode for testing
+				$scope.set_editMode(m) 
+
+				# hide loading
+				CFG.$curtain.addClass 'hidden'
+
+
+		# return card to default on carousel change
+		_collapseCardOnChange = ()->
+			$scope.$watch 'carousel.index', (newVal, prevVal)->
+				try 
+					delete $scope.deck.cards()[prevVal].isCardExpanded = false if !!prevVal
+				catch error
+			    
+
+
+		$scope.lazyLoadGallery = ($index, offset)->
+			# BUG: $index no longer accurately represents card.index, why?
+			# use carouselBufferSize for "lazyLoad"
+			return true
+			offset = offset || CFG.gallery?.lazyloadOffset || 2
+			isVisible = Math.abs($index - $scope.carousel.index) <= offset
+			return isVisible
+
+
+		$scope.moment_rating = (ev, value)->
+			ev.preventDefault()
+			ev.stopImmediatePropagation()
+			card = $scope.deck.topCard()
+			card.stats.rating.moment += value
+			card.stats.rating.moment = 0 if card.stats.rating.moment<0
+			card.stats.rating.moment = 5 if card.stats.rating.moment>5
+			actionService.persistRating.call {card:card}, ev
+
+		$scope.moment_cancel = (id)->
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+			notify.alert "Warning: no undo[photos] NOT found", "warning" if !m.undo['photos']?
+
+			m.photos = m.undo['photos']
+			delete m.undo['photos']
+
+			actionService.setCardStatus(m, 'complete')	
+			syncService.set('moment', m)
+			# drawer.updateCounts( null, _moments )
+
+			$location.path drawer.state.route 
+
+		$scope.isDoneEnabled = ()->
+			return false if $scope.deck.topCard().photoIds.length==0
+			# disable [Done] button if waiting for img downsizing to complete
+			return false if angular.element(document.getElementById('html5-get-file')).hasClass('fa-spin') 
+			return true	
+
+		$scope.moment_done = (id)->
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+			throw "warning: moment.status != active in $scope.moment_done()" if m.status != 'active'
+
+			m.stats.count = m.photos.length
+			m.stats.completedIn += 123						# fix this
+			m.stats.viewed += 1
+			delete m.undo['photos'] if m.undo?
+			notify.alert( "warning: undo['photos'] not found", "warning" ) if !m.undo?
+
+			actionService.removeMarkedPhotos(m)
+			actionService.setCardStatus(m, 'complete')	
+			syncService.set('moment', m)
+			# drawer.updateCounts( null, _moments )
+
+			$location.path drawer.state.route 
+
+		$scope.moment_edit = (id)->
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+
+			actionService.setCardStatus(m, 'active')	
+			syncService.set('moment', m)
+			# drawer.updateCounts( null, _moments )
+			# nav to new route, then open in editMode
+			$location.path editRroute = drawer.state.route + '/' + id
+
+		$scope.set_editMode = (m)->
+			# ???: should I set challenge to 'active'
+			m.status = 'active'
+			m.undo = {} if !m.undo?
+			m.undo['photos'] = _.cloneDeep m.photos  # save undo info
+			m.isCardExpanded = true
+			cameraRoll.promise.then ()->cameraRoll.prepare?()
+
+		$scope.moment_delete = (id)->	
+			m = $scope.deck.topCard()
+			throw "ERROR: moment.id mismatch" if m.id != id 
+			throw "warning: moment.status == active in $scope.moment_delete()" if m.status == 'active'
+
+			# delete moment & photos as necessary
+			_deleteCb = ()->
+				moment = syncService.get('moment', id)
+
+				# remove moment photos
+				markPhotoForRemoval = {}
+				_.each moment.photoIds, (v,i,l)->
+						markPhotoForRemoval[i] = v
+				moment.markPhotoForRemoval = markPhotoForRemoval
+				moment.status = 'active'
+				actionService.removeMarkedPhotos moment
+
+				# remove belongsTo Challenge
+				c = moment.challenge
+				found = c.momentIds.indexOf(moment.id)
+				if found >  -1
+					c.momentIds.splice(found, 1)
+					if c.momentIds.length == 0 
+						actionService.setCardStatus(c, 'pass')
+				else 
+					return throw "Error: moment does not belongTo challenge" 
+
+				# remove moment
+				moment.remove = moment.stale = true
+				syncService.set('moment', moment)
+				syncService.set('challenge', c)
+				drawer.updateCounts()
+
+				# reload
+				$scope.deck.removeFromDeck(moment)
+				$location.path('/moments')
+				# window.location.reload()
+				return	# end remove Callback
+
+			# confirm delete
+			if navigator.notification
+			  _onConfirm = (index)->
+			    _deleteCb() if index==2
+			    return
+			  navigator.notification.confirm(
+			          "You are about to delete everything and reset the App.", # message
+			          _onConfirm,
+			          "Are you sure?", # title 
+			          ['Cancel', 'OK']
+			        )
+			else
+			  resp = window.confirm('Are you sure you want to delete this moment?')
+			  _deleteCb() if resp
+			  return
+
+
+		$scope.moment_getPhoto = (id, $event)->
+			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}
+			throw "moment id mismatch" if m.id != id
+			$target = angular.element($event.currentTarget) 
+			icon = $target.find('i')
+			duplicates = []
+			# icon.addClass('fa-spin') # spin AFTER we confirm some files were added
+
+			saveToSharedMoment = (p)->
+				# save p locally,
+				m = saveAsLocalPhoto(p)
+				# now update m on server, m.type = 'shared_moment'
+				sharedDeckService.post(p, m)
+
+
+			saveAsLocalPhoto = (p)->
+				# save to SharedMoment and post with Parse
+				now = new Date()
+				if m?
+					photo = _.defaults p, {
+						type: 'photo'
+						stale: now.toJSON()
+						modified: now.toJSON()
+					}
+					# update moment
+					if m.photoIds.indexOf(photo.id) == -1
+						syncService.set('photo', photo)
+						m.photoIds.unshift photo.id 
+						m.photos.unshift photo
+						m.stats.count = m.photoIds.length
+						# m.stats.viewed += 1
+						# m.photos = actionService._getPhotos m
+						# actionService.setCardStatus(m, 'active', now)
+
+						# notify.alert "Saved to moment.photos: count= " + m.photos.length + ", last=" + m.photos[m.photos.length-1].src , 'success', 5000 
+						# syncService.set('moment', m)
+					else 
+						steroids.logger.log "************* DUPLICATE PHOTO ID ************"
+						duplicates.push photo.id
+				return m
+
+			# plupload supports multi-select!!
+			if cameraRoll.type == 'html5CameraService' 
+				# for plupload, JUST set the deferred/promise and let up.FilesAdded() do the rest
+				#
+				# console.log "moment_getPhoto() at time=" + moment().format("ss.sss")
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+
+				promise = cameraRoll.setDeferred(dfd).then( (promises)->
+					console.log "count of promises=" + promises.length
+					$q.all(promises).finally ()->return icon.removeClass('fa-spin')	
+					_.each promises, (promise)->
+						promise.then( saveToSharedMoment, (error)->
+								console.error "deferred error=" + error
+								notify.alert message, "danger", 10000 
+						)	
+				)
+				return promise
+			else if cameraRoll.type == 'snappiAssetsPickerService' 
+				# using cordova-plugin-assets-picker, change to snappi-assets-picker
+				icon.addClass('fa-spin')
+				dfd = $q.defer()
+				dfd.id = moment().unix()
+				$event.currentTarget.setAttribute('upload-id', dfd.id)
+				options = cameraRoll.cameraOptions.fromPhotoLibrary
+				options.overlay = {}
+				if m.photoIds?.length
+					m.photos = actionService._getPhotos m if m.photos?.length != m.photoIds.length
+					options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.reduce m.photos, (retval, o)->
+							retval.push o.id + '.' + o.orig_ext if o.orig_ext?
+							return retval
+						,[]
+					# steroids.logger.log "0 ##### options.overlay=" + JSON.stringify options.overlay	
+				else options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = []		
+
+				steroids.logger.log "moment_getPhoto()" + JSON.stringify options
+				promise = cameraRoll.getPicture(options, $event)
+				.then (promises)->
+					_.each promises, (promise)->
+						promise.then( saveToSharedMoment )
+						.catch (error)->
+							steroids.logger.log "deferred error=" + error
+							notify.alert message, "danger", 10000 
+
+					$q.all(promises).finally (all)->
+						icon.removeClass('fa-spin')
+						if duplicates.length	
+							notify.message {
+								title: "Duplicate Photos Selected"
+								message: duplicates.length + " photo(s) were skipped because they were already added."
+							},
+							2000
+						steroids.logger.log "DONE: ALL photos, count=" + _.values(all).length
+						steroids.logger.log "photos=" + JSON.stringify _.pluck(all, "src")
+						return 	
+					return
+				.catch (error)->
+					icon.removeClass('fa-spin')	
+					steroids.logger.log "deferred error=" + error
+					notify.alert message, "danger", 10000 
+				
+
+				return promise		
+			else if cameraRoll.type == 'cordovaCameraService' 
+				icon.addClass('fa-spin')
+				options = _.clone cameraRoll.cameraOptions.fromPhotoLibrary
+				promise = cameraRoll.getPicture(options, $event)
+				promise.then( saveToSharedMoment )
+				.catch (message)->
+					steroids.logger.log message
+					notify.alert message, "danger", 15000 
+				.finally ()->
+					return icon.removeClass('fa-spin')	
+
+				return promise
+			else 
+				console.warn "Error: Invalid cameraRoll."	
+				return false
+
+
+		return
+	]	
 ).controller( 'TimelineCtrl', [
 	'$scope'
 	'$rootScope'

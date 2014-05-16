@@ -149,4 +149,135 @@ angular.module(
 		}
 		return deckService
 ]   
+).factory('sharedDeckService', [
+	'$filter'
+	'$q'
+	'drawerService'
+	'syncService'
+	'deckService'
+	'parseService'
+	'uploadService'
+	($filter, $q, drawerService, syncService, deckService, parseService, uploadService)->
+
+		PhotoObj = StreamObj = null
+
+		_Parse = {
+			lookup: 
+				'Stream': {}
+				'Photo': {}
+			init: ()->
+				parseService.init()
+				PhotoObj = Parse.Object.extend("Photo")
+				StreamObj = Parse.Object.extend("Stream") 
+
+			fetch: (userid)->
+				query = new Parse.Query(StreamObj)
+
+				query.equalTo('userId', userId) if userid
+
+				return query.find().then (pMoments)->
+						promises = []
+						moments = []
+						_.each pMoments, (pMoment)->
+							# cache locally for updates
+							_Parse.lookup[pMoment.className][pMoment.get('momentId')] = pMoment
+
+							r = pMoment.relation('photos')
+							m = _Parse.parseMoment(pMoment)
+							
+							promises.push r.query().find().then (pPhotos)->
+								m.stats.count = pPhotos.length
+								m.stats.viewed++
+								# don't forget to call pMoment.save() or .increment()
+								
+								pPhotos = _.sortBy pPhotos, 'updatedAt'
+								pPhotos.reverse()
+
+								_.each pPhotos, (pPhoto)->
+									# cache locally for updates
+									_Parse.lookup[pPhoto.className][pPhoto.get('photoId')] = pPhoto
+
+									p = _Parse.parsePhoto(pPhoto)
+									m.photoIds.push p.id
+									m.photos.push p
+
+								console.log JSON.stringify m
+								moments.push m
+
+						
+						return Parse.Promise.when(promises).then ()->
+							return moments
+								
+					.fail (error)->
+						check = error
+						return
+
+			parseMoment: (pMoment)->
+				attrs = _.pick pMoment.attributes, ['ownerId', 'challengeId', 'challenge', 'status', 'created', 'modified' ]
+				###
+				Note: for custom moments, save as moment.challenge with challengeId as a UUID
+				###
+				if attrs.challengeId && !attrs.challenge
+					challenge = syncService.get('challenge', attrs.challengeId)
+				if _.isEmpty challenge
+					throw "Warning: challenge not found from Shared Moment. was this a custom challenge?"
+				moment = _.defaults {
+					id: pMoment.get('momentId')
+					type: 'shared_moment'
+				}, attrs, {
+					photoIds: []
+					photos: []
+					challenge: challenge
+					stats:
+						count: null
+						viewed: 0
+						rating: 
+							moment: []
+				}
+				moment = syncService.parseModel['shared_moment'](moment)
+				return moment
+
+			parsePhoto: (pPhoto)-> 
+				attrs = _.pick pPhoto.attributes, ['ownerId', 'dateTaken', 'Exif', 'src', 'rating', 'created', 'modified']
+				
+				photo = _.defaults {
+						id: pPhoto.get('photoId')
+						type: 'shared_photo'
+						parse: _.pick pPhoto, ['id', 'createdAt', 'updatedAt']
+					}, attrs
+				return syncService.parseModel['shared_photo'](photo)
+
+		}
+
+
+
+
+		sharedDeckService = {
+
+			fetch: (userid)->
+				_Parse.init()
+				return _Parse.fetch(userid) # promise
+
+			post: (photo, sharedMoment)->
+				# don't use cached pMoment, fetch before save()
+				return uploadService.sharePhoto(photo, sharedMoment)	
+
+
+			setupDeck : (userid, cards, options)->
+				deckOptions = options = {control: $scope.carousel} if !options
+				dfd = $q.defer()
+				if cards
+					dfd.resolve( deckService.setupDeck(cards, deckOptions) )
+				else 
+					sharedDeckService.fetch(userid).then (cards)->
+						dfd.resolve( deckService.setupDeck(cards, deckOptions) )
+				return dfd.promise
+
+				
+		}
+		return sharedDeckService	
+
+
+
+]
 )

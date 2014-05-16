@@ -81,6 +81,10 @@ angular.module( 'appHappi', [
 			templateUrl: 'views/moment/_moments.html'
 			controller: 'MomentCtrl'
 			})
+		.when('/shared_moments/:id', {
+			templateUrl: 'views/shared_moments/_moments.html'
+			controller: 'SharedMomentCtrl'
+			})
 		.when('/timeline', {
 			templateUrl: 'views/timeline/_timeline.html'
 			controller: 'TimelineCtrl'
