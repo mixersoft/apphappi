@@ -201,7 +201,7 @@ angular.module(
 									m.photoIds.push p.id
 									m.photos.push p
 
-								console.log JSON.stringify m
+								# console.log JSON.stringify m
 								moments.push m
 
 						
@@ -264,7 +264,11 @@ angular.module(
 
 
 			setupDeck : (userid, cards, options)->
-				deckOptions = options = {control: $scope.carousel} if !options
+				options = {
+					control: $scope.carousel
+					"orderBy": "-modified"
+				} if !options
+				deckOptions = options
 				dfd = $q.defer()
 				if cards
 					dfd.resolve( deckService.setupDeck(cards, deckOptions) )

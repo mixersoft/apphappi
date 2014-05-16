@@ -48,8 +48,8 @@
               </li>
             </ul>
             <div collapse="!card.isCardExpanded"> 
-              <div class="body clearfix">
-                <div class="meta well pull-left">
+              <div class="hidden body clearfix">
+                <div class=" meta well pull-left">
                   <div class="header inverse">Moment</div>
                   <dl class="moment-stats stats-wrap force-dl-horizontal">
                     <dt>Completed</dt><dd title="completed on {{card.humanize.completed}}" ng-bind="card.humanize.completedAgo"></dd>
@@ -60,7 +60,7 @@
                     value="card.stats.rating.moment" state-on="'fa fa-star'" state-off="'fa fa-star-o'"></rating>
                   </dl>
                 </div>
-                <div class="meta well pull-right">
+                <div class=" meta well pull-right">
                   <div class="header inverse">Challenge</div>
                   <dl class="challenge-stats stats-wrap force-dl-horizontal">
                     <div><b>{{card.challenge.humanize.completions}} completed</b></div>
@@ -91,12 +91,14 @@
                   </div>
                 </div>
                 <div class="btn-group" ng-show="card.status=='active'">
-                  <button type="button" class="btn btn-danger" ng-click="moment_cancel(card.id)"><i class="fa fa-times-circle"></i></button>
+                  <button type="button" class="hidden btn btn-danger" ng-click="moment_cancel(card.id)"><i class="fa fa-times-circle"></i></button>
                   <button type="button" id="html5-get-file" class="btn btn-primary" 
                   ng-click="moment_getPhoto(card.id, $event)">
-                    <i class="fa fa-picture-o"></i> Camera Roll
+                    <i class="fa fa-picture-o"></i> Add Photo
                   </button>
                   <button type="button" class="btn btn-success" 
+                  ng-click="moment_shareLink(card)"><i class="fa fa-cloud-upload"></i> Share</button>
+                  <button type="button" class="hidden btn btn-success" 
                   ng-disabled="!isDoneEnabled()"
                   ng-click="moment_done(card.id)"><i class="fa fa-save"></i> Done</button>
                 </div>

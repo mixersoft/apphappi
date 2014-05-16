@@ -1503,7 +1503,13 @@ angular.module(
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
-		deckOptions = {control: $scope.carousel} 
+		deckOptions = {
+			control: $scope.carousel
+			"orderBy": "-modified"
+		} 
+
+		# SET drawerService.state 
+		_.extend($rootScope.route, drawer.getRoute('/shared_moments'))
 		userId = null
 		sharedDeckService.setupDeck(userId, _cards, deckOptions )
 			.then (deck)->	
@@ -1657,6 +1663,35 @@ angular.module(
 			  _deleteCb() if resp
 			  return
 
+		$scope.moment_shareLink = (moment)->
+			baseurl = "http://app.snaphappi.com/#!"
+			target = '/shared_moments/'+moment.id
+			photoSrc = moment.photos[0].src
+			console.log "target="+target
+			if window.plugins?.socialsharing
+				shareViaAny = ()->
+					steroids.logger.log "using socialShare, target="+target
+					$timeout( window.plugins.socialsharing.share(
+													'shared from AppHappi',  
+													null, 
+													photoSrc, # photo.src 
+													baseurl + target,
+													null, # success cb
+													(()->steroids.logger.log "socialsharing FAILED")
+												), 0)
+				window.plugins?.socialsharing?.available( 
+					(isAvailable)->
+						if (!isAvailable)
+							console.info "socialsharing plugin is NOT available."
+							return
+						# shareViaFB()
+						shareViaAny()
+						return
+				)
+				# navigator.app.loadUrl(target, { openExternal:true });
+			else 
+				steroids.logger.log "window.plugins?.socialsharing MISSING"
+				$location.path(target)
 
 		$scope.moment_getPhoto = (id, $event)->
 			m = $scope.deck.topCard() || _.findWhere _cards, {id: id}

@@ -1,5 +1,5 @@
 { 
-  "modified": "2014-04-04T12:00:00.000Z",
+  "modified": "2014-05-04T12:00:00.000Z",
   "data":[
   {
     "name": "gethappi",
@@ -39,6 +39,12 @@
       "filter": {"status":"!pass"},
       "orderBy": "",
       "route": "/moments"
+     },
+     {
+      "item": "shared",
+      "label": "Shared Moments",
+      "orderBy": "-modified",
+      "route": "/shared_moments"
      }
     ]
   },

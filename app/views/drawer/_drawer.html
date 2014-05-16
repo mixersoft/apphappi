@@ -53,6 +53,11 @@
           ng-click="drawer.drawerItemClick($event)">
             Shuffle
           </div>
+          <div id="drawer-gethappi-shared" class="item" 
+          ng-class="{active: drawer.isDrawerItemActive('drawer-gethappi-shared')}"
+          ng-click="drawer.drawerItemClick($event)">
+            Shared Moments
+          </div>
         </div>
       </div>
       <div class="panel" name='findhappi'>

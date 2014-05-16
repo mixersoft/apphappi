@@ -348,6 +348,7 @@ angular.module(
             window.location.href = $location.absUrl()
             window.location.reload()
 
+        console.warn "Deprecate drawer.getRoute????"
         switch route.controller
           when 'challenges', 'challenge'
             route.controller = 'ChallengeCtrl'
@@ -357,6 +358,10 @@ angular.module(
             route.controller = 'MomentCtrl'
             route.view = '/views/moment/_moments.html'
             route.drawerState = self.getDrawerItem('gethappi', 'mostrecent') if _.isEmpty(route.drawerState) || route.drawerState.group !='gethappi'
+          when 'shared_moments', 'shared_moment'
+            route.controller = 'SharedMomentCtrl'
+            route.view = '/views/shared_moment/_moments.html'
+            route.drawerState = self.getDrawerItem('gethappi', 'shared') if _.isEmpty(route.drawerState) || route.drawerState.group !='gethappi'  
           when 'timeline'
             route.controller = 'TimelineCtrl'
             route.view = '/views/challenge/_challenges.html'

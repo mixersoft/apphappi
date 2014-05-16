@@ -347,8 +347,7 @@ angular.module(
 					}
 					return  m
 				'shared_moment': (m)->
-					console.log "SHARED moment parseModel: "+m.modified
-					# parse m.challenge.stats for custom moments
+					# console.log "SHARED moment parseModel, modified=: "+m.modified
 					return syncService.parseModel['moment'](m)
 
 				'photo': (p)->
@@ -356,7 +355,7 @@ angular.module(
 					return p
 
 				'shared_photo': (p)->
-					console.log "SHARED photo parseModel: "+p.modified
+					# console.log "SHARED photo parseModel: "+p.modified
 					p.type == 'photo' if p.ownerId == CFG.userId 
 					# ???: lookup local version by p.id???
 					# check syncService.set('photo', p) should save ratings and views
