@@ -12,7 +12,7 @@
       <div class='item search-wrap'>
         <input class="search" 
         ng-model="drawer.state.query" 
-        ng-change="deck.cards()"
+        ng-change="deck.cards('refresh')"
         placeholder="Search">
         <i class="fa fa-times-circle fa-lg" ng-hide="!drawer.state.query" ng-click="drawer.state.query=''"></i>
       </div>
