@@ -44,21 +44,40 @@ angular.module(
 					this.control.index = i 
 				return	this.control.index
 				
+			# cards = ('refresh', null), ('topcard')	
 			cards: (cards, options)->
-				if options?
-					options = _.pick(options, ['filter', 'query', 'orderBy']) 
-				if _.isEmpty(options) 
-					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy']) 
+				if  cards && cards == 'cards' && !options && this.deckCards?
+					return if this.shuffled then this.shuffledCards else  this.deckCards
 
-				if cards?
-					this.allCards = cards if _.isArray(cards) 
+				if !cards && !options && this.deckCards?
+					return if this.shuffled then this.shuffledCards else  this.deckCards
+
+				reset = false	
+				if cards && cards == 'refresh' # same deck of cards
+					reset = true
+					this.options = null
+					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy'])
+					# options should be default
+
+				if !options?
+					options = _.pick(drawerService.state, ['filter', 'query', 'orderBy'])
+				else if !_.isEqual(options, this.options) 
+					options = _.pick(options, ['filter', 'query', 'orderBy']) 
+				else throw "??? why are we here? options = this.options, cards="+ JSON.stringify cards
+
+				if _.isObject(cards)
+					reset = true
+					this.allCards = cards 
 					this.deckCards = null
 					this.shuffled = this.shuffledCards = null
+				else if cards!='refresh'
+					throw "ERROR: what do you want me to do? no cards..."
 
-				if !_.isEqual(options, this.options) || !this.deckCards
+				
+				if reset
 					# deck has changed, update deckCards
 					this.index(0)
-					this.options = options
+					this.options = options || _.pick(drawerService.state, ['filter', 'query', 'orderBy'])
 					this.shuffled = null
 					# filter/orderBy cards
 					step = this.allCards
@@ -70,7 +89,7 @@ angular.module(
 					# console.info "deck.deckCards ="+this.deckCards?.length+", options="+JSON.stringify( options) + ", this.options="+JSON.stringify( this.options)
 					# console.info "carousel.index = "+this.index()
 				
-				this.shuffle() if this.deckCards? && this.deckCards?.length == this.allCards?.length && !options.orderBy && !this.shuffled?
+				this.shuffle() if this.deckCards? && this.deckCards?.length == this.allCards?.length && !options?.orderBy && !this.shuffled?
 
 				return this.deckCards if !this.shuffled?
 
@@ -123,8 +142,9 @@ angular.module(
 				# check array bounds
 				this.index(0) if !this.index()? || this.index() >= this.deckCards.length
 				this.index(this.deckCards.length-1) if this.index()<0
-
-				return this.cards(null, options)[this.index()]
+				if !options
+					return this.cards('cards', null)[this.index()]
+				else return this.cards(null, options)[this.index()]
 
 			nextCard : (options, increment=1)->
 				i = this.index() 

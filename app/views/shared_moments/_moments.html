@@ -27,7 +27,7 @@
       ng-if="deck.size()">
         <div class="card-wrap"
         bindonce
-        ng-repeat="card in deck.cards()" 
+        ng-repeat="card in deck.cards('cards')" 
         >
           <div class="moment card text-center status-{{card.status}}"
           ng-class="{ active: $parent.card == deck.cards[$index] }"
@@ -97,7 +97,7 @@
                     <i class="fa fa-picture-o"></i> Add Photo
                   </button>
                   <button type="button" class="btn btn-success" 
-                  ng-click="moment_shareLink(card)"><i class="fa fa-cloud-upload"></i> Share</button>
+                  ng-click="moment_shareLink(card)"><i class="fa fa-share-square-o"></i> Share</button>
                   <button type="button" class="hidden btn btn-success" 
                   ng-disabled="!isDoneEnabled()"
                   ng-click="moment_done(card.id)"><i class="fa fa-save"></i> Done</button>

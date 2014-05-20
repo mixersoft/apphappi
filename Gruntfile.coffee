@@ -7,7 +7,7 @@ module.exports = (grunt)->
       "steroids-compile-sass", 
       "copy", 
       "less",
-      "optimize"    
+      # "optimize"    
   ]);
 
   # Run `grunt server` for live-reloading development environment

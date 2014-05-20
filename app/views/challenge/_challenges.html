@@ -2,7 +2,7 @@
       <div class='search-wrap visible-xs'>
         <input class="search center-block " 
         ng-model="drawer.state.query" 
-        ng-change="deck.cards()"
+        ng-change="deck.cards('refresh')"
         ng-disabled="!drawer.state.query && deck.size()==0"
         ng-hide="drawer.state.filter && drawer.state.filter.status=='active'"
         placeholder="Search">
@@ -35,7 +35,7 @@
       ng-if="deck.size()">
         <div class="card-wrap"
         bindonce
-        ng-repeat="card in deck.cards()">
+        ng-repeat="card in deck.cards('cards')">
           <div class="challenge card summary text-center">
             <span class="page-no pull-right badge"
             ng-click="challenge_pass()">{{(carousel.index + 1) + "/"  + deck.size()}}</span>

@@ -80,8 +80,9 @@ angular.module(
 	'$q'
 	'cameraRoll'
 	'parseService'
+	'syncService'
 	'appConfig'
-	($q, cameraRoll, parseService, CFG)->
+	($q, cameraRoll, parseService, syncService, CFG)->
 		# share on server, post to apphappi.parseapp.com
 		# view at http://apphappi.parseapp.com/stream/[uuid]
 		PhotoObj = Parse.Object.extend("Photo")
@@ -97,7 +98,9 @@ angular.module(
 					break if scope.card
 					scope = scope.$parent
 				moment = scope.card
-				throw "Error: can't find moment!" if moment.type !="moment"
+				moment = syncService.get('moment', scope.card.momentIds[0]) if moment.type =="challenge" 
+				throw "Error: can't find moment!" if moment.type !="moment"	
+
 				photo.ownerId = scope.$root.CFG.userId
 				moment.ownerId = photo.ownerId if !moment.ownerId
 
@@ -111,12 +114,13 @@ angular.module(
 				return self.queryPhoto(photo).then( (photoObj)->
 							return self.foundPhoto(photoObj, moment)
 						(photo)->
+							steroids.logger.log "new Photo, call uploadPhoto() next, photo="+JSON.stringify photo
 							return self.uploadPhoto(photo, moment) 
 					)
 					.fail (error)->
+						steroids.logger.log "******* sharePhoto() catch()"
 						steroids.logger.log error
-
-
+						
 				
 			# photo keys = [id, dateTaken, orig_ext, label, Exif, src, fileURI, rating ]
 			queryPhoto : (photo)->
@@ -158,13 +162,17 @@ angular.module(
 			saveToStream : (photoObj, moment)->
 				now = new Date().toJSON()
 				if moment?.id 
-					return new Parse.Query(StreamObj).equalTo('momentId', moment.id).first().then (streamObj)->
+					return new Parse.Query(StreamObj).equalTo('momentId', moment.id).first().then (found)->
+							if !found 
+								return self.saveNewStream(photoObj, moment)
+							else streamObj = found
 							streamObj.relation('photos').add(photoObj)
 							streamObj.set('modified', now )
 							return streamObj.save().then (s)->
 								steroids.logger.log "saveToStream() existing stream.id=" + streamObj.id 
 								photoObj.relation("moments").add(s)
-								return photoObj.save()
+								photoObj.save().then (p)->
+									return {stream: streamObj, photo: p}
 						, (error)->
 							if error.code == 101
 								return self.saveNewStream(photoObj, moment)
@@ -187,18 +195,23 @@ angular.module(
 					# this is a "custom" moment, just push challenge
 					attrs['challenge'] = _.pick( moment, challenge, ['name', 'title', 'category', 'description', 'icon', 'modified', 'type'])
 					attrs['challenge']['stats'] = _.pick challenge.stats, ['ratings', 'viewed']
-					console.log "********* saving a CUSTOM moment"
-
+					steroids.logger.log "********* saving a CUSTOM moment"
+				steroids.logger.log "saveNewStream()"
+				attrs.created = attrs.created.toJSON() if _.isDate(attrs.created)
+				attrs.modified = attrs.modified.toJSON() if _.isDate(attrs.modified)
+				steroids.logger.log attrs
 				streamObj = new StreamObj(attrs)
 
 				# streamObj.addUnique('photoSrcs', photoObj.get('src'))
 				streamObj.relation('photos').add(photoObj)
 				return streamObj.save().then (s)->
-						console.log "saveToStream() NEW stream.id=" + streamObj.id 
+						steroids.logger.log "saveToStream() NEW stream.id=" + s.id 
 						photoObj.relation("moments").add(s)
-						return photoObj.save()
+						return photoObj.save().then (p)->
+							return {stream: streamObj, photo: p, 'new':true}
 				.fail (error)->
-						console.log error
+						steroids.logger.log "Error: saveNewStream() "
+						steroids.logger.log error
 
 		}
 		return	self
@@ -447,7 +460,16 @@ angular.module(
 			# share on server, post to apphappi.parseapp.com
 			# view at http://apphappi.parseapp.com/stream/[uuid]
 			serverShare : (ev, i)->
-				return uploadService.share.apply(this, arguments)
+				return uploadService.share.apply(this, arguments).then (o)->
+					steroids.logger.log "SUCCESS serverShare, 0.keys=" + JSON.stringify( _.keys o )
+					if o['new']
+						target = '/shared_moments/'+o.stream.get('momentId')
+						steroids.logger.log target
+						after_handleItemClick = (route)->
+							steroids.logger.log target
+							return $location.path(target)
+						return self.drawerItemClick 'drawer-gethappi-share', after_handleItemClick
+					return
 
 
 			socialShare : (ev, i)->
@@ -804,9 +826,9 @@ angular.module(
 		
 		$scope.drawerShowAll = ()->
 			after_handleItemClick = (route)->
-        		$scope.deck.cards('refresh') 
-		        $scope.deck.shuffle()
-		        return
+				$scope.deck.cards('refresh') 
+				$scope.deck.shuffle()
+				return
 			return actionService.drawerItemClick 'drawer-findhappi-all', after_handleItemClick
 
 		# called by either ng-click or FilesAdded.FilesAdded handler
@@ -1182,7 +1204,7 @@ angular.module(
 				_collapseCardOnChange()	
 
 			# check if user just completed first challenge of the day
-			_showSupportAfterFirstChallenge(m) if m.state=="complete" && drawer.state['item']=='mostrecent' 
+			_showSupportAfterFirstChallenge(m) if m?.state=="complete" && drawer.state['item']=='mostrecent' 
 			
 			# hide loading
 			CFG.$curtain.addClass 'hidden'
@@ -1219,7 +1241,7 @@ angular.module(
 				try 
 					delete $scope.deck.cards()[prevVal].isCardExpanded = false if !!prevVal
 				catch error
-			    
+				
 
 		$scope.drawerShowAll = ()->
 			return drawer.drawerItemClick 'drawer-findhappi-all'
@@ -1338,15 +1360,15 @@ angular.module(
 
 			# confirm delete
 			if navigator.notification
-			  _onConfirm = (index)->
-			    _deleteCb() if index==2
-			    return
-			  navigator.notification.confirm(
-			          "You are about to delete everything and reset the App.", # message
-			          _onConfirm,
-			          "Are you sure?", # title 
-			          ['Cancel', 'OK']
-			        )
+				_onConfirm = (index)->
+					_deleteCb() if index==2
+					return
+				navigator.notification.confirm(
+						"You are about to delete everything and reset the App.", # message
+						_onConfirm,
+						"Are you sure?", # title 
+						['Cancel', 'OK']
+					)
 			else
 			  resp = window.confirm('Are you sure you want to delete this moment?')
 			  _deleteCb() if resp
@@ -1503,10 +1525,17 @@ angular.module(
 		_.each actionService.exports, (key)->
 			$scope[key] = actionService[key] 
 
+		id = $route.current.params.id
+		# id = $scope.route.params[0]
+		
+
 		deckOptions = {
 			control: $scope.carousel
 			"orderBy": "-modified"
 		} 
+		if id 
+			# route = '/moments/23'
+			deckOptions.filter = id
 
 		# SET drawerService.state 
 		_.extend($rootScope.route, drawer.getRoute('/shared_moments'))
@@ -1519,10 +1548,14 @@ angular.module(
 				_collapseCardOnChange()	
 
 				# edit mode for testing
-				$scope.set_editMode(m) 
+				$scope.set_editMode(m) if m?
 
 				# hide loading
 				CFG.$curtain.addClass 'hidden'
+
+
+		$scope.drawerShowAll = ()->
+			return actionService.drawerItemClick 'drawer-findhappi-all'		
 
 
 		# return card to default on carousel change
@@ -1531,7 +1564,7 @@ angular.module(
 				try 
 					delete $scope.deck.cards()[prevVal].isCardExpanded = false if !!prevVal
 				catch error
-			    
+				
 
 
 		$scope.lazyLoadGallery = ($index, offset)->
@@ -1649,15 +1682,15 @@ angular.module(
 
 			# confirm delete
 			if navigator.notification
-			  _onConfirm = (index)->
-			    _deleteCb() if index==2
-			    return
-			  navigator.notification.confirm(
-			          "You are about to delete everything and reset the App.", # message
-			          _onConfirm,
-			          "Are you sure?", # title 
-			          ['Cancel', 'OK']
-			        )
+			 	_onConfirm = (index)->
+					_deleteCb() if index==2
+					return
+			 	navigator.notification.confirm(
+					  "You are about to delete everything and reset the App.", # message
+					  _onConfirm,
+					  "Are you sure?", # title 
+					  ['Cancel', 'OK']
+					)
 			else
 			  resp = window.confirm('Are you sure you want to delete this moment?')
 			  _deleteCb() if resp

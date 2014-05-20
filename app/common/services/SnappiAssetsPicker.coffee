@@ -201,8 +201,9 @@ angular.module(
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
 			return dfdFINAL.promise
 
-		_resample = (img, dfd, targetWidth)->
+		_resample = (img, dfd, targetWidth, mimeType)->
 			src = if img.src? then img.src else img  
+			dfd = $q.defer() if !dfd
 			steroids.logger.log "*** resize using Resample.js ******* IMG.src=" + src[0..60]
 			done = (dataURL)->
 				steroids.logger.log "resampled data=" + JSON.stringify {
@@ -215,6 +216,7 @@ angular.module(
 				, 	targetWidth || CFG.camera.targetWidth
 				, 	null		# targetHeight
 				, 	done
+				, 	mimeType
 			return dfd.promise
 		
 		_parseExif = (dataURL, dfd)->
@@ -330,6 +332,32 @@ angular.module(
 					
 			return dfd0.promise
 
+		_initOverlay = (options)->
+			# options[0] = { src:, name: }
+			dfd = $q.defer()
+			#load as base64
+			icon_check = {
+				name: Camera.Overlay.PREVIOUS_SELECTED
+				src: '/icons/fa-check_32.png'
+			}
+			options = [icon_check]	# testing
+			steroids.logger.log "_initOverlay, options=" + JSON.stringify options
+			promises = []
+			_.each options, (o)->
+				if o.src.indexOf('data:image/') != 0
+					# load src and convert to base64 dataURL
+					# _resample = (img, dfd, targetWidth, mimeType)
+					promises.push _resample( o.src, null, 64, 'image/png' ).then (dataURL)->
+						return o.src = dataURL.replace(/^data:image\/(png|jpg);base64,/, "")
+
+			$q.all(promises).then ()->
+				_.each options, (overlay)->
+					steroids.logger.log "setOverlay, name="+overlay.name+", dataURL="+overlay.src
+					window.plugin.snappi.assetspicker.setOverlay(overlay.name, overlay.src)
+				dfd.resolve(options)
+
+			return dfd.promise
+
 		_pipelinePromises = {
 			# all methods to be used with promise API, e.g. then method()
 			getLocalFilesystem : (o)->
@@ -339,6 +367,7 @@ angular.module(
 							preview: File.DirectoryEntry
 				###
 				return { 'directoryEntry': o.directoryEntry }  # _.pluck o "directoryEntry"
+
 
 			getPreviewAsDataURL : (o, options, extension='JPG', label='preview')->
 				### this method uses snappi.assetspicker.getById() to resize dataURL
@@ -706,6 +735,10 @@ angular.module(
 									};
 								### 
 								# steroids.logger.log "&&&&&&&&&&&& item=" + JSON.stringify o
+								selectedKey =  o.uuid + '.' + o.orig_ext  
+								return if self.SAVE_PREVIOUSLY_SELECTED.indexOf(selectedKey) > -1
+
+								self.SAVE_PREVIOUSLY_SELECTED.push selectedKey
 								promises.push self.fileURIPipeline(o, options).then (retval)->
 										### expecting retval = {
 											id: o.uuid
@@ -868,7 +901,11 @@ angular.module(
 
 		}
 
-		_initFileStore()
+		_initFileStore().then ()->
+			steroids.logger.log "************** calling initOverlay()"
+			_initOverlay().catch (error)->
+				steroids.logger.log "initOverlay failed"
+				steroids.logger.log error
 		
 		return self
 ]

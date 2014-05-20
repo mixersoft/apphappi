@@ -169,11 +169,11 @@ angular.module(
             return $location.path(route)
 
           # controllerScope should validate deck and load route
-          controllerScope = angular.element(document.getElementById("notify")).scope()
+          controllerScope = angular.element(document.getElementById("view-frame")).scope()
           # verify deck
           return if !controllerScope?.deck?
 
-          deck = controllerScope?.deck   
+          deck = controllerScope.$rootScope.deck   
           isValid = deck.validateDeck()
           deck.cards('refresh') if !isValid
 

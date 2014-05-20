@@ -27,7 +27,7 @@
       ng-if="deck.size()">
         <div class="card-wrap"
         bindonce
-        ng-repeat="card in deck.cards()" 
+        ng-repeat="card in deck.cards('cards')" 
         >
           <div class="moment card text-center status-{{card.status}}"
           ng-class="{ active: $parent.card == deck.cards[$index] }"
