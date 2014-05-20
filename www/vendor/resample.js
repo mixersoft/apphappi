@@ -118,9 +118,10 @@ var Resample = (function () {
 		width == null && (width = round(img.width * height / img.height));
 		height == null && (height = round(img.height * width / img.width));
 
-		if (width <= img.width) {
+		if (img.width <= width) {
 			src = typeof img == "string" ? img : img.src
-			return done(src)
+			isDataUrl = src.indexOf("data:")==0
+			if (isDataUrl) return done(src)		// force dataUrl
 		}
 		
 		// remove (hopefully) stored info
