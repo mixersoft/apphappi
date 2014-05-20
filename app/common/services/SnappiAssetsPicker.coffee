@@ -201,20 +201,22 @@ angular.module(
 				dfdFINAL.resolve(photo) # goes to getPicture(photo)
 			return dfdFINAL.promise
 
-		_resample = (img, dfd)->
+		_resample = (img, dfd, targetWidth, mimeType)->
 			src = if img.src? then img.src else img  
-			console.log "*** resize using Resample.js ******* IMG.src=" + src[0..60]
+			dfd = $q.defer() if !dfd
+			steroids.logger.log "*** resize using Resample.js ******* IMG.src=" + src[0..60]
 			done = (dataURL)->
-				console.log "resampled data=" + JSON.stringify {
+				steroids.logger.log "resampled data=" + JSON.stringify {
 					size: dataURL.length
 					data: dataURL[0..60]
 				}
 				dfd.resolve(dataURL)
 				return
 			Resample.one()?.resample img
-				, 	CFG.camera.targetWidth
+				, 	targetWidth || CFG.camera.targetWidth
 				, 	null		# targetHeight
 				, 	done
+				, 	mimeType
 			return dfd.promise
 		
 		_parseExif = (dataURL, dfd)->
@@ -330,6 +332,53 @@ angular.module(
 					
 			return dfd0.promise
 
+		_initOverlay = (options)->
+			# options[0] = { src:, name: }
+			dfd = $q.defer()
+			#load as base64
+			icon_check = {
+				name: Camera.Overlay.PREVIOUS_SELECTED
+				src: '/icons/fa-check_32.png'
+			}
+			options = [icon_check]	# testing
+			# steroids.logger.log "_initOverlay, options=" + JSON.stringify options
+			promises = []
+			_.each options, (o)->
+				if o.src.indexOf('data:image/') != 0
+					# load src and convert to base64 dataURL
+					# _resample = (img, dfd, targetWidth, mimeType)
+					isRetina = true
+					iconSize = if isRetina then 64 else 32
+					promise = _resample( o.src, null, iconSize, 'image/png' ).then (dataURL)->
+							o.src = dataURL.replace(/^data:image\/(png|jpg);base64,/, "")
+							return o
+						.then (overlay)->
+							dfd = $q.defer()
+							steroids.logger.log "setOverlay, name="+overlay.name+", src="+overlay.src[0..100]
+							try 
+								window.plugin.snappi.assetspicker.setOverlay overlay.name
+									, overlay.src
+									, ()->
+										# steroids.logger.log "setOverlay SUCCESS"
+										dfd.resolve overlay
+									, (error)->
+										steroids.logger.log "setOverlay ERROR"
+										steroids.logger.log error
+										dfd.reject error
+								steroids.logger.log "AFTER setOverlay()"
+							catch error
+								steroids.logger.log error			
+							
+							return dfd.promise
+					promises.push promise
+
+
+
+			$q.all(promises).then (retval)->
+				# steroids.logger.log "all promises resolved, retval=" + JSON.stringify retval
+				dfd.resolve(options)
+			return dfd.promise
+
 		_pipelinePromises = {
 			# all methods to be used with promise API, e.g. then method()
 			getLocalFilesystem : (o)->
@@ -339,6 +388,7 @@ angular.module(
 							preview: File.DirectoryEntry
 				###
 				return { 'directoryEntry': o.directoryEntry }  # _.pluck o "directoryEntry"
+
 
 			getPreviewAsDataURL : (o, options, extension='JPG', label='preview')->
 				### this method uses snappi.assetspicker.getById() to resize dataURL
@@ -671,7 +721,7 @@ angular.module(
 					options.overlay = {} if !options.overlay
 					options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = self.SAVE_PREVIOUSLY_SELECTED if !options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
 				else if options.overlay[Camera.Overlay.PREVIOUS_SELECTED] != self.SAVE_PREVIOUSLY_SELECTED 
-					steroids.logger.log "1 ##### options.overlay=" + JSON.stringify options.overlay
+					# steroids.logger.log "1 ##### options.overlay=" + JSON.stringify options.overlay
 					self.SAVE_PREVIOUSLY_SELECTED = options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
 				# options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.map syncService.get['photos']. (o)-> return o.id + '.' + o.orig_ext
 
@@ -684,8 +734,6 @@ angular.module(
 					
 					# steroids.logger.log "*** getPicture() options:" + JSON.stringify options
 					window.plugin?.snappi?.assetspicker?.getPicture (dataArray)->
-							_.each dataArray, (o)->
-								self.SAVE_PREVIOUSLY_SELECTED.push o.uuid + '.' + o.orig_ext  
 
 							# steroids.logger.log "SAVE_PREVIOUSLY_SELECTED=" + JSON.stringify self.SAVE_PREVIOUSLY_SELECTED
 							photos = []
@@ -708,6 +756,10 @@ angular.module(
 									};
 								### 
 								# steroids.logger.log "&&&&&&&&&&&& item=" + JSON.stringify o
+								selectedKey =  o.uuid + '.' + o.orig_ext  
+								return if self.SAVE_PREVIOUSLY_SELECTED.indexOf(selectedKey) > -1
+
+								self.SAVE_PREVIOUSLY_SELECTED.push selectedKey
 								promises.push self.fileURIPipeline(o, options).then (retval)->
 										### expecting retval = {
 											id: o.uuid
@@ -862,10 +914,19 @@ angular.module(
 					return throw "imagePipeline REJECTED!"
 				# end fileURIPipeline
 
+			resample: (img)->
+				dfd = $q.defer()
+				_resample img, dfd, 640
+				return dfd.promise
+
 
 		}
 
-		_initFileStore()
+		_initFileStore().then ()->
+			steroids.logger.log "************** calling initOverlay()"
+			_initOverlay().catch (error)->
+				steroids.logger.log "initOverlay failed"
+				steroids.logger.log error
 		
 		return self
 ]
