@@ -26,7 +26,7 @@ var Resample = (function () {
 	// 		CordovaCameraRoll uses navigator.camera.getPicture() to auto-rotate
 	// 
 
-	Resample.prototype.resample = function(img, width, height, cb) {
+	Resample.prototype.resample = function(img, width, height, cb, mimeType) {
 		var
 			// check the image type
 			load = typeof img == "string",
@@ -61,6 +61,7 @@ var Resample = (function () {
 		i._cb = cb;
 		i._width = width;
 		i._height = height;
+		i._mimeType = mimeType || "image/jpeg";
 		// if string, we trust the onload event
 		// otherwise we call onload directly
 		// with the image as callback context
@@ -102,7 +103,9 @@ var Resample = (function () {
 			// the desired height, if any
 			height = img._height,
 			// the callback
-			callback = img._cb	// callback
+			callback = img._cb,	// callback
+
+			mimeType = img._mimeType  // default = "image/jpeg"
 		;
 		var canvas = this.canvas;
 		var context = canvas.getContext("2d");
@@ -125,6 +128,7 @@ var Resample = (function () {
 		delete img._onresample;
 		delete img._width;
 		delete img._height;
+		delete img._mimeType
 		// when we reassign a canvas size
 		// this clears automatically
 		// the size should be exactly the same
@@ -168,7 +172,11 @@ var Resample = (function () {
 		// retrieve the canvas content as
 		// base4 encoded PNG image
 		// and pass the result to the callback
-		done(canvas.toDataURL("image/jpeg"));
+		// try {
+		// 	steroids.logger.log(msg)
+		// 	steroids.logger.log("********** Resample.js: mimeType=" + mimeType)
+		// } catch (e) {}
+		done(canvas.toDataURL(mimeType));
 
 	}
 	
