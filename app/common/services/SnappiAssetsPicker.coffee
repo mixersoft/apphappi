@@ -341,6 +341,7 @@ angular.module(
 				src: '/icons/fa-check_32.png'
 			}
 			options = [icon_check]	# testing
+			options = []  # default
 			# steroids.logger.log "_initOverlay, options=" + JSON.stringify options
 			promises = []
 			_.each options, (o)->
@@ -354,7 +355,7 @@ angular.module(
 							return o
 						.then (overlay)->
 							dfd = $q.defer()
-							steroids.logger.log "setOverlay, name="+overlay.name+", src="+overlay.src[0..100]
+							# steroids.logger.log "setOverlay, name="+overlay.name+", src="+overlay.src[0..100]
 							try 
 								window.plugin.snappi.assetspicker.setOverlay overlay.name
 									, overlay.src
@@ -365,7 +366,7 @@ angular.module(
 										steroids.logger.log "setOverlay ERROR"
 										steroids.logger.log error
 										dfd.reject error
-								steroids.logger.log "AFTER setOverlay()"
+								# steroids.logger.log "AFTER setOverlay()"
 							catch error
 								steroids.logger.log error			
 							
@@ -373,10 +374,11 @@ angular.module(
 					promises.push promise
 
 
-
-			$q.all(promises).then (retval)->
-				# steroids.logger.log "all promises resolved, retval=" + JSON.stringify retval
-				dfd.resolve(options)
+			if promises.length 
+				$q.all(promises).then (retval)->
+					steroids.logger.log "********* _initOverlay: all promises resolved, retval=" + JSON.stringify( retval)[0..100]
+					dfd.resolve(options)
+			else dfd.resolve( options )
 			return dfd.promise
 
 		_pipelinePromises = {
@@ -687,6 +689,7 @@ angular.module(
 				retval.originalSrc = '/' + o.fileEntry['original'].name if o.fileEntry?['original']
 				retval.previewSrc = '/' + o.fileEntry['preview'].name if o.fileEntry?['preview']
 				return retval
+
 		}
 		# end _pipelinePromises		
 
@@ -712,10 +715,11 @@ angular.module(
 					_deferred.reject( "Cordova error code: " + error.code + " fileError. "  )
 
 
-			#
-			# this is the main API entry point
-			#
-			getPicture: (options, $event)->
+			getOptions: (options)->
+				# steroids.logger.log "self.getOptions()"
+				dfd = $q.defer()
+
+				# load previouslySelected items
 				if !options.overlay?[Camera.Overlay.PREVIOUS_SELECTED]?.length
 					self.SAVE_PREVIOUSLY_SELECTED = []
 					options.overlay = {} if !options.overlay
@@ -725,8 +729,51 @@ angular.module(
 					self.SAVE_PREVIOUSLY_SELECTED = options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
 				# options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.map syncService.get['photos']. (o)-> return o.id + '.' + o.orig_ext
 
-				try
-					steroids.logger.log "Using snappi-assets-picker"
+				# load album bookmarks as necessary
+				options.bookmarks = {}
+				# options.overlay = {}
+
+				if !options.bookmarks? || options.bookmarks == false 
+					# steroids.logger.log "NO BOOKMARKS"
+					dfd.resolve(options)	
+				else if _.isArray(options.bookmarks)
+					# array of Dates
+					steroids.logger.log "TESTING DATE BOOKMARKS Array of Dates="+JSON.stringify options.bookmarks
+					dfd.resolve(options)	
+
+				else if _.isObject(options.bookmarks)
+					# dictionary of albumID: assetID
+					# steroids.logger.log "TESTING ALBUM BOOKMARKS"
+					window.plugin?.snappi?.assetspicker?.getPreviousAlbums (previousAlbums)->
+							options.bookmarks = previousAlbums
+							return dfd.resolve(options)
+						, (error)->
+							return steroids.logger.log "getPreviousAlbums Error: msg="+error
+
+
+				else throw "ERROR: invalid value for options.bookmarks, bookmarks="+JSON.stringify options.bookmarks
+
+				return dfd.promise		
+
+
+			#
+			# this is the main API entry point
+			#
+			getPicture: (options, $event)->
+				steroids.logger.log "getPicture 1"
+
+				# # load previouslySelected items
+				# if !options.overlay?[Camera.Overlay.PREVIOUS_SELECTED]?.length
+				# 	self.SAVE_PREVIOUSLY_SELECTED = []
+				# 	options.overlay = {} if !options.overlay
+				# 	options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = self.SAVE_PREVIOUSLY_SELECTED if !options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
+				# else if options.overlay[Camera.Overlay.PREVIOUS_SELECTED] != self.SAVE_PREVIOUSLY_SELECTED 
+				# 	# steroids.logger.log "1 ##### options.overlay=" + JSON.stringify options.overlay
+				# 	self.SAVE_PREVIOUSLY_SELECTED = options.overlay[Camera.Overlay.PREVIOUS_SELECTED]
+				# # options.overlay[Camera.Overlay.PREVIOUS_SELECTED] = _.map syncService.get['photos']. (o)-> return o.id + '.' + o.orig_ext
+
+				_getPicture = (options, $event)->
+					steroids.logger.log "Using snappi-assets-picker, options="+JSON.stringify options
 					if _deferred?
 						_deferred.reject(  'Camera getPicture cancelled, _deferred.id='+_deferred.id  )
 					_deferred = $q.defer()
@@ -793,8 +840,17 @@ angular.module(
 
 					
 					return _deferred.promise.finally ()->_deferred = null
-				catch error
-					JSON.stringify error
+					# /_getPicture()
+
+				return self.getOptions(options).then (options)->
+						try 
+							return _getPicture( options, $event)
+						catch error 
+							steroids.logger.log " _getPicture EXCEPTION"
+							steroids.logger.log error
+					, (error)->
+						steroids.logger.log "getOptions() failed, error="+JSON.stringify error
+						return _getPicture options, $event
 	
 
 			# dataURL > resolve with originalSrc as FileURI and previewSrc as DataURL
