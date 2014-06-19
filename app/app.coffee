@@ -19,7 +19,7 @@ angular.module( 'appHappi', [
 	saveDownsizedJPG: true
 	# NOTE: only dataURLs are persisting between re-scans
 	# EXCEPT: in adhoc app (test this)
-	cameraRoll : 'snappiAssetsPickerService'  # values: [ snappiAssetsPickerService | cordovaCameraService | html5CameraService ]  # force "html5CameraService" or auto
+	cameraService : 'snappiAssetsPickerService'  # values: [ snappiAssetsPickerService | cordovaCameraService | html5CameraService ]  # force "html5CameraService" or auto
 	camera: 
 		targetWidth : 320
 		quality: 85

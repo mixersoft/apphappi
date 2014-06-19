@@ -76,32 +76,34 @@ angular.module(
 		dfd = $q.defer()
 
 		use_fallback = ()->
-			type = "html5CameraService"
-			_cameraRollService = $injector.get(type)
+			CFG.cameraService = "html5CameraService"
+			_cameraRollService = $injector.get(CFG.cameraService)
 			dfd.resolve {
-				type : type
+				type : CFG.cameraService
 				cameraRoll: _cameraRollService
 			}
 
 		use_snappiAssetsPickerService = ()->
 			# return $injector.get('cordovaImpl')
-			type = "snappiAssetsPickerService"
-			_cameraRollService = $injector.get(type)
+			CFG.cameraService = "snappiAssetsPickerService"
+			_cameraRollService = $injector.get(CFG.cameraService)
+			steroids.logger.log 'CFG.cameraService = snappiAssetsPickerService'
 			dfd.resolve {
-				type : type
+				type : CFG.cameraService
 				cameraRoll: _cameraRollService
 			}	
 
 		use_cordova = ()->
 			# return $injector.get('cordovaImpl')
-			type = "cordovaCameraService"
-			_cameraRollService = $injector.get(type)
+			CFG.cameraService = "cordovaCameraService"
+			_cameraRollService = $injector.get(CFG.cameraService)
+			steroids.logger.log 'CFG.cameraService = cordovaCameraService'
 			dfd.resolve {
-				type : type
+				type : CFG.cameraService
 				cameraRoll: _cameraRollService
 			}
 
-		if CFG.cameraRoll == "html5CameraService"
+		if CFG.cameraService == "html5CameraService"
 			use_fallback()
 		if $window.deviceready	# already known, resolve immediately
 			if ($window.cordova) 
@@ -113,9 +115,9 @@ angular.module(
 			cancel = $timeout use_fallback, CAMERA_ROLL_TIMEOUT	
 			document.addEventListener "deviceready", ()->
 				$timeout.cancel cancel
-				if CFG.cameraRoll=='snappiAssetsPickerService'
+				if CFG.cameraService=='snappiAssetsPickerService'
 					use_snappiAssetsPickerService()
-				else if (CFG.cameraRoll=='cordovaCameraService' && $window.cordova) 
+				else if (CFG.cameraService=='cordovaCameraService' && $window.cordova) 
 					use_cordova()
 				else 
 					use_fallback()

@@ -49,6 +49,8 @@ angular.module(
   'localStorageService'
 , (CFG, $location, $http, $timeout, $window, localStorageService)->
 
+    _CFG = CFG
+
     # private
     _drawer = {
       url: '/common/data/drawer.json'
@@ -94,8 +96,6 @@ angular.module(
         if fullHeight
           drawerWrap.removeClass('collapsed')
         else drawerWrap.addClass('collapsed')
-
-
     }
 
     self = {
@@ -193,14 +193,21 @@ angular.module(
         if options.group=='settings'
           switch options.item
             when 'reset'
+              # BUG: force on mobile
+              localStorageService.clearAll() if _CFG.cameraService == "snappiAssetsPickerService"
+
               _resetCb = (clearAll=false)->
+                steroids.logger.log "clearAll="+clearAll
                 localStorageService.clearAll() if clearAll
                 self.animateClose()
                 $timeout (()->window.location.reload()), 1000
                 return $location.path('/')
 
               if navigator.notification
+                # TODO: notification dialog is not working with steriods
+                steroids.logger.log "using navigator.notification to RESET"
                 _onConfirm = (index)->
+                  steroids.logger.log "_onConfirm, index="+index
                   clearAll = index==2 
                   return _resetCb(clearAll)
                 navigator.notification.confirm(
@@ -210,8 +217,13 @@ angular.module(
                         ['Cancel', 'OK']
                       )
               else
+                steroids.logger.log "using window.confirm to RESET"
                 resp = window.confirm('Are you sure you want to delete everything?')
                 return _resetCb(resp)
+
+              
+
+
             when 'debug'
               # CFG.debug = !CFG.debug    # toggle in on-off-switch
               null
