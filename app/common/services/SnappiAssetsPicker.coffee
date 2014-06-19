@@ -5,8 +5,9 @@ angular.module(
 ).factory('snappiAssetsPickerService', [
 	'$q'
 	'notifyService'
+	'syncService'
 	'appConfig'
-	($q, notify, CFG)->
+	($q, notify, syncService, CFG)->
 		
 		_defaultCameraOptions = {
 				fromPhotoLibrary:
@@ -333,15 +334,25 @@ angular.module(
 			return dfd0.promise
 
 		_initOverlay = (options)->
+			steroids.logger.log "_initOverlay 0" 
 			# options[0] = { src:, name: }
 			dfd = $q.defer()
 			#load as base64
+			#
+			# NOTE: window.plugin.snappi.assetspicker === Camera
+			#
+			# steroids.logger.log "_initOverlay 1, Camera="+JSON.stringify Camera 
 			icon_check = {
-				name: Camera.Overlay.PREVIOUS_SELECTED
+				name: Camera.Overlay?.PREVIOUS_SELECTED
 				src: '/icons/fa-check_32.png'
 			}
-			options = [icon_check]	# testing
-			options = []  # default
+			icon_heart = {
+				name: 'favorite'
+				src: '/icons/fa-heart_32.png'
+			}
+			# steroids.logger.log "_initOverlay 2" 
+			# options = [icon_heart, icon_check]	# testing
+			options = []  # default red check
 			# steroids.logger.log "_initOverlay, options=" + JSON.stringify options
 			promises = []
 			_.each options, (o)->
@@ -378,7 +389,9 @@ angular.module(
 				$q.all(promises).then (retval)->
 					steroids.logger.log "********* _initOverlay: all promises resolved, retval=" + JSON.stringify( retval)[0..100]
 					dfd.resolve(options)
-			else dfd.resolve( options )
+			else
+				steroids.logger.log "setOverlay SUCCESS, using default overlays"
+				dfd.resolve( options )
 			return dfd.promise
 
 		_pipelinePromises = {
@@ -690,6 +703,45 @@ angular.module(
 				retval.previewSrc = '/' + o.fileEntry['preview'].name if o.fileEntry?['preview']
 				return retval
 
+			mapPhotos : ( options = {} )->
+				###
+				options.pluck = ['DateTimeOriginal', 'PixelXDimension', 'PixelYDimension', 'Orientation']
+				options.fromDate/toDate: String Date().toJSON() in local time
+				###
+
+
+				dfd = $q.defer()
+				_getAsLocalTimeJSON = (d)->
+					d = new Date() if !d
+					throw "_getAsLocalTimeJSON: expecting a Date param" if !_.isDate(d)
+					d.setHours(d.getHours() - d.getTimezoneOffset() / 60)
+					return d.toJSON()
+
+
+
+				# options.fromDate = moment().startOf('day').set('hours',13).subtract(6,'days').toDate()	# test
+				# options.toDate = moment().startOf('day').set('hours',18).subtract(6,'days').toDate()	# test
+
+				options.fromDate = _getAsLocalTimeJSON(options.fromDate) if options.fromDate? && _.isDate(options.fromDate)
+				options.toDate = _getAsLocalTimeJSON(options.toDate) if options.toDate? && _.isDate(options.toDate)
+				start = new Date().getTime()
+				window.plugin.snappi?.assetspicker?.mapAssetsLibrary (mapped)->
+						end = new Date().getTime()
+						steroids.logger.log '*** mapped.lastDate='+mapped.lastDate + ', count='+mapped.assets.length + ', elapsed=' + ((end-start)/1000)
+						steroids.logger.log JSON.stringify mapped.assets[-20..-1]
+						syncService.set('mapped', mapped)
+
+						return dfd.resolve mapped
+					, (error)->
+						steroids.logger.log error
+						return dfd.reject error
+					, options
+
+				steroids.logger.log "*** mapAssetsLibrary(), options="+JSON.stringify options
+
+				return dfd.promise
+				
+
 		}
 		# end _pipelinePromises		
 
@@ -718,6 +770,11 @@ angular.module(
 			getOptions: (options)->
 				# steroids.logger.log "self.getOptions()"
 				dfd = $q.defer()
+
+				# test setOverlay with new key
+				# steroids.logger.log "Camera.Overlay.PREVIOUS_SELECTED="+Camera.Overlay.PREVIOUS_SELECTED
+				# Camera.Overlay.PREVIOUS_SELECTED = 'favorite'
+				# steroids.logger.log "Camera.Overlay.PREVIOUS_SELECTED="+Camera.Overlay.PREVIOUS_SELECTED
 
 				# load previouslySelected items
 				if !options.overlay?[Camera.Overlay.PREVIOUS_SELECTED]?.length
@@ -839,7 +896,10 @@ angular.module(
 
 
 					
-					return _deferred.promise.finally ()->_deferred = null
+					return _deferred.promise.finally( ()->_deferred = null )
+						.then (o)->  
+							# _pipelinePromises.mapPhotos(); 
+							return o
 					# /_getPicture()
 
 				return self.getOptions(options).then (options)->
